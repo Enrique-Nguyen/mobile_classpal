@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+<<<<<<< HEAD
 import 'app_drawer.dart';
 import 'notifications_sheet.dart';
 import 'leaderboard_sheet.dart';
+=======
+>>>>>>> afb28a1 ([Refactor] Add reusable header)
 
 class CustomHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
+<<<<<<< HEAD
   const CustomHeader({super.key, required this.title, required this.subtitle});
+=======
+  const CustomHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+  });
+>>>>>>> afb28a1 ([Refactor] Add reusable header)
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +27,11 @@ class CustomHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
+<<<<<<< HEAD
           _buildIconBtn(Icons.grid_view, onTap: () => showAppDrawer(context)),
+=======
+          _buildIconBtn(Icons.grid_view),
+>>>>>>> afb28a1 ([Refactor] Add reusable header)
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -41,6 +56,7 @@ class CustomHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+<<<<<<< HEAD
           _buildIconBtn(
             Icons.notifications_none,
             onTap: () => showNotificationsSheet(context),
@@ -50,11 +66,17 @@ class CustomHeader extends StatelessWidget {
             Icons.emoji_events_outlined,
             onTap: () => showLeaderboardSheet(context),
           ),
+=======
+          _buildIconBtn(Icons.notifications_none),
+          const SizedBox(width: 8),
+          _buildIconBtn(Icons.emoji_events_outlined),
+>>>>>>> afb28a1 ([Refactor] Add reusable header)
         ],
       ),
     );
   }
 
+<<<<<<< HEAD
   Widget _buildIconBtn(IconData icon, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -70,3 +92,17 @@ class CustomHeader extends StatelessWidget {
     );
   }
 }
+=======
+  Widget _buildIconBtn(IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Icon(icon, size: 20, color: Colors.black87),
+    );
+  }
+}
+>>>>>>> afb28a1 ([Refactor] Add reusable header)
