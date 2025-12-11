@@ -18,9 +18,7 @@ class App extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 77, 199, 162),
         ),
-        // Modern typography with Inter font
         textTheme: GoogleFonts.teachersTextTheme(Theme.of(context).textTheme),
-        // Apply to app bar and other components
         appBarTheme: AppBarTheme(
           titleTextStyle: GoogleFonts.ptSerif(
             fontSize: 18,
