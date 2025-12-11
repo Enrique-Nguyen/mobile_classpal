@@ -42,16 +42,46 @@ class DutyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date/Time and Points row
+            // Top row: Rule tag and Points
             Row(
               children: [
-                Text(
-                  '$dateLabel · $timeLabel'.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
+                // Rule tag (nicer styling)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryBlue.withOpacity(0.15),
+                        AppColors.primaryBlue.withOpacity(0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.primaryBlue.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bookmark_rounded,
+                        size: 14,
+                        color: AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        ruleName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
@@ -59,101 +89,95 @@ class DutyCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 4,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.bgGreenLight,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '+$points',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.successGreen,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Title
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-                height: 1.3,
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Rule tag and Assigned tag row
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                // Rule tag
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgOrangeLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.label_outline,
+                        Icons.star_rounded,
                         size: 14,
-                        color: AppColors.warningOrange,
+                        color: AppColors.successGreen,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        ruleName,
+                        '+$points',
                         style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.warningOrange,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.successGreen,
                         ),
                       ),
                     ],
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Title
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Date/time row
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '$dateLabel · $timeLabel',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 // "Assigned to you" tag
-                if (isAssignedToMonitor)
+                if (isAssignedToMonitor) ...[
+                  const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.bgBlueLight,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Icon(
-                          Icons.person_outline,
-                          size: 14,
+                          Icons.person_rounded,
+                          size: 12,
                           color: AppColors.primaryBlue,
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'Assigned to you',
+                          'You',
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.primaryBlue,
                           ),
                         ),
                       ],
                     ),
                   ),
+                ],
               ],
             ),
           ],
