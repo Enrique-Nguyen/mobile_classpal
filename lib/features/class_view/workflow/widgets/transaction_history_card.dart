@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class TransactionHistoryCard extends StatelessWidget {
   const TransactionHistoryCard({super.key});

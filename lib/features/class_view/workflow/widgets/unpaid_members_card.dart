@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class UnpaidMembersCard extends StatelessWidget {
   const UnpaidMembersCard({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // Import từ Core
-import '../../../core/constants/app_colors.dart';
-import '../../../core/widgets/custom_header.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/custom_header.dart';
 // Import Widgets con từ module Funds
 import '../widgets/fund_overview_card.dart';
 import '../widgets/unpaid_members_card.dart';
