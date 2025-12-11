@@ -167,23 +167,6 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
               ],
             ),
           ),
-          // Save button
-          ElevatedButton(
-            onPressed: _saveDuty,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              'Save',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
         ],
       ),
     );
@@ -304,7 +287,28 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
               ],
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
+          // Save button at bottom
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _saveDuty,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 59, 179, 129),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

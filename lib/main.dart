@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'features/main_view/screens/welcome.dart';
 import 'core/widgets/class_view_navigation.dart';
 
@@ -16,6 +17,17 @@ class App extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 77, 199, 162),
+        ),
+        // Modern typography with Inter font
+        textTheme: GoogleFonts.teachersTextTheme(Theme.of(context).textTheme),
+        // Apply to app bar and other components
+        appBarTheme: AppBarTheme(
+          titleTextStyle: GoogleFonts.ptSerif(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1A1F36),
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       home: const WelcomeScreen(),
