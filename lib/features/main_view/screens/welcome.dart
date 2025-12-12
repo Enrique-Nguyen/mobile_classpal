@@ -1,5 +1,4 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
 // import '../../class_view/overview/widgets/main_navigation.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -140,10 +139,8 @@ class WelcomeScreen extends StatelessWidget {
       height: 56,
       child: ElevatedButton(
         onPressed: () {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const SigninScreen()),
-          );
-          Navigator.pushNamed(context, '/class');
+          Navigator.pushNamed(context, '/signin');
+          // Navigator.pushNamed(context, '/class');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1E1E2D),
