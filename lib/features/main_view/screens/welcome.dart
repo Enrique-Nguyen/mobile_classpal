@@ -143,6 +143,7 @@ class WelcomeScreen extends StatelessWidget {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const SigninScreen()),
           );
+          Navigator.pushNamed(context, '/class');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1E1E2D),

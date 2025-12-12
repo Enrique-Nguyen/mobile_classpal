@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/notifications_sheet.dart';
+import '../../../../core/widgets/leaderboard_sheet.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -53,43 +56,52 @@ class DashboardScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.grid_view_rounded,
-                  color: Colors.white,
-                  size: 20,
+              GestureDetector(
+                onTap: () => showAppDrawer(context),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.grid_view_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                      size: 20,
+                  GestureDetector(
+                    onTap: () => showNotificationsSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.qr_code_scanner_rounded,
-                      color: Colors.white,
-                      size: 20,
+                  GestureDetector(
+                    onTap: () => showLeaderboardSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.emoji_events_outlined,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -97,16 +109,6 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // Time and date
-          Text(
-            'MON · 07:30 - 09:00',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 12,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
           // Class name
           const Text(
             'CS101 · Product Ops',
@@ -116,13 +118,26 @@ class DashboardScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Ms. Nguyen',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-            ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Text(
+                  "Class Monitor",
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.supervised_user_circle,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
           ),
         ],
       ),
