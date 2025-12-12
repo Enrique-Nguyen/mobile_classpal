@@ -5,111 +5,187 @@ import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/member_role.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 
+// Mock data for classes and corresponding member info
+class ClassMemberData {
+  final Class classData;
+  final Member member;
+  final Color borderColor;
+
+  const ClassMemberData({
+    required this.classData,
+    required this.member,
+    required this.borderColor,
+  });
+}
+
 class HomepageScreen extends StatelessWidget {
   const HomepageScreen({super.key});
 
+  // Mock data - in production this would come from a backend or state management
+  static final List<ClassMemberData> _mockClassesData = [
+    ClassMemberData(
+      classData: Class(id: '1', name: 'CS101·Product Ops'),
+      member: Member(
+        id: '1',
+        name: 'Lê Đức Nguyên',
+        classId: '1',
+        role: MemberRole.quanLyLop,
+      ),
+      borderColor: Colors.red,
+    ),
+    ClassMemberData(
+      classData: Class(id: '2', name: 'CS202·Advanced AI'),
+      member: Member(
+        id: '2',
+        name: 'Lê Đức Nguyên',
+        classId: '2',
+        role: MemberRole.canBoLop,
+      ),
+      borderColor: Colors.blue,
+    ),
+    ClassMemberData(
+      classData: Class(id: '3', name: 'CS303·Data Science'),
+      member: Member(
+        id: '3',
+        name: 'Lê Đức Nguyên',
+        classId: '3',
+        role: MemberRole.thanhVien,
+      ),
+      borderColor: Colors.green,
+    ),
+    ClassMemberData(
+      classData: Class(id: '4', name: 'CS404·Mobile Development'),
+      member: Member(
+        id: '4',
+        name: 'Lê Đức Nguyên',
+        classId: '4',
+        role: MemberRole.canBoLop,
+      ),
+      borderColor: Colors.orange,
+    ),
+    ClassMemberData(
+      classData: Class(id: '5', name: 'CS505·Cloud Computing'),
+      member: Member(
+        id: '5',
+        name: 'Lê Đức Nguyên',
+        classId: '5',
+        role: MemberRole.thanhVien,
+      ),
+      borderColor: Colors.purple,
+    ),
+  ];
+
+  // Current user name - in production this would come from auth state
+  static const String _currentUserName = 'Lê Đức Nguyên';
+
   @override
   Widget build(BuildContext context) {
-    // Mock data - in production this would come from a backend or state management
-    final mockClass = Class(id: '1', name: 'CS101·Product Ops');
-    final mockMember = Member(
-      id: '1',
-      name: 'Lê Đức Nguyên',
-      classId: '1',
-      role: MemberRole.quanLyLop,
-    );
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _builldHelloWelcomeClass(mockMember.name),
-                    _buildLogoutButton(context),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Text(
-                  "Lớp của bạn",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                _buildClassCard(
-                  context: context,
-                  borderColor: Colors.red,
-                  title: mockClass.name,
-                  subtitle: 'Vai trò: ${mockMember.role.displayName}',
-                  classData: mockClass,
-                  member: mockMember,
-                ),
-              ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header section
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildHelloWelcomeClass(_currentUserName),
+                  _buildLogoutButton(context),
+                ],
+              ),
             ),
-          ),
+            // Section title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                "Lớp của bạn (${_mockClassesData.length})",
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Classes ListView
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _mockClassesData.length,
+                itemBuilder: (context, index) {
+                  final data = _mockClassesData[index];
+                  return _buildClassCard(
+                    context: context,
+                    borderColor: data.borderColor,
+                    title: data.classData.name,
+                    subtitle: 'Vai trò: ${data.member.role.displayName}',
+                    classData: data.classData,
+                    member: data.member,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  RichText _builldHelloWelcomeClass(String userName) {
+  RichText _buildHelloWelcomeClass(String userName) {
     return RichText(
       text: TextSpan(
         children: [
-          TextSpan(
+          const TextSpan(
             text: 'Chào mừng trở lại\n',
             style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
           ),
           TextSpan(
             text: userName,
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-Container _buildLogoutButton(BuildContext context) {
-  return Container(
-    width: 44,
-    height: 44,
-    decoration: BoxDecoration(
-      border: Border.all(color: AppColors.errorRed),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: IconButton(
-      icon: const Icon(
-        Icons.logout_outlined,
-        color: AppColors.errorRed,
-        size: 20,
+  Widget _buildLogoutButton(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.errorRed),
+        borderRadius: BorderRadius.circular(12),
       ),
-      onPressed: () {
-        Navigator.pushNamed(context, '/welcome');
-      },
-    ),
-  );
-}
+      child: IconButton(
+        icon: const Icon(
+          Icons.logout_outlined,
+          color: AppColors.errorRed,
+          size: 20,
+        ),
+        onPressed: () {
+          Navigator.pushNamed(context, '/welcome');
+        },
+      ),
+    );
+  }
 
-Widget _buildClassCard({
-  required BuildContext context,
-  required Color borderColor,
-  required String title,
-  required String subtitle,
-  required Class classData,
-  required Member member,
-}) {
-  return Column(
-    children: [
-      SizedBox(height: 20),
-      TextButton(
+  Widget _buildClassCard({
+    required BuildContext context,
+    required Color borderColor,
+    required String title,
+    required String subtitle,
+    required Class classData,
+    required Member member,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextButton(
         onPressed: () {
           Navigator.pushNamed(
             context,
@@ -165,6 +241,7 @@ Widget _buildClassCard({
           ),
         ),
       ),
-    ],
-  );
+    );
+  }
 }
+

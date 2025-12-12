@@ -6,6 +6,7 @@ import '../../../../core/models/member.dart';
 import '../widgets/duty_card.dart';
 import '../widgets/pending_approval_card.dart';
 import 'duty_details_screen.dart';
+import 'create_duty_screen.dart';
 
 class DutiesScreenMonitor extends StatefulWidget {
   final Class classData;
@@ -118,6 +119,21 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreateDutyScreen(
+                classData: widget.classData,
+                currentMember: widget.currentMember,
+              ),
+            ),
+          );
+        },
+        backgroundColor: AppColors.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           children: [
