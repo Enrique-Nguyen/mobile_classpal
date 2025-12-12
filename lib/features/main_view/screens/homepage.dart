@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/member_role.dart';
+import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 
 class HomepageScreen extends StatelessWidget {
   const HomepageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Mock data - in production this would come from a backend or state management
+    final mockClass = Class(id: '1', name: 'CS101·Product Ops');
+    final mockMember = Member(
+      id: '1',
+      name: 'Lê Đức Nguyên',
+      classId: '1',
+      role: MemberRole.quanLyLop,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -18,7 +31,7 @@ class HomepageScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _builldHelloWelcomeClass(),
+                    _builldHelloWelcomeClass(mockMember.name),
                     _buildLogoutButton(context),
                   ],
                 ),
@@ -33,9 +46,10 @@ class HomepageScreen extends StatelessWidget {
                 _buildClassCard(
                   context: context,
                   borderColor: Colors.red,
-                  title: 'CS101·Product Ops',
-                  subtitle: 'Vai trò: Lớp trưởng',
-                  // icon: Icons.warning_amber_rounded,
+                  title: mockClass.name,
+                  subtitle: 'Vai trò: ${mockMember.role.displayName}',
+                  classData: mockClass,
+                  member: mockMember,
                 ),
               ],
             ),
@@ -45,7 +59,7 @@ class HomepageScreen extends StatelessWidget {
     );
   }
 
-  RichText _builldHelloWelcomeClass() {
+  RichText _builldHelloWelcomeClass(String userName) {
     return RichText(
       text: TextSpan(
         children: [
@@ -54,7 +68,7 @@ class HomepageScreen extends StatelessWidget {
             style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
           ),
           TextSpan(
-            text: 'Lê Đức Nguyên',
+            text: userName,
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
         ],
@@ -89,15 +103,22 @@ Widget _buildClassCard({
   required Color borderColor,
   required String title,
   required String subtitle,
-
-  // required IconData icon,
+  required Class classData,
+  required Member member,
 }) {
   return Column(
     children: [
       SizedBox(height: 20),
       TextButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/class');
+          Navigator.pushNamed(
+            context,
+            '/class',
+            arguments: ClassViewArguments(
+              classData: classData,
+              currentMember: member,
+            ),
+          );
         },
         style: TextButton.styleFrom(padding: EdgeInsets.zero),
         child: Container(

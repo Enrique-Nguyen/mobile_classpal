@@ -5,6 +5,7 @@ import 'package:mobile_classpal/features/auth/screens/signup_screen.dart';
 import 'package:mobile_classpal/features/main_view/screens/homepage.dart';
 import 'features/main_view/screens/welcome.dart';
 import 'core/widgets/class_view_navigation.dart';
+import 'core/models/class_view_arguments.dart';
 
 void main() {
   runApp(const App());
@@ -37,8 +38,16 @@ class App extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/signin': (context) => const SigninScreen(),
         '/signup': (context) => const SignupScreen(),
-        '/class': (context) => const ClassViewNavigation(),
         '/home_page': (context) => const HomepageScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/class') {
+          final args = settings.arguments as ClassViewArguments;
+          return MaterialPageRoute(
+            builder: (context) => ClassViewNavigation(arguments: args),
+          );
+        }
+        return null;
       },
     );
   }
