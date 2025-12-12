@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
+import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
 
 class EventCard extends StatelessWidget {
   final String title;
@@ -165,7 +167,14 @@ class EventCard extends StatelessWidget {
 }
 
 class EventsScreenContent extends StatelessWidget {
-  const EventsScreenContent({super.key});
+  final Class classData;
+  final Member currentMember;
+
+  const EventsScreenContent({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -174,10 +183,10 @@ class EventsScreenContent extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header (consistent with other screens)
-            const CustomHeader(
+            // Header (consistent with other screens) - dynamic subtitle
+            CustomHeader(
               title: 'Events & Attendance',
-              subtitle: 'CS101 · Product Ops',
+              subtitle: classData.name,
             ),
             // Search Bar
             Padding(

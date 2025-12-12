@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../models/class_view_arguments.dart';
+import '../models/class.dart';
+import '../models/member.dart';
 import '../../features/class_view/overview/screens/dashboard.dart';
 import '../../features/class_view/overview/screens/profile.dart';
 import '../../features/class_view/workflow/screens/duties_screen.monitor.dart';
@@ -7,7 +10,9 @@ import '../../features/class_view/workflow/screens/events_screen.dart';
 import '../../features/class_view/workflow/screens/funds_screen.dart';
 
 class ClassViewNavigation extends StatefulWidget {
-  const ClassViewNavigation({super.key});
+  final ClassViewArguments arguments;
+
+  const ClassViewNavigation({super.key, required this.arguments});
 
   @override
   State<ClassViewNavigation> createState() => _ClassViewNavigationState();
@@ -16,19 +21,22 @@ class ClassViewNavigation extends StatefulWidget {
 class _ClassViewNavigationState extends State<ClassViewNavigation> {
   int _currentIndex = 0;
 
-  // List of screens for each tab
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    DutiesScreenMonitor(),
-    EventsScreenContent(),
-    ClassFundsScreenContent(),
-    ProfileScreen(),
-  ];
+  Class get classData => widget.arguments.classData;
+  Member get currentMember => widget.arguments.currentMember;
 
   @override
   Widget build(BuildContext context) {
+    // Create screens with dynamic data
+    final List<Widget> screens = [
+      DashboardScreen(classData: classData, currentMember: currentMember),
+      DutiesScreenMonitor(classData: classData, currentMember: currentMember),
+      EventsScreenContent(classData: classData, currentMember: currentMember),
+      ClassFundsScreenContent(classData: classData, currentMember: currentMember),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -117,3 +125,4 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
     );
   }
 }
+

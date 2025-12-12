@@ -1,9 +1,12 @@
+import 'member_role.dart';
+
 class Member {
   final String id;
   final String name;
   final String? image;
-  final String? classId; // User is member of certain class with class_id
+  final String? classId;
   final String? userId;
+  final MemberRole role;
 
   Member({
     required this.id,
@@ -11,6 +14,7 @@ class Member {
     this.image,
     this.classId,
     this.userId,
+    required this.role,
   });
 
   const Member.empty()
@@ -18,7 +22,8 @@ class Member {
         name = '',
         image = null,
         classId = null,
-        userId = null;
+        userId = null,
+        role = MemberRole.thanhVien;
 
   const Member.init({
     required this.id,
@@ -26,5 +31,6 @@ class Member {
     this.image,
     this.classId,
     this.userId,
+    required this.role,
   });
 }
