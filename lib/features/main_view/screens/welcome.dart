@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-// import '../../class_view/overview/widgets/main_navigation.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -7,7 +7,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -20,7 +20,7 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
+                  fontFamily: 'Inter',
                   color: Color(0xFF1E1E2D),
                   letterSpacing: -0.5,
                 ),
@@ -28,10 +28,10 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 16),
               // Subtitle
               Text(
-                'Your digital command center for\nseamless class operations',
+                'Học thật chất, quản lý phất, ClassPal cân tất.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: Colors.grey.shade600,
                   height: 1.5,
                 ),
@@ -105,7 +105,8 @@ class WelcomeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -143,7 +144,7 @@ class WelcomeScreen extends StatelessWidget {
           // Navigator.pushNamed(context, '/class');
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1E1E2D),
+          backgroundColor: Color(0xFF4682A9),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -151,7 +152,7 @@ class WelcomeScreen extends StatelessWidget {
           elevation: 0,
         ),
         child: const Text(
-          'Get Started',
+          'Bắt đầu thôi nào!',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),

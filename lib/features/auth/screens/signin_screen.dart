@@ -184,8 +184,8 @@ SizedBox _buildSignInButton(BuildContext context) {
         style: TextStyle(fontSize: 17.2, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xff1A1A2E),
-        foregroundColor: Color(0xffB7B7BD),
+        backgroundColor: Color(0xFF4682A9),
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: EdgeInsets.all(20),
       ),
