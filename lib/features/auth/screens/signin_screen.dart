@@ -177,7 +177,7 @@ SizedBox _buildSignInButton(BuildContext context) {
     width: double.infinity,
     child: ElevatedButton(
       onPressed: () {
-        Navigator.pushNamed(context, '/class');
+        Navigator.pushNamed(context, '/home_page');
       },
       child: Text(
         "Đăng nhập",
