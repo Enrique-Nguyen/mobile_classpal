@@ -261,7 +261,7 @@ class _EventCardState extends State<EventCard> {
   }
 }
 
-class EventsScreenContent extends StatelessWidget {
+class EventsScreenContent extends StatefulWidget {
   final Class classData;
   final Member currentMember;
 
@@ -325,7 +325,7 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
             // Header (consistent with other screens) - dynamic subtitle
             CustomHeader(
               title: 'Events & Attendance',
-              subtitle: classData.name,
+              subtitle: widget.classData.name,
             ),
             // Create Event Button
             Padding(
