@@ -134,7 +134,7 @@ class _SigninScreenState extends State<SigninScreen> {
                       _buildSignInButton(context),
                       _buildDivider(),
                       _buildGoogleButton(),
-                      _buildFooter(),
+                      _buildFooter(context),
                     ],
                   ),
                 ),
@@ -147,7 +147,7 @@ class _SigninScreenState extends State<SigninScreen> {
   }
 }
 
-Row _buildFooter() {
+Row _buildFooter(context) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
@@ -156,7 +156,9 @@ Row _buildFooter() {
         style: TextStyle(fontSize: 15, color: Color(0xFF9294A4)),
       ),
       TextButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushNamed(context, '/signup');
+        },
         child: Text(
           "Đăng ký",
           style: TextStyle(
@@ -182,8 +184,8 @@ SizedBox _buildSignInButton(BuildContext context) {
         style: TextStyle(fontSize: 17.2, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xff1A1A2E),
-        foregroundColor: Color(0xffB7B7BD),
+        backgroundColor: Color(0xFF4682A9),
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: EdgeInsets.all(20),
       ),
