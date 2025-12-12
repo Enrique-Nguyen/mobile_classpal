@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/notifications_sheet.dart';
 import '../../../../core/widgets/leaderboard_sheet.dart';
@@ -9,7 +10,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color.fromARGB(255, 255, 255, 255),
       body: CustomScrollView(
         slivers: [
           // Header
@@ -18,7 +19,7 @@ class DashboardScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.background,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
@@ -48,7 +49,7 @@ class DashboardScreen extends StatelessWidget {
         right: 20,
         bottom: 24,
       ),
-      decoration: const BoxDecoration(color: Color(0xFF1E1E2D)),
+      decoration: const BoxDecoration(color: Color(0xFF4682A9)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

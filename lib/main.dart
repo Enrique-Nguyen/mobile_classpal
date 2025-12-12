@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
 import 'features/main_view/screens/welcome.dart';
 import 'core/widgets/class_view_navigation.dart';
 
@@ -18,7 +19,7 @@ class App extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 77, 199, 162),
         ),
-        textTheme: GoogleFonts.teachersTextTheme(Theme.of(context).textTheme),
+        textTheme: GoogleFonts.ptSansTextTheme(Theme.of(context).textTheme),
         appBarTheme: AppBarTheme(
           titleTextStyle: GoogleFonts.ptSerif(
             fontSize: 18,
@@ -30,7 +31,11 @@ class App extends StatelessWidget {
       ),
       home: const WelcomeScreen(),
       debugShowCheckedModeBanner: false,
-      routes: {'/class': (context) => const ClassViewNavigation()},
+      routes: {
+        '/welcome': (context) => const WelcomeScreen(),
+        '/signin': (context) => const SigninScreen(),
+        '/class': (context) => const ClassViewNavigation(),
+      },
     );
   }
 }

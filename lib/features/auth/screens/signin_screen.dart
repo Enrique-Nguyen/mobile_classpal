@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_classpal/features/class_view/overview/screens/dashboard.dart';
-import 'package:mobile_classpal/features/main_view/screens/welcome.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -177,9 +175,7 @@ SizedBox _buildSignInButton(BuildContext context) {
     width: double.infinity,
     child: ElevatedButton(
       onPressed: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
+        Navigator.pushNamed(context, '/class');
       },
       child: Text(
         "Đăng nhập",
@@ -249,9 +245,7 @@ Container _buildBackButton(BuildContext context, Color borderColor) {
     child: IconButton(
       icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
       onPressed: () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const WelcomeScreen()));
+        Navigator.pushNamed(context, '/welcome');
       },
     ),
   );
