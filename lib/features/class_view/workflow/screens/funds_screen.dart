@@ -2,13 +2,22 @@ import 'package:flutter/material.dart';
 // Import từ Core
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
+import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
 // Import Widgets con từ module Funds
 import '../widgets/fund_overview_card.dart';
 import '../widgets/unpaid_members_card.dart';
 import '../widgets/transaction_history_card.dart';
 
 class ClassFundsScreenContent extends StatelessWidget {
-  const ClassFundsScreenContent({super.key});
+  final Class classData;
+  final Member currentMember;
+
+  const ClassFundsScreenContent({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +26,10 @@ class ClassFundsScreenContent extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header (consistent with other screens)
-            const CustomHeader(
+            // Header (consistent with other screens) - dynamic subtitle
+            CustomHeader(
               title: "Class Funds",
-              subtitle: "CS101 · Product Ops",
+              subtitle: classData.name,
             ),
 
             // Main content (scrollable)
@@ -45,3 +54,4 @@ class ClassFundsScreenContent extends StatelessWidget {
     );
   }
 }
+

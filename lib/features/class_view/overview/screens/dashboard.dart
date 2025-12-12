@@ -3,9 +3,19 @@ import 'package:mobile_classpal/core/constants/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/notifications_sheet.dart';
 import '../../../../core/widgets/leaderboard_sheet.dart';
+import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
+import '../../../../core/models/member_role.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final Class classData;
+  final Member currentMember;
+
+  const DashboardScreen({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -110,10 +120,10 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // Class name
-          const Text(
-            'CS101 · Product Ops',
-            style: TextStyle(
+          // Class name - dynamic
+          Text(
+            classData.name,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -126,7 +136,7 @@ class DashboardScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: Text(
-                  "Class Monitor",
+                  currentMember.role.displayName,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 14,
@@ -144,6 +154,7 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildNotificationsSection() {
     return Padding(
@@ -282,7 +293,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                'CS101 · Product Ops',
+                classData.name,
                 style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
               ),
             ],

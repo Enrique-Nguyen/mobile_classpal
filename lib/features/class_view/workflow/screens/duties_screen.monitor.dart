@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
+import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
 import '../widgets/duty_card.dart';
 import '../widgets/pending_approval_card.dart';
 import 'duty_details_screen.dart';
+import 'create_duty_screen.dart';
 
 class DutiesScreenMonitor extends StatefulWidget {
-  const DutiesScreenMonitor({super.key});
+  final Class classData;
+  final Member currentMember;
+
+  const DutiesScreenMonitor({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   State<DutiesScreenMonitor> createState() => _DutiesScreenMonitorState();
@@ -109,13 +119,28 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreateDutyScreen(
+                classData: widget.classData,
+                currentMember: widget.currentMember,
+              ),
+            ),
+          );
+        },
+        backgroundColor: AppColors.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            const CustomHeader(
+            // Header - dynamic subtitle
+            CustomHeader(
               title: 'Duty roster',
-              subtitle: 'CS101 · Product Ops',
+              subtitle: widget.classData.name,
             ),
             // Search bar
             Padding(

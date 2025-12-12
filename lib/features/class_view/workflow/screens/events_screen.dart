@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
 import 'events_adding_screen.dart';
+import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
 
 class Event {
   final String title;
@@ -259,8 +261,15 @@ class _EventCardState extends State<EventCard> {
   }
 }
 
-class EventsScreenContent extends StatefulWidget {
-  const EventsScreenContent({super.key});
+class EventsScreenContent extends StatelessWidget {
+  final Class classData;
+  final Member currentMember;
+
+  const EventsScreenContent({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   State<EventsScreenContent> createState() => _EventsScreenContentState();
@@ -313,10 +322,10 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header (consistent with other screens)
-            const CustomHeader(
+            // Header (consistent with other screens) - dynamic subtitle
+            CustomHeader(
               title: 'Events & Attendance',
-              subtitle: 'CS101 · Product Ops',
+              subtitle: classData.name,
             ),
             // Create Event Button
             Padding(

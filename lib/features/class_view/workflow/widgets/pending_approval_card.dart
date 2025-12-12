@@ -140,6 +140,18 @@ class PendingApprovalCard extends StatelessWidget {
                 ),
               ),
             ),
+          ]
+          else ...[
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'No proof image available',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           ],
           const SizedBox(height: 16),
           // Action buttons
@@ -149,8 +161,8 @@ class PendingApprovalCard extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onApprove,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 69, 167, 128),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: const Color.fromARGB(255, 226, 225, 225),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -168,8 +180,8 @@ class PendingApprovalCard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onReject,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.errorRed,
-                    side: const BorderSide(color: AppColors.errorRed),
+                    foregroundColor: const Color.fromARGB(255, 155, 151, 151),
+                    side: const BorderSide(color: Color.fromARGB(255, 155, 151, 151)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
