@@ -1,8 +1,31 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
+import 'events_adding_screen.dart';
 
-class EventCard extends StatelessWidget {
+class Event {
+  final String title;
+  final String description;
+  final String date;
+  final String time;
+  final String location;
+  final int registeredCount;
+  final int maxCount;
+  final bool isJoinable;
+
+  Event({
+    required this.title,
+    required this.description,
+    required this.date,
+    required this.time,
+    required this.location,
+    required this.registeredCount,
+    required this.maxCount,
+    this.isJoinable = true,
+  });
+}
+
+class EventCard extends StatefulWidget {
   final String title;
   final String description;
   final String date;
@@ -25,6 +48,32 @@ class EventCard extends StatelessWidget {
   });
 
   @override
+  State<EventCard> createState() => _EventCardState();
+}
+
+class _EventCardState extends State<EventCard> {
+  late bool _isJoined;
+
+  @override
+  void initState() {
+    super.initState();
+    // Nếu isJoinable = false nghĩa là đã joined rồi
+    _isJoined = !widget.isJoinable;
+  }
+
+  void _handleJoin() {
+    setState(() {
+      _isJoined = true;
+    });
+  }
+
+  void _handleUnjoin() {
+    setState(() {
+      _isJoined = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -45,7 +94,7 @@ class EventCard extends StatelessWidget {
         children: [
           // Title
           Text(
-            title,
+            widget.title,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -55,7 +104,7 @@ class EventCard extends StatelessWidget {
           const SizedBox(height: 8),
           // Description
           Text(
-            description,
+            widget.description,
             style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -65,47 +114,93 @@ class EventCard extends StatelessWidget {
           // Info Row (Date & Location)
           Row(
             children: [
-              _buildIconText(Icons.calendar_today_outlined, "$date\n$time"),
+              _buildIconText(Icons.calendar_today_outlined, "${widget.date}\n${widget.time}"),
               const SizedBox(width: 24),
-              _buildIconText(Icons.location_on_outlined, location),
+              _buildIconText(Icons.location_on_outlined, widget.location),
             ],
           ),
           const SizedBox(height: 16),
-          // Join Button
+          // Join/Unjoin Buttons
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isJoinable
-                    ? AppColors.primaryBlue
-                    : const Color(0xFFEFF2F7),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (isJoinable)
-                    const Icon(Icons.check, color: Colors.white, size: 18),
-                  if (isJoinable) const SizedBox(width: 8),
-                  Text(
-                    "JOIN",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                      color: isJoinable
-                          ? Colors.white
-                          : AppColors.textSecondary,
+            child: _isJoined
+                ? Row(
+                    children: [
+                      // Joined Button (half width)
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEFF2F7),
+                            disabledBackgroundColor: const Color(0xFFEFF2F7),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            "ĐÃ THAM GIA",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Unjoin Button (half width)
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _handleUnjoin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF6B6B),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            "HỦY THAM GIA",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ElevatedButton(
+                    onPressed: _handleJoin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "THAM GIA",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           // Registration Progress
@@ -126,7 +221,7 @@ class EventCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  "$registeredCount/$maxCount",
+                  "${widget.registeredCount}/${widget.maxCount}",
                   style: const TextStyle(
                     color: AppColors.successGreen,
                     fontWeight: FontWeight.bold,
@@ -164,8 +259,52 @@ class EventCard extends StatelessWidget {
   }
 }
 
-class EventsScreenContent extends StatelessWidget {
+class EventsScreenContent extends StatefulWidget {
   const EventsScreenContent({super.key});
+
+  @override
+  State<EventsScreenContent> createState() => _EventsScreenContentState();
+}
+
+class _EventsScreenContentState extends State<EventsScreenContent> {
+  final List<Event> _events = [
+    Event(
+      title: "Văn nghệ 20/11",
+      description: "Tham dự đi để lấy điểm rèn luyện!",
+      date: "Dec 1, 2024",
+      time: "18:00 - 22:00",
+      location: "Hội trường T45",
+      registeredCount: 18,
+      maxCount: 30,
+      isJoinable: true,
+    ),
+    Event(
+      title: "Trường học không ma tóe",
+      description: "Sự kiện của VTV",
+      date: "Nov 30, 2024",
+      time: "14:00 - 17:00",
+      location: "Tập trung tại cổng trường",
+      registeredCount: 22,
+      maxCount: 30,
+      isJoinable: false,
+    ),
+    Event(
+      title: "Talkshow về AI trong thời đại số",
+      description: "Diễn giả nổi tiếng của Meta về trường",
+      date: "Dec 5, 2024",
+      time: "15:00 - 17:00",
+      location: "Hội trường T35",
+      registeredCount: 15,
+      maxCount: 30,
+      isJoinable: true,
+    ),
+  ];
+
+  void _addEvent(Event newEvent) {
+    setState(() {
+      _events.insert(0, newEvent);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,6 +317,43 @@ class EventsScreenContent extends StatelessWidget {
             const CustomHeader(
               title: 'Events & Attendance',
               subtitle: 'CS101 · Product Ops',
+            ),
+            // Create Event Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EventsAddingScreen(),
+                      ),
+                    );
+                    if (result != null && result is Event) {
+                      _addEvent(result);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    "Tạo sự kiện",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ),
             // Search Bar
             Padding(
@@ -205,40 +381,22 @@ class EventsScreenContent extends StatelessWidget {
             ),
             // List of Events
             Expanded(
-              child: ListView(
+              child: ListView.builder(
                 padding: const EdgeInsets.all(20),
-                children: const [
-                  EventCard(
-                    title: "Văn nghệ 20/11",
-                    description: "Tham dự đi để lấy điểm rèn luyện!",
-                    date: "Dec 1, 2024",
-                    time: "18:00 - 22:00",
-                    location: "Hội trường T45",
-                    registeredCount: 18,
-                    maxCount: 30,
-                    isJoinable: true,
-                  ),
-                  EventCard(
-                    title: "Trường học không ma tóe",
-                    description: "Sự kiện của VTV",
-                    date: "Nov 30, 2024",
-                    time: "14:00 - 17:00",
-                    location: "Tập trung tại cổng trường",
-                    registeredCount: 22,
-                    maxCount: 30,
-                    isJoinable: false,
-                  ),
-                  EventCard(
-                    title: "Talkshow về AI trong thời đại số",
-                    description: "Diễn giả nổi tiếng của Meta về trường",
-                    date: "Dec 5, 2024",
-                    time: "15:00 - 17:00",
-                    location: "Hội trường T35",
-                    registeredCount: 15,
-                    maxCount: 30,
-                    isJoinable: true,
-                  ),
-                ],
+                itemCount: _events.length,
+                itemBuilder: (context, index) {
+                  final event = _events[index];
+                  return EventCard(
+                    title: event.title,
+                    description: event.description,
+                    date: event.date,
+                    time: event.time,
+                    location: event.location,
+                    registeredCount: event.registeredCount,
+                    maxCount: event.maxCount,
+                    isJoinable: event.isJoinable,
+                  );
+                },
               ),
             ),
           ],

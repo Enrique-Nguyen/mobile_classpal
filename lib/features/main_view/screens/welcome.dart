@@ -140,9 +140,7 @@ class WelcomeScreen extends StatelessWidget {
       height: 56,
       child: ElevatedButton(
         onPressed: () {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const SigninScreen()),
-          );
+          Navigator.pushNamed(context, '/signin');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Color(0xFF4682A9),
@@ -153,7 +151,7 @@ class WelcomeScreen extends StatelessWidget {
           elevation: 0,
         ),
         child: const Text(
-          'Bắt đầu thôi nào!',
+          'Khởi hành',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),

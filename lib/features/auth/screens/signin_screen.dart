@@ -179,15 +179,15 @@ SizedBox _buildSignInButton(BuildContext context) {
       onPressed: () {
         Navigator.pushNamed(context, '/home_page');
       },
-      child: Text(
-        "Đăng nhập",
-        style: TextStyle(fontSize: 17.2, fontWeight: FontWeight.bold),
-      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: Color(0xFF4682A9),
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: EdgeInsets.all(20),
+      ),
+      child: Text(
+        "Đăng nhập",
+        style: TextStyle(fontSize: 17.2, fontWeight: FontWeight.bold),
       ),
     ),
   );
@@ -198,6 +198,12 @@ SizedBox _buildGoogleButton() {
     width: double.infinity,
     child: OutlinedButton(
       onPressed: () {},
+      style: ElevatedButton.styleFrom(
+        // backgroundColor: Color(0xff1A1A2E),
+        foregroundColor: Color(0xFF9294A4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: EdgeInsets.all(20),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -208,12 +214,6 @@ SizedBox _buildGoogleButton() {
             style: TextStyle(fontSize: 17.2, fontWeight: FontWeight.bold),
           ),
         ],
-      ),
-      style: ElevatedButton.styleFrom(
-        // backgroundColor: Color(0xff1A1A2E),
-        foregroundColor: Color(0xFF9294A4),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: EdgeInsets.all(20),
       ),
     ),
   );
