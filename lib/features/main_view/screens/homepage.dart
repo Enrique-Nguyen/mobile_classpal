@@ -5,6 +5,7 @@ import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/member_role.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 import 'package:mobile_classpal/features/main_view/screens/create_class.dart';
+import 'package:mobile_classpal/features/main_view/screens/join_class.dart';
 
 // Mock data for classes and corresponding member info
 class ClassMemberData {
@@ -327,7 +328,7 @@ void _buildCreateJoinBotton(BuildContext context) async {
   } else if (result == 'join') {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => Placeholder()),
+      MaterialPageRoute(builder: (context) => JoinClassScreen()),
     );
   }
 }
