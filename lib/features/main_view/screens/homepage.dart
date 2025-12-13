@@ -4,6 +4,7 @@ import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/member_role.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
+import 'package:mobile_classpal/features/main_view/screens/create_class.dart';
 
 // Mock data for classes and corresponding member info
 class ClassMemberData {
@@ -17,6 +18,18 @@ class ClassMemberData {
     required this.borderColor,
   });
 }
+
+class OptionCreateJoin {
+  final String routing;
+  final String title;
+
+  OptionCreateJoin({required this.routing, required this.title});
+}
+
+final List<OptionCreateJoin> availableOptions = [
+  OptionCreateJoin(routing: "/create_class", title: "Tạo lớp"),
+  OptionCreateJoin(routing: "/join_class", title: "Vào lớp"),
+];
 
 class HomepageScreen extends StatelessWidget {
   const HomepageScreen({super.key});
@@ -82,6 +95,11 @@ class HomepageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _buildCreateJoinBotton(context),
+        backgroundColor: AppColors.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,3 +263,71 @@ class HomepageScreen extends StatelessWidget {
   }
 }
 
+void _buildCreateJoinBotton(BuildContext context) async {
+  // Lấy vị trí nút bấm (Cần GlobalKey gắn vào nút nếu muốn chính xác, ở đây lấy tương đối)
+  final RenderBox overlay =
+      Overlay.of(context).context.findRenderObject() as RenderBox;
+
+  // Hiển thị Menu
+  final result = await showMenu<String>(
+    context: context,
+    // Căn chỉnh vị trí: Left, Top, Right, Bottom
+    // Bạn cần chỉnh số 'Top' và 'Left' sao cho vừa ý với vị trí nút của bạn
+    position: RelativeRect.fromRect(
+      Rect.fromLTWH(
+        overlay.size.width - 100,
+        overlay.size.height - 200,
+        100,
+        100,
+      ),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      PopupMenuItem(
+        value: 'create',
+        child: Row(
+          children: const [
+            Icon(Icons.group_add),
+            SizedBox(width: 8),
+            Text(
+              "Tạo lớp",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'join',
+        child: Row(
+          children: const [
+            Icon(Icons.qr_code_2),
+            SizedBox(width: 8),
+            Text(
+              "Vào lớp",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+  if (result == 'create') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreateClassScreen()),
+    );
+  } else if (result == 'join') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => Placeholder()),
+    );
+  }
+}
