@@ -19,14 +19,16 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              CustomHeader(
-                title: "Trang cá nhân",
-                subtitle: classData.name,
-              ),
-              Padding(
+        child: Column(
+          children: [
+            // Fixed header only
+            CustomHeader(
+              title: "Trang cá nhân",
+              subtitle: classData.name,
+            ),
+            // Main content (scrollable)
+            Expanded(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
@@ -111,8 +113,8 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

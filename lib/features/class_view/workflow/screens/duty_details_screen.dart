@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-
-/// Sample rule data - will be replaced by actual Rules module
-class DutyRule {
-  final String id;
-  final String name;
-  final int points;
-
-  const DutyRule({required this.id, required this.name, required this.points});
-}
+import '../../../../core/constants/mock_data.dart';
+import '../../../../core/models/member.dart';
 
 /// Sample assignee data
 class DutyAssignee {
@@ -41,27 +34,21 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
   late TabController _tabController;
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late String _selectedRuleId;
+  late String _selectedRule;
+  DateTime _selectedDateTime = DateTime.now();
 
-  // Sample rules - will come from Rules module
-  final List<DutyRule> _availableRules = const [
-    DutyRule(id: '1', name: 'Vệ sinh lớp', points: 12),
-    DutyRule(id: '2', name: 'Điểm danh', points: 20),
-    DutyRule(id: '3', name: 'Bài tập', points: 10),
-    DutyRule(id: '4', name: 'Vệ sinh môi trường', points: 8),
-    DutyRule(id: '5', name: 'Xếp ghế', points: 15),
-  ];
+  final List<Member> _selectedMembers = [];
 
   // Sample assignees
   final List<DutyAssignee> _assignees = const [
     DutyAssignee(
       id: '1',
       name: 'Nguyen Van A',
-      status: 'Hoàn tất',
+      status: 'completed',
       completedAt: 'Dec 10, 14:30',
     ),
-    DutyAssignee(id: '2', name: 'Tran Thi B', status: 'Đang chờ'),
-    DutyAssignee(id: '3', name: 'Le Van C', status: 'Quá hạn'),
+    DutyAssignee(id: '2', name: 'Tran Thi B', status: 'pending'),
+    DutyAssignee(id: '3', name: 'Le Van C', status: 'overdue'),
   ];
 
   @override
@@ -70,9 +57,17 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
     _tabController = TabController(length: 2, vsync: this);
     _titleController = TextEditingController(text: widget.duty['title'] ?? '');
     _descriptionController = TextEditingController(
-      text: widget.duty['description'] ?? 'No description provided.',
+      text: widget.duty['description'] ?? '',
     );
-    _selectedRuleId = widget.duty['ruleId'] ?? '1';
+    _selectedRule = widget.duty['ruleName'] ?? MockData.ruleOptions.first;
+    // Parse date from duty if available
+    _initializeDateTime();
+  }
+
+  void _initializeDateTime() {
+    // For now, just use current time + offset
+    // TODO: Parse actual date/time from duty data when available
+    _selectedDateTime = DateTime.now().add(const Duration(hours: 2));
   }
 
   @override
@@ -83,88 +78,66 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
     super.dispose();
   }
 
-  DutyRule get _selectedRule =>
-      _availableRules.firstWhere((r) => r.id == _selectedRuleId);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom header with back button (like Create/Edit Post)
-            _buildHeader(),
-            // Tab bar
-            _buildTabBar(),
-            const SizedBox(height: 8),
-            // Tab content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [_buildEditTab(), _buildAssigneesTab()],
-              ),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFAFAFC),
+        elevation: 0,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              size: 18,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Back button
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_back,
-                size: 20,
+        ),
+        centerTitle: true,
+        title: Column(
+          children: [
+            const Text(
+              'Sửa nhiệm vụ',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
+            Text(
+              widget.duty['title'] ?? 'Untitled',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: Colors.grey.shade200,
+            height: 1,
           ),
-          const SizedBox(width: 16),
-          // Title
+        ),
+      ),
+      body: Column(
+        children: [
+          // Tab bar
+          _buildTabBar(),
+          // Tab content
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sửa nhiệm vụ',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  widget.duty['title'] ?? 'Untitled',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildEditTab(), _buildAssigneesTab()],
             ),
           ),
         ],
@@ -196,7 +169,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
         ),
         dividerColor: Colors.transparent,
         tabs: [
-          const Tab(text: 'Thông tin nhiệm vụ'),
+          const Tab(text: 'Thông tin'),
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -246,47 +219,46 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
             'Nhập mô tả',
             maxLines: 4,
           ),
-          const SizedBox(height: 20),
-          // Start time
-          _buildLabel('Thời gian bắt đầu'),
-          _buildInfoCard(
-            icon: Icons.access_time,
-            text: '${widget.duty['dateLabel']} · ${widget.duty['timeLabel']}',
-            onTap: () {
-              // TODO: Show time picker
-            },
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
+          // Member selection
+          _buildSectionTitle('PHÂN CÔNG'),
+          const SizedBox(height: 12),
+          _buildMultiMemberSelector(),
+          const SizedBox(height: 24),
           // Rule selection
-          _buildLabel('Luật'),
+          _buildSectionTitle('PHÂN LOẠI'),
+          const SizedBox(height: 12),
+          _buildLabel('Quy tắc'),
           _buildRuleDropdown(),
           const SizedBox(height: 12),
-          // Points display
+          // Points tag
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.bgGreenLight,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.star, color: AppColors.successGreen, size: 20),
+                const Icon(Icons.star_rounded, size: 18, color: AppColors.successGreen),
                 const SizedBox(width: 8),
                 Text(
-                  'Điểm cho nhiệm vụ: ',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                ),
-                Text(
-                  '+${_selectedRule.points}',
+                  'Điểm thưởng: +${MockData.rulePoints[_selectedRule] ?? 10}',
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.successGreen,
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 24),
+          // Time
+          _buildSectionTitle('THỜI GIAN'),
+          const SizedBox(height: 12),
+          _buildDateTimePicker(),
           const SizedBox(height: 32),
           // Save button at bottom
           SizedBox(
@@ -295,7 +267,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
             child: ElevatedButton(
               onPressed: _saveDuty,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 59, 179, 129),
+                backgroundColor: AppColors.successGreen,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -303,13 +275,263 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
                 ),
               ),
               child: const Text(
-                'Lưu',
+                'Lưu thay đổi',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: Colors.grey.shade500,
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+
+  Widget _buildMultiMemberSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Selected members as chips
+        if (_selectedMembers.isNotEmpty) ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _selectedMembers.map((member) {
+              return Chip(
+                backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                side: BorderSide.none,
+                avatar: CircleAvatar(
+                  backgroundColor: AppColors.primaryBlue,
+                  radius: 12,
+                  child: Text(
+                    member.name.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                label: Text(
+                  member.name,
+                  style: const TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                deleteIcon: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: AppColors.primaryBlue,
+                ),
+                onDeleted: () {
+                  setState(() => _selectedMembers.remove(member));
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+        ],
+        // Add member button
+        GestureDetector(
+          onTap: _showMemberSelectionSheet,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_add_outlined,
+                  size: 20,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedMembers.isEmpty 
+                        ? 'Thêm thành viên...'
+                        : 'Thêm thành viên khác...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.add_circle_outline,
+                  size: 20,
+                  color: AppColors.primaryBlue,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showMemberSelectionSheet() {
+    String searchQuery = '';
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final filteredMembers = MockData.classMembers.where((member) {
+            final nameMatch = member.name.toLowerCase().contains(searchQuery.toLowerCase());
+            final notSelected = !_selectedMembers.any((m) => m.id == member.id);
+            return nameMatch && notSelected;
+          }).toList();
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Chọn thành viên',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Search field
+                      TextField(
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: 'Tìm kiếm theo tên...',
+                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onChanged: (value) {
+                          setSheetState(() => searchQuery = value);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: filteredMembers.isEmpty
+                      ? Center(
+                          child: Text(
+                            searchQuery.isEmpty
+                                ? 'Tất cả thành viên đã được chọn'
+                                : 'Không tìm thấy thành viên',
+                            style: const TextStyle(color: AppColors.textSecondary),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: filteredMembers.length,
+                          itemBuilder: (context, index) {
+                            final member = filteredMembers[index];
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() => _selectedMembers.add(member));
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                                      child: Text(
+                                        member.name.substring(0, 1).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: AppColors.primaryBlue,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            member.name,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          Text(
+                                            member.role.displayName,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.add_circle_outline,
+                                      color: AppColors.primaryBlue,
+                                      size: 22,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -361,36 +583,72 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
     );
   }
 
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String text,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildDateTimePicker() {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _pickDateTime,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.primaryBlue),
+            const Icon(
+              Icons.event,
+              size: 20,
+              color: AppColors.primaryBlue,
+            ),
             const SizedBox(width: 12),
             Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
+              _formatDateTime(_selectedDateTime),
+              style: const TextStyle(fontSize: 14),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Icon(
+              Icons.edit_calendar,
+              size: 18,
+              color: Colors.grey.shade400,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _selectedDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = dt.month.toString().padLeft(2, '0');
+    final year = dt.year;
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year lúc $hour:$minute';
   }
 
   Widget _buildRuleDropdown() {
@@ -402,47 +660,18 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedRuleId,
+          value: _selectedRule,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
-          items: _availableRules.map((rule) {
+          items: MockData.ruleOptions.map((rule) {
             return DropdownMenuItem<String>(
-              value: rule.id,
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.label_outline,
-                    size: 18,
-                    color: AppColors.warningOrange,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(rule.name),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgGreenLight,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '+${rule.points}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.successGreen,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              value: rule,
+              child: Text(rule, style: const TextStyle(fontSize: 14)),
             );
           }).toList(),
           onChanged: (value) {
             if (value != null) {
-              setState(() => _selectedRuleId = value);
+              setState(() => _selectedRule = value);
             }
           },
         ),
@@ -552,7 +781,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
     // Handle save
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Duty saved successfully'),
+        content: Text('Đã lưu thay đổi!'),
         backgroundColor: AppColors.successGreen,
         duration: Duration(milliseconds: 1300),
       ),

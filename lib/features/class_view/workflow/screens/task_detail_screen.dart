@@ -78,209 +78,191 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFAFAFC),
+        elevation: 0,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              size: 18,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        title: const Text(
+          'Chi tiết nhiệm vụ',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: Colors.grey.shade200,
+            height: 1,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            // Status badge
+            _buildStatusBadge(task.status),
+            const SizedBox(height: 16),
+            // Task title
+            Text(
+              task.name,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Info cards
+            _buildInfoSection(task, extraInfo),
+            const SizedBox(height: 24),
+            // Description
+            if (task.description != null && task.description!.isNotEmpty) ...[
+              _buildSectionTitle('MÔ TẢ'),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  task.description!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            // Proof section for incomplete tasks
+            if (isIncomplete) ...[
+              _buildSectionTitle('MINH CHỨNG HOÀN THÀNH'),
+              const SizedBox(height: 8),
+              _buildProofSection(),
+              const SizedBox(height: 32),
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitTask,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.successGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Hoàn thành & Gửi duyệt',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+            // Pending message
+            if (task.status == TaskStatus.pending) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: const Row(
                   children: [
-                    // Status badge
-                    _buildStatusBadge(task.status),
-                    const SizedBox(height: 16),
-                    // Task title
-                    Text(
-                      task.name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                    Icon(Icons.hourglass_top, color: Colors.orange),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Nhiệm vụ đang chờ được duyệt bởi quản lý lớp',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.orange,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    // Info cards
-                    _buildInfoSection(task, extraInfo),
-                    const SizedBox(height: 24),
-                    // Description
-                    if (task.description != null && task.description!.isNotEmpty) ...[
-                      _buildSectionTitle('MÔ TẢ'),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          task.description!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    // Proof section for incomplete tasks
-                    if (isIncomplete) ...[
-                      _buildSectionTitle('MINH CHỨNG HOÀN THÀNH'),
-                      const SizedBox(height: 8),
-                      _buildProofSection(),
-                      const SizedBox(height: 32),
-                      // Submit button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _submitTask,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.successGreen,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(Colors.white),
-                                  ),
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.check_circle, color: Colors.white),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Hoàn thành & Gửi duyệt',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ],
-                    // Pending message
-                    if (task.status == TaskStatus.pending) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.hourglass_top, color: Colors.orange),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Nhiệm vụ đang chờ được duyệt bởi quản lý lớp',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    // Completed message
-                    if (task.status == TaskStatus.completed) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.successGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: AppColors.successGreen),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Nhiệm vụ đã hoàn thành! +${task.points.toInt()} điểm',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.successGreen,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),
-            ),
+            ],
+            // Completed message
+            if (task.status == TaskStatus.completed) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: AppColors.successGreen),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Nhiệm vụ đã hoàn thành! +${task.points.toInt()} điểm',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.successGreen,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                size: 18,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          const Text(
-            'Chi tiết nhiệm vụ',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildStatusBadge(TaskStatus status) {
     Color color;

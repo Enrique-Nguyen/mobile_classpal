@@ -41,48 +41,47 @@ class TasksScreenMember extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
+            // Fixed header only
             CustomHeader(
               title: 'Nhiệm vụ của tôi',
               subtitle: classData.name,
             ),
-            const SizedBox(height: 8),
-            // Task summary
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  _buildStatusChip(
-                    count: tasks.where((t) => t.status == TaskStatus.incomplete).length,
-                    label: 'Chưa hoàn thành',
-                    color: AppColors.errorRed,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatusChip(
-                    count: tasks.where((t) => t.status == TaskStatus.pending).length,
-                    label: 'Chờ duyệt',
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatusChip(
-                    count: tasks.where((t) => t.status == TaskStatus.completed).length,
-                    label: 'Hoàn thành',
-                    color: AppColors.successGreen,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Task list
+            // Main content (scrollable)
             Expanded(
               child: tasks.isEmpty
                   ? _buildEmptyState()
-                  : ListView.builder(
+                  : SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: tasks.length,
-                      itemBuilder: (context, index) {
-                        final task = tasks[index];
-                        return _buildTaskCard(context, task);
-                      },
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 8),
+                          // Status chips (part of scrollable content)
+                          Row(
+                            children: [
+                              _buildStatusChip(
+                                count: tasks.where((t) => t.status == TaskStatus.incomplete).length,
+                                label: 'Chưa hoàn thành',
+                                color: AppColors.errorRed,
+                              ),
+                              const SizedBox(width: 8),
+                              _buildStatusChip(
+                                count: tasks.where((t) => t.status == TaskStatus.pending).length,
+                                label: 'Chờ duyệt',
+                                color: Colors.orange,
+                              ),
+                              const SizedBox(width: 8),
+                              _buildStatusChip(
+                                count: tasks.where((t) => t.status == TaskStatus.completed).length,
+                                label: 'Hoàn thành',
+                                color: AppColors.successGreen,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Task cards
+                          ...tasks.map((task) => _buildTaskCard(context, task)),
+                        ],
+                      ),
                     ),
             ),
           ],

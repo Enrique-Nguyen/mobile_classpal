@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/models/class.dart';
 import 'events_screen.dart';
 
 class EventsAddingScreen extends StatefulWidget {
-  const EventsAddingScreen({super.key});
+  final Class? classData;
+
+  const EventsAddingScreen({super.key, this.classData});
 
   @override
   State<EventsAddingScreen> createState() => _EventsAddingScreenState();
@@ -141,21 +144,51 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFAFAFC),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Tạo sự kiện mới',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              size: 18,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
         centerTitle: true,
+        title: Column(
+          children: [
+            const Text(
+              'Tạo sự kiện mới',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (widget.classData != null)
+              Text(
+                widget.classData!.name,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: Colors.grey.shade200,
+            height: 1,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

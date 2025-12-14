@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
 import 'package:mobile_classpal/features/auth/screens/signup_screen.dart';
 import 'package:mobile_classpal/features/main_view/screens/homepage.dart';
@@ -14,6 +13,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(const App());
 }
 
@@ -28,9 +28,28 @@ class App extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 77, 199, 162),
         ),
-        textTheme: GoogleFonts.ptSansTextTheme(Theme.of(context).textTheme),
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(
+            fontFamily: 'GoogleSans',
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF1A1F36),
+          ),
+          bodyMedium: TextStyle(
+            fontFamily: 'GoogleSans',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF1A1F36),
+          ),
+          bodySmall: TextStyle(
+            fontFamily: 'GoogleSans',
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF1A1F36),
+          ),
+        ),
         appBarTheme: AppBarTheme(
-          titleTextStyle: GoogleFonts.ptSerif(
+          titleTextStyle: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF1A1F36),
