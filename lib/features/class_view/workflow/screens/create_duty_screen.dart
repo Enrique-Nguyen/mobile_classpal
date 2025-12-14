@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
+import '../../../../core/constants/mock_data.dart';
 
 class CreateDutyScreen extends StatefulWidget {
   final Class classData;
@@ -23,19 +24,9 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
   final _descriptionController = TextEditingController();
   final _pointsController = TextEditingController(text: '10');
   
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
-  String _selectedRule = 'Classroom Maintenance';
-  
-  final List<String> _ruleOptions = [
-    'Classroom Maintenance',
-    'Seating Arrangement',
-    'Attendance',
-    'Homework Collection',
-    'Plant Care',
-    'Equipment Management',
-    'General Duty',
-  ];
+  DateTime _selectedDateTime = DateTime.now().add(const Duration(hours: 1));
+  String _selectedRule = MockData.ruleOptions.first;
+  Member? _selectedMember;
 
   @override
   void dispose() {
@@ -52,9 +43,7 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             _buildHeader(context),
-            // Form
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -79,12 +68,16 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 24),
-                      _buildSectionTitle('Phân loại'),
+                      _buildSectionTitle('PHÂN CÔNG'),
+                      const SizedBox(height: 16),
+                      _buildMemberSelector(),
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('PHÂN LOẠI'),
                       const SizedBox(height: 16),
                       _buildDropdownField(
                         label: 'Quy tắc',
                         value: _selectedRule,
-                        items: _ruleOptions,
+                        items: MockData.ruleOptions,
                         onChanged: (value) {
                           setState(() => _selectedRule = value!);
                         },
@@ -102,17 +95,10 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
                         },
                       ),
                       const SizedBox(height: 24),
-                      _buildSectionTitle('Thời gian'),
+                      _buildSectionTitle('THỜI GIAN'),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(child: _buildDatePicker()),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildTimePicker()),
-                        ],
-                      ),
+                      _buildDateTimePicker(),
                       const SizedBox(height: 40),
-                      // Submit button
                       SizedBox(
                         width: double.infinity,
                         height: 52,
@@ -218,6 +204,198 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     );
   }
 
+  Widget _buildMemberSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Giao cho thành viên *',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _showMemberSelectionSheet,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _selectedMember == null 
+                    ? Colors.grey.shade200 
+                    : AppColors.primaryBlue.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                if (_selectedMember != null) ...[
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                    child: Text(
+                      _selectedMember!.name.substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _selectedMember!.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Icon(
+                    Icons.person_add_outlined,
+                    size: 20,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Chọn thành viên',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ),
+                ],
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showMemberSelectionSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'Chọn thành viên',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: MockData.classMembers.length,
+                itemBuilder: (context, index) {
+                  final member = MockData.classMembers[index];
+                  final isSelected = _selectedMember?.id == member.id;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedMember = member);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? AppColors.primaryBlue.withOpacity(0.05)
+                            : AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isSelected 
+                            ? Border.all(color: AppColors.primaryBlue.withOpacity(0.3))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                            child: Text(
+                              member.name.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  member.name,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  member.role.displayName,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isSelected)
+                            const Icon(
+                              Icons.check_circle,
+                              color: AppColors.primaryBlue,
+                              size: 22,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
@@ -310,10 +488,7 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
               items: items.map((item) {
                 return DropdownMenuItem(
                   value: item,
-                  child: Text(
-                    item,
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  child: Text(item, style: const TextStyle(fontSize: 14)),
                 );
               }).toList(),
               onChanged: onChanged,
@@ -324,12 +499,12 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     );
   }
 
-  Widget _buildDatePicker() {
+  Widget _buildDateTimePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Ngày',
+          'Ngày và giờ',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -338,17 +513,7 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: _selectedDate,
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-            );
-            if (date != null) {
-              setState(() => _selectedDate = date);
-            }
-          },
+          onTap: _pickDateTime,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
@@ -359,14 +524,20 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
             child: Row(
               children: [
                 const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 18,
+                  Icons.event,
+                  size: 20,
                   color: AppColors.primaryBlue,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Text(
-                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                  _formatDateTime(_selectedDateTime),
                   style: const TextStyle(fontSize: 14),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.edit_calendar,
+                  size: 18,
+                  color: Colors.grey.shade400,
                 ),
               ],
             ),
@@ -376,61 +547,56 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     );
   }
 
-  Widget _buildTimePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Giờ',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () async {
-            final time = await showTimePicker(
-              context: context,
-              initialTime: _selectedTime,
-            );
-            if (time != null) {
-              setState(() => _selectedTime = time);
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.access_time,
-                  size: 18,
-                  color: AppColors.primaryBlue,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _selectedDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = dt.month.toString().padLeft(2, '0');
+    final year = dt.year;
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year lúc $hour:$minute';
   }
 
   void _submitForm() {
-    if (_formKey.currentState?.validate() ?? false) {
+    if (_selectedMember == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã tạo nhiệm vụ thành công!'),
+          content: Text('Vui lòng chọn thành viên để giao nhiệm vụ'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
+    if (_formKey.currentState?.validate() ?? false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã giao nhiệm vụ cho ${_selectedMember!.name}!'),
           backgroundColor: AppColors.successGreen,
         ),
       );

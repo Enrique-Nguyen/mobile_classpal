@@ -1,23 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/constants/mock_data.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
-import 'package:mobile_classpal/core/models/member_role.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 import 'package:mobile_classpal/features/main_view/screens/create_class.dart';
-
-// Mock data for classes and corresponding member info
-class ClassMemberData {
-  final Class classData;
-  final Member member;
-  final Color borderColor;
-
-  const ClassMemberData({
-    required this.classData,
-    required this.member,
-    required this.borderColor,
-  });
-}
 
 class OptionCreateJoin {
   final String routing;
@@ -33,63 +20,6 @@ final List<OptionCreateJoin> availableOptions = [
 
 class HomepageScreen extends StatelessWidget {
   const HomepageScreen({super.key});
-
-  // Mock data - in production this would come from a backend or state management
-  static final List<ClassMemberData> _mockClassesData = [
-    ClassMemberData(
-      classData: Class(id: '1', name: 'CS101·Product Ops'),
-      member: Member(
-        id: '1',
-        name: 'Lê Đức Nguyên',
-        classId: '1',
-        role: MemberRole.quanLyLop,
-      ),
-      borderColor: Colors.red,
-    ),
-    ClassMemberData(
-      classData: Class(id: '2', name: 'CS202·Advanced AI'),
-      member: Member(
-        id: '2',
-        name: 'Lê Đức Nguyên',
-        classId: '2',
-        role: MemberRole.canBoLop,
-      ),
-      borderColor: Colors.blue,
-    ),
-    ClassMemberData(
-      classData: Class(id: '3', name: 'CS303·Data Science'),
-      member: Member(
-        id: '3',
-        name: 'Lê Đức Nguyên',
-        classId: '3',
-        role: MemberRole.thanhVien,
-      ),
-      borderColor: Colors.green,
-    ),
-    ClassMemberData(
-      classData: Class(id: '4', name: 'CS404·Mobile Development'),
-      member: Member(
-        id: '4',
-        name: 'Lê Đức Nguyên',
-        classId: '4',
-        role: MemberRole.canBoLop,
-      ),
-      borderColor: Colors.orange,
-    ),
-    ClassMemberData(
-      classData: Class(id: '5', name: 'CS505·Cloud Computing'),
-      member: Member(
-        id: '5',
-        name: 'Lê Đức Nguyên',
-        classId: '5',
-        role: MemberRole.thanhVien,
-      ),
-      borderColor: Colors.purple,
-    ),
-  ];
-
-  // Current user name - in production this would come from auth state
-  static const String _currentUserName = 'Lê Đức Nguyên';
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +40,7 @@ class HomepageScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildHelloWelcomeClass(_currentUserName),
+                  _buildHelloWelcomeClass(MockData.currentUserName),
                   _buildLogoutButton(context),
                 ],
               ),
@@ -119,7 +49,7 @@ class HomepageScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                "Lớp của bạn (${_mockClassesData.length})",
+                "Lớp của bạn (${MockData.userClasses.length})",
                 style: const TextStyle(
                   fontSize: 18,
                   color: AppColors.textSecondary,
@@ -131,9 +61,9 @@ class HomepageScreen extends StatelessWidget {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _mockClassesData.length,
+                itemCount: MockData.userClasses.length,
                 itemBuilder: (context, index) {
-                  final data = _mockClassesData[index];
+                  final data = MockData.userClasses[index];
                   return _buildClassCard(
                     context: context,
                     borderColor: data.borderColor,
