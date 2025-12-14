@@ -60,7 +60,6 @@ class _EventCardState extends State<EventCard> {
   @override
   void initState() {
     super.initState();
-    // Nếu isJoinable = false nghĩa là đã joined rồi
     _isJoined = !widget.isJoinable;
   }
 
@@ -150,7 +149,6 @@ class _EventCardState extends State<EventCard> {
             child: _isJoined
                 ? Row(
                     children: [
-                      // Joined Button (half width)
                       Expanded(
                         child: ElevatedButton(
                           onPressed: null,
@@ -174,7 +172,6 @@ class _EventCardState extends State<EventCard> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // Unjoin Button (half width)
                       Expanded(
                         child: ElevatedButton(
                           onPressed: _handleUnjoin,
@@ -207,12 +204,12 @@ class _EventCardState extends State<EventCard> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check, color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
-                        const Text(
+                        Icon(Icons.check, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text(
                           "THAM GIA",
                           style: TextStyle(
                             fontSize: 14,
@@ -346,7 +343,9 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const EventsAddingScreen(),
+              builder: (context) => EventsAddingScreen(
+                classData: widget.classData,
+              ),
             ),
           );
           if (result != null && result is Event) {
@@ -359,53 +358,53 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header (consistent with other screens) - dynamic subtitle
+            // Fixed header only
             CustomHeader(
               title: 'Events',
               subtitle: widget.classData.name,
             ),
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: "Tìm kiếm sự kiện...",
-                  hintStyle: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColors.textSecondary,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                ),
-              ),
-            ),
-            // List of Events
+            // Main content (scrollable)
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: _events.length,
-                itemBuilder: (context, index) {
-                  final event = _events[index];
-                  return EventCard(
-                    title: event.title,
-                    description: event.description,
-                    date: event.date,
-                    time: event.time,
-                    location: event.location,
-                    registeredCount: event.registeredCount,
-                    maxCount: event.maxCount,
-                    isJoinable: event.isJoinable,
-                  );
-                },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    // Search bar (part of scrollable content)
+                    TextField(
+                      decoration: InputDecoration(
+                        hintText: "Tìm kiếm sự kiện...",
+                        hintStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.textSecondary,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Event cards
+                    ..._events.map((event) => EventCard(
+                      title: event.title,
+                      description: event.description,
+                      date: event.date,
+                      time: event.time,
+                      location: event.location,
+                      registeredCount: event.registeredCount,
+                      maxCount: event.maxCount,
+                      isJoinable: event.isJoinable,
+                    )),
+                  ],
+                ),
               ),
             ),
           ],

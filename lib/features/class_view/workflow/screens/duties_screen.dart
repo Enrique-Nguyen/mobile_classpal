@@ -80,35 +80,64 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
       body: SafeArea(
         child: Column(
           children: [
+            // Fixed header only
             CustomHeader(
               title: 'Duty roster',
               subtitle: widget.classData.name,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search duties...',
-                  hintStyle: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColors.textSecondary,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                ),
+            // All content scrollable
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildAllDutiesTab(),
+                  _buildPendingApprovalsTab(),
+                ],
               ),
             ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAllDutiesTab() {
+    final duties = MockData.duties;
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: duties.length + 2, // +2 for search and tab bar
+      itemBuilder: (context, index) {
+        // Search bar
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 10, bottom: 10),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search duties...',
+                hintStyle: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+            ),
+          );
+        }
+        // Tab bar
+        if (index == 1) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -166,29 +195,11 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildAllDutiesTab(),
-                  _buildPendingApprovalsTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAllDutiesTab() {
-    final duties = MockData.duties;
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: duties.length,
-      itemBuilder: (context, index) {
-        final duty = duties[index];
+          );
+        }
+        // Duty cards
+        final dutyIndex = index - 2;
+        final duty = duties[dutyIndex];
         final extraInfo = MockData.parseNoteField(duty.note);
         return DutyCard(
           title: duty.name,
@@ -196,7 +207,7 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
           timeLabel: _formatTimeLabel(duty.startTime),
           ruleName: duty.ruleName,
           points: duty.points.toInt(),
-          isAssignedToMonitor: index % 2 == 0,
+          isAssignedToMonitor: dutyIndex % 2 == 0,
           extraInfo: extraInfo,
           onTap: () {
             Navigator.of(context).push(
@@ -248,7 +259,7 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       itemCount: _pendingApprovals.length,
       itemBuilder: (context, index) {
         final approval = _pendingApprovals[index];

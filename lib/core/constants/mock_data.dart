@@ -181,6 +181,19 @@ class MockData {
     'General Duty',
   ];
 
+  // Points associated with each rule
+  static const Map<String, int> rulePoints = {
+    'Classroom Maintenance': 12,
+    'Seating Arrangement': 15,
+    'Attendance': 20,
+    'Homework Collection': 10,
+    'Plant Care': 8,
+    'Equipment Management': 15,
+    'Events': 20,
+    'Funds': 10,
+    'General Duty': 10,
+  };
+
   // Mock tasks assigned to the current member
   static final List<Task> memberTasks = [
     Task(
