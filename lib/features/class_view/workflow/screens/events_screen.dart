@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
 import 'events_adding_screen.dart';
+import 'events_details_screen.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
 
@@ -77,7 +78,27 @@ class _EventCardState extends State<EventCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventDetailsScreen(
+              event: Event(
+                title: widget.title,
+                description: widget.description,
+                date: widget.date,
+                time: widget.time,
+                location: widget.location,
+                registeredCount: widget.registeredCount,
+                maxCount: widget.maxCount,
+                isJoinable: widget.isJoinable,
+              ),
+            ),
+          ),
+        );
+      },
+      child: Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -235,6 +256,7 @@ class _EventCardState extends State<EventCard> {
           ),
         ],
       ),
+    ),
     );
   }
 
