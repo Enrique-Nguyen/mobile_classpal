@@ -45,11 +45,11 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
 
   // Sample rules - will come from Rules module
   final List<DutyRule> _availableRules = const [
-    DutyRule(id: '1', name: 'Classroom Maintenance', points: 12),
-    DutyRule(id: '2', name: 'Attendance', points: 20),
-    DutyRule(id: '3', name: 'Homework Collection', points: 10),
-    DutyRule(id: '4', name: 'Plant Care', points: 8),
-    DutyRule(id: '5', name: 'Seating Arrangement', points: 15),
+    DutyRule(id: '1', name: 'Vệ sinh lớp', points: 12),
+    DutyRule(id: '2', name: 'Điểm danh', points: 20),
+    DutyRule(id: '3', name: 'Bài tập', points: 10),
+    DutyRule(id: '4', name: 'Vệ sinh môi trường', points: 8),
+    DutyRule(id: '5', name: 'Xếp ghế', points: 15),
   ];
 
   // Sample assignees
@@ -57,11 +57,11 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
     DutyAssignee(
       id: '1',
       name: 'Nguyen Van A',
-      status: 'completed',
+      status: 'Hoàn tất',
       completedAt: 'Dec 10, 14:30',
     ),
-    DutyAssignee(id: '2', name: 'Tran Thi B', status: 'pending'),
-    DutyAssignee(id: '3', name: 'Le Van C', status: 'overdue'),
+    DutyAssignee(id: '2', name: 'Tran Thi B', status: 'Đang chờ'),
+    DutyAssignee(id: '3', name: 'Le Van C', status: 'Quá hạn'),
   ];
 
   @override
@@ -149,7 +149,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Edit Duty',
+                  'Sửa nhiệm vụ',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -196,12 +196,12 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
         ),
         dividerColor: Colors.transparent,
         tabs: [
-          const Tab(text: 'Duty Info'),
+          const Tab(text: 'Thông tin nhiệm vụ'),
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Assignees'),
+                const Text('Phân công'),
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -236,19 +236,19 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title field
-          _buildLabel('Title'),
-          _buildTextField(_titleController, 'Enter duty title'),
+          _buildLabel('Tên nhiệm vụ'),
+          _buildTextField(_titleController, 'Nhập tên nhiệm vụ'),
           const SizedBox(height: 20),
           // Description field
-          _buildLabel('Description'),
+          _buildLabel('Mô tả'),
           _buildTextField(
             _descriptionController,
-            'Enter description',
+            'Nhập mô tả',
             maxLines: 4,
           ),
           const SizedBox(height: 20),
           // Start time
-          _buildLabel('Start Time'),
+          _buildLabel('Thời gian bắt đầu'),
           _buildInfoCard(
             icon: Icons.access_time,
             text: '${widget.duty['dateLabel']} · ${widget.duty['timeLabel']}',
@@ -258,7 +258,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
           ),
           const SizedBox(height: 20),
           // Rule selection
-          _buildLabel('Rule'),
+          _buildLabel('Luật'),
           _buildRuleDropdown(),
           const SizedBox(height: 12),
           // Points display
@@ -273,7 +273,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
                 const Icon(Icons.star, color: AppColors.successGreen, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Points for this duty: ',
+                  'Điểm cho nhiệm vụ: ',
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                 ),
                 Text(
@@ -303,7 +303,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
                 ),
               ),
               child: const Text(
-                'Save Changes',
+                'Lưu',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -459,17 +459,17 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
       case 'completed':
         statusColor = AppColors.successGreen;
         statusBgColor = AppColors.bgGreenLight;
-        statusText = 'Completed';
+        statusText = 'Hoàn tất';
         break;
       case 'overdue':
         statusColor = AppColors.errorRed;
         statusBgColor = AppColors.bgRedLight;
-        statusText = 'Overdue';
+        statusText = 'Quá hạn';
         break;
       default:
         statusColor = AppColors.warningOrange;
         statusBgColor = AppColors.bgOrangeLight;
-        statusText = 'Pending';
+        statusText = 'Đang chờ';
     }
 
     return Container(
@@ -517,7 +517,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
                 if (assignee.completedAt != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    'Completed: ${assignee.completedAt}',
+                    'Hoàn tất: ${assignee.completedAt}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,

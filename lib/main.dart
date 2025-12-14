@@ -6,8 +6,14 @@ import 'package:mobile_classpal/features/main_view/screens/homepage.dart';
 import 'features/main_view/screens/welcome.dart';
 import 'core/widgets/class_view_navigation.dart';
 import 'core/models/class_view_arguments.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const App());
 }
 

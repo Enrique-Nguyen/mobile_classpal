@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
+import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final Class classData;
+  final Member currentMember;
+
+  const ProfileScreen({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -13,54 +22,79 @@ class ProfileScreen extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const CustomHeader(
+              CustomHeader(
                 title: "Trang cá nhân",
-                subtitle: "CS101 · Product Ops",
+                subtitle: classData.name,
               ),
               Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundColor: Color(0xFF4682A9),
-                      child: Icon(Icons.person, size: 40, color: Colors.white),
+                      backgroundColor: const Color(0xFF4682A9),
+                      child: Text(
+                        currentMember.name.isNotEmpty 
+                            ? currentMember.name.substring(0, 1).toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 15),
+                    const SizedBox(height: 15),
                     Text(
-                      "Lê Đức Nguyên",
-                      style: TextStyle(
+                      currentMember.name,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      "ID: 07092005",
-                      style: TextStyle(
+                      "ID: ${currentMember.id}",
+                      style: const TextStyle(
                         fontSize: 15,
                         color: AppColors.textGrey,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        currentMember.role.displayName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildSumaryProfile(
+                        _buildSummaryProfile(
                           point: "320",
                           subtitle: "Điểm",
                           icon: Icons.emoji_events_outlined,
                           iconColor: Colors.orange,
                         ),
-                        SizedBox(width: 10),
-                        _buildSumaryProfile(
+                        const SizedBox(width: 10),
+                        _buildSummaryProfile(
                           point: "24",
                           subtitle: "Nhiệm vụ",
                           icon: Icons.access_time,
                           iconColor: Colors.green,
                         ),
-                        SizedBox(width: 10),
-                        _buildSumaryProfile(
+                        const SizedBox(width: 10),
+                        _buildSummaryProfile(
                           point: "8",
                           subtitle: "Sự kiện",
                           icon: Icons.calendar_today,
@@ -68,67 +102,12 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     _buildPersonalInformation(),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     _buildClassCurrent(),
-                    SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "THÀNH TỰU",
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: AppColors.textGrey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildAchievementsProfile(
-                                subtitle: "Top 3",
-                                icon: Icons.military_tech,
-                                iconColor: Colors.brown,
-                              ),
-                              SizedBox(width: 10),
-                              _buildAchievementsProfile(
-                                subtitle: "Tuyệt vời",
-                                icon: Icons.star_purple500_sharp,
-                                iconColor: const Color.fromARGB(
-                                  255,
-                                  222,
-                                  200,
-                                  0,
-                                ),
-                              ),
-                              SizedBox(width: 10),
-                              _buildAchievementsProfile(
-                                subtitle: "Lớp trưởng",
-                                icon: Icons.workspace_premium,
-                                iconColor: Colors.red,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(height: 10),
+                    _buildAchievements(),
                   ],
                 ),
               ),
@@ -139,14 +118,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Container _buildClassCurrent() {
+  Widget _buildClassCurrent() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(15),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -158,7 +136,7 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "LỚP HIỆN TẠI",
             style: TextStyle(
               fontSize: 15,
@@ -166,14 +144,13 @@ class ProfileScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(15),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
-
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.15),
@@ -183,8 +160,8 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
             child: Text(
-              'CS101-2024',
-              style: TextStyle(
+              classData.name,
+              style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -196,13 +173,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Container _buildPersonalInformation() {
+  Widget _buildPersonalInformation() {
     return Container(
-      padding: EdgeInsets.all(15),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -213,9 +189,8 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-
         children: [
-          Text(
+          const Text(
             "THÔNG TIN CÁ NHÂN",
             style: TextStyle(
               fontSize: 15,
@@ -223,28 +198,28 @@ class ProfileScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          _builDetailInformation(
+          _buildDetailInformation(
             icon: Icons.person_outlined,
             subtitle: "Tên hiển thị",
-            title: "Lê Đức Nguyên",
+            title: currentMember.name,
             iconColor: Colors.blue,
           ),
-          _builDetailInformation(
+          _buildDetailInformation(
             icon: Icons.tag,
             subtitle: "ID người dùng",
-            title: "07092005",
+            title: currentMember.id,
             iconColor: Colors.purple,
           ),
-          _builDetailInformation(
-            icon: Icons.mail,
-            subtitle: "Email",
-            title: "leducnguyen07092005@gmail.com",
+          _buildDetailInformation(
+            icon: Icons.badge_outlined,
+            subtitle: "Vai trò",
+            title: currentMember.role.displayName,
             iconColor: Colors.green,
           ),
-          _builDetailInformation(
-            icon: Icons.calendar_today,
-            subtitle: "Ngày vào lớp",
-            title: "Lê Đức Nguyên",
+          _buildDetailInformation(
+            icon: Icons.class_outlined,
+            subtitle: "Lớp",
+            title: classData.name,
             iconColor: Colors.orange,
           ),
         ],
@@ -252,7 +227,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Column _builDetailInformation({
+  Widget _buildDetailInformation({
     required IconData icon,
     required String subtitle,
     required String title,
@@ -260,35 +235,37 @@ class ProfileScreen extends StatelessWidget {
   }) {
     return Column(
       children: [
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           children: [
             Container(
-              padding: EdgeInsets.all(10),
-
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: iconColor.withOpacity(0.1),
               ),
               child: Icon(icon, color: iconColor),
             ),
-            SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 12, color: AppColors.textGrey),
-                ),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: "Inter",
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
                   ),
-                ),
-              ],
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: "Inter",
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -296,18 +273,71 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementsProfile({
+  Widget _buildAchievements() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "THÀNH TỰU",
+            style: TextStyle(
+              fontSize: 15,
+              color: AppColors.textGrey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildAchievementBadge(
+                subtitle: "Top 3",
+                icon: Icons.military_tech,
+                iconColor: Colors.brown,
+              ),
+              const SizedBox(width: 10),
+              _buildAchievementBadge(
+                subtitle: "Tuyệt vời",
+                icon: Icons.star_purple500_sharp,
+                iconColor: const Color.fromARGB(255, 222, 200, 0),
+              ),
+              const SizedBox(width: 10),
+              _buildAchievementBadge(
+                subtitle: currentMember.role.displayName,
+                icon: Icons.workspace_premium,
+                iconColor: Colors.red,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementBadge({
     required String subtitle,
     required IconData icon,
     required Color iconColor,
   }) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.fromLTRB(0, 15, 0, 15),
+        padding: const EdgeInsets.fromLTRB(0, 15, 0, 15),
         decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.circular(12),
-
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.15),
@@ -319,13 +349,15 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             Icon(icon, color: iconColor, size: 25),
+            const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 15,
+              style: const TextStyle(
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textGrey,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -333,7 +365,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSumaryProfile({
+  Widget _buildSummaryProfile({
     required String point,
     required String subtitle,
     required IconData icon,
@@ -341,11 +373,10 @@ class ProfileScreen extends StatelessWidget {
   }) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.fromLTRB(0, 15, 0, 15),
+        padding: const EdgeInsets.fromLTRB(0, 15, 0, 15),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -359,11 +390,11 @@ class ProfileScreen extends StatelessWidget {
             Icon(icon, color: iconColor, size: 25),
             Text(
               point,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ],
         ),

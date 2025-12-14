@@ -1,87 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/constants/mock_data.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
-import 'package:mobile_classpal/core/models/member_role.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
+import 'package:mobile_classpal/features/main_view/screens/create_class.dart';
+import 'package:mobile_classpal/features/main_view/screens/join_class.dart';
 
-// Mock data for classes and corresponding member info
-class ClassMemberData {
-  final Class classData;
-  final Member member;
-  final Color borderColor;
+class OptionCreateJoin {
+  final String routing;
+  final String title;
 
-  const ClassMemberData({
-    required this.classData,
-    required this.member,
-    required this.borderColor,
-  });
+  OptionCreateJoin({required this.routing, required this.title});
 }
+
+final List<OptionCreateJoin> availableOptions = [
+  OptionCreateJoin(routing: "/create_class", title: "Tạo lớp"),
+  OptionCreateJoin(routing: "/join_class", title: "Vào lớp"),
+];
 
 class HomepageScreen extends StatelessWidget {
   const HomepageScreen({super.key});
-
-  // Mock data - in production this would come from a backend or state management
-  static final List<ClassMemberData> _mockClassesData = [
-    ClassMemberData(
-      classData: Class(id: '1', name: 'CS101·Product Ops'),
-      member: Member(
-        id: '1',
-        name: 'Lê Đức Nguyên',
-        classId: '1',
-        role: MemberRole.quanLyLop,
-      ),
-      borderColor: Colors.red,
-    ),
-    ClassMemberData(
-      classData: Class(id: '2', name: 'CS202·Advanced AI'),
-      member: Member(
-        id: '2',
-        name: 'Lê Đức Nguyên',
-        classId: '2',
-        role: MemberRole.canBoLop,
-      ),
-      borderColor: Colors.blue,
-    ),
-    ClassMemberData(
-      classData: Class(id: '3', name: 'CS303·Data Science'),
-      member: Member(
-        id: '3',
-        name: 'Lê Đức Nguyên',
-        classId: '3',
-        role: MemberRole.thanhVien,
-      ),
-      borderColor: Colors.green,
-    ),
-    ClassMemberData(
-      classData: Class(id: '4', name: 'CS404·Mobile Development'),
-      member: Member(
-        id: '4',
-        name: 'Lê Đức Nguyên',
-        classId: '4',
-        role: MemberRole.canBoLop,
-      ),
-      borderColor: Colors.orange,
-    ),
-    ClassMemberData(
-      classData: Class(id: '5', name: 'CS505·Cloud Computing'),
-      member: Member(
-        id: '5',
-        name: 'Lê Đức Nguyên',
-        classId: '5',
-        role: MemberRole.thanhVien,
-      ),
-      borderColor: Colors.purple,
-    ),
-  ];
-
-  // Current user name - in production this would come from auth state
-  static const String _currentUserName = 'Lê Đức Nguyên';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _buildCreateJoinBotton(context),
+        backgroundColor: AppColors.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +41,7 @@ class HomepageScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildHelloWelcomeClass(_currentUserName),
+                  _buildHelloWelcomeClass(MockData.currentUserName),
                   _buildLogoutButton(context),
                 ],
               ),
@@ -101,7 +50,7 @@ class HomepageScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                "Lớp của bạn (${_mockClassesData.length})",
+                "Lớp của bạn (${MockData.userClasses.length})",
                 style: const TextStyle(
                   fontSize: 18,
                   color: AppColors.textSecondary,
@@ -113,9 +62,9 @@ class HomepageScreen extends StatelessWidget {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _mockClassesData.length,
+                itemCount: MockData.userClasses.length,
                 itemBuilder: (context, index) {
-                  final data = _mockClassesData[index];
+                  final data = MockData.userClasses[index];
                   return _buildClassCard(
                     context: context,
                     borderColor: data.borderColor,
@@ -245,3 +194,71 @@ class HomepageScreen extends StatelessWidget {
   }
 }
 
+void _buildCreateJoinBotton(BuildContext context) async {
+  // Lấy vị trí nút bấm (Cần GlobalKey gắn vào nút nếu muốn chính xác, ở đây lấy tương đối)
+  final RenderBox overlay =
+      Overlay.of(context).context.findRenderObject() as RenderBox;
+
+  // Hiển thị Menu
+  final result = await showMenu<String>(
+    context: context,
+    // Căn chỉnh vị trí: Left, Top, Right, Bottom
+    // Bạn cần chỉnh số 'Top' và 'Left' sao cho vừa ý với vị trí nút của bạn
+    position: RelativeRect.fromRect(
+      Rect.fromLTWH(
+        overlay.size.width - 100,
+        overlay.size.height - 200,
+        100,
+        100,
+      ),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      PopupMenuItem(
+        value: 'create',
+        child: Row(
+          children: const [
+            Icon(Icons.group_add),
+            SizedBox(width: 8),
+            Text(
+              "Tạo lớp",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'join',
+        child: Row(
+          children: const [
+            Icon(Icons.qr_code_2),
+            SizedBox(width: 8),
+            Text(
+              "Vào lớp",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+  if (result == 'create') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreateClassScreen()),
+    );
+  } else if (result == 'join') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => JoinClassScreen()),
+    );
+  }
+}
