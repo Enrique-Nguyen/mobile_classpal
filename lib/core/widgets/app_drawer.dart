@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
 
 class AppDrawer extends StatelessWidget {
   final VoidCallback? onClose;
@@ -8,8 +9,8 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: const Color(0xFF1A1F36),
-      width: MediaQuery.of(context).size.width * 0.75,
+      backgroundColor: const Color.fromARGB(255, 47, 51, 53),
+      width: MediaQuery.of(context).size.width * 0.7,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,30 +96,25 @@ class AppDrawer extends StatelessWidget {
                     context,
                   ).pushNamedAndRemoveUntil('/', (route) => false);
                 },
-                child: Container(
+                child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Logout',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Logout',
+                          style: TextStyle(
+                          color: AppColors.errorRed,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(
                         Icons.arrow_forward,
-                        color: Colors.white,
+                        color: AppColors.errorRed,
                         size: 16,
                       ),
                     ],

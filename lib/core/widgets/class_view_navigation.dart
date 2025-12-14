@@ -5,7 +5,8 @@ import '../models/class.dart';
 import '../models/member.dart';
 import '../../features/class_view/overview/screens/dashboard.dart';
 import '../../features/class_view/overview/screens/profile.dart';
-import '../../features/class_view/workflow/screens/duties_screen.monitor.dart';
+import '../../features/class_view/workflow/screens/duties_screen.dart';
+import '../../features/class_view/workflow/screens/tasks_screen.dart';
 import '../../features/class_view/workflow/screens/events_screen.dart';
 import '../../features/class_view/workflow/screens/funds_screen.dart';
 
@@ -26,13 +27,14 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    // Create screens with dynamic data
     final List<Widget> screens = [
       DashboardScreen(classData: classData, currentMember: currentMember),
-      DutiesScreenMonitor(classData: classData, currentMember: currentMember),
+      (currentMember.role == MemberRole.thanhVien)
+          ? TasksScreenMember(classData: classData, currentMember: currentMember)
+          : DutiesScreenMonitor(classData: classData, currentMember: currentMember),
       EventsScreenContent(classData: classData, currentMember: currentMember),
       ClassFundsScreenContent(classData: classData, currentMember: currentMember),
-      const ProfileScreen(),
+      ProfileScreen(classData: classData, currentMember: currentMember),
     ];
 
     return Scaffold(
@@ -54,12 +56,17 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+                _buildNavItem(
+                  0,
+                  Icons.home_outlined,
+                  Icons.home,
+                  'Home',
+                ),
                 _buildNavItem(
                   1,
                   Icons.assignment_outlined,
                   Icons.assignment,
-                  'Duties',
+                  "Duties",
                 ),
                 _buildNavItem(
                   2,
@@ -73,7 +80,12 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
                   Icons.account_balance_wallet,
                   'Funds',
                 ),
-                _buildNavItem(4, Icons.person_outline, Icons.person, 'Profile'),
+                _buildNavItem(
+                  4,
+                  Icons.person_outline,
+                  Icons.person,
+                  'Profile',
+                ),
               ],
             ),
           ),
@@ -103,9 +115,7 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
           children: [
             Icon(
               isSelected ? filledIcon : outlinedIcon,
-              color: isSelected
-                  ? AppColors.primaryBlue
-                  : AppColors.textSecondary,
+              color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -114,9 +124,7 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? AppColors.primaryBlue
-                    : AppColors.textSecondary,
+                color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
               ),
             ),
           ],
@@ -125,4 +133,3 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
     );
   }
 }
-
