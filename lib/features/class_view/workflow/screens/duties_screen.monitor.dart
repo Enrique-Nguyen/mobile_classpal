@@ -139,7 +139,7 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
           children: [
             // Header - dynamic subtitle
             CustomHeader(
-              title: 'Duty roster',
+              title: 'Danh sách nhiệm vụ',
               subtitle: widget.classData.name,
             ),
             // Search bar
@@ -147,7 +147,7 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search duties...',
+                  hintText: 'Tìm kiếm...',
                   hintStyle: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -193,12 +193,12 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
                 ),
                 dividerColor: Colors.transparent,
                 tabs: [
-                  const Tab(text: 'All Duties'),
+                  const Tab(text: 'Nhiệm vụ'),
                   Tab(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Pending'),
+                        const Text('Đang chờ'),
                         if (_pendingApprovals.isNotEmpty) ...[
                           const SizedBox(width: 6),
                           Container(

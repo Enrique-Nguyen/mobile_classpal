@@ -5,7 +5,6 @@ import '../../../../core/widgets/notifications_sheet.dart';
 import '../../../../core/widgets/leaderboard_sheet.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
-import '../../../../core/models/member_role.dart';
 
 class DashboardScreen extends StatelessWidget {
   final Class classData;
