@@ -237,7 +237,7 @@ class _EventCardState extends State<EventCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  "Registered",
+                  "Đã đăng ký",
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -341,57 +341,35 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const EventsAddingScreen(),
+            ),
+          );
+          if (result != null && result is Event) {
+            _addEvent(result);
+          }
+        },
+        backgroundColor: AppColors.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           children: [
             // Header (consistent with other screens) - dynamic subtitle
             CustomHeader(
-              title: 'Events & Attendance',
+              title: 'Events',
               subtitle: widget.classData.name,
-            ),
-            // Create Event Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EventsAddingScreen(),
-                      ),
-                    );
-                    if (result != null && result is Event) {
-                      _addEvent(result);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
-                    "Tạo sự kiện",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
             ),
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: "Search events...",
+                  hintText: "Tìm kiếm sự kiện...",
                   hintStyle: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
