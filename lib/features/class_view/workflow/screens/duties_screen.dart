@@ -3,6 +3,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
+import '../../../../core/constants/mock_data.dart';
 import '../widgets/duty_card.dart';
 import '../widgets/pending_approval_card.dart';
 import 'duty_details_screen.dart';
@@ -25,94 +26,36 @@ class DutiesScreenMonitor extends StatefulWidget {
 class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  final List<Map<String, dynamic>> _duties = [
-    {
-      'title': 'Clean Whiteboard',
-      'description': 'Clean the whiteboard after each class session.',
-      'dateLabel': 'Today',
-      'timeLabel': '14:00',
-      'ruleName': 'Classroom Maintenance',
-      'ruleId': '1',
-      'points': 12,
-      'isAssignedToMonitor': true,
-    },
-    {
-      'title': 'Arrange seating grid',
-      'description': 'Arrange desks and chairs according to the seating plan.',
-      'dateLabel': 'Tomorrow',
-      'timeLabel': '10:00',
-      'ruleName': 'Seating Arrangement',
-      'ruleId': '5',
-      'points': 15,
-      'isAssignedToMonitor': false,
-    },
-    {
-      'title': 'Attendance scan',
-      'description': 'Scan attendance at the start of class.',
-      'dateLabel': 'Yesterday',
-      'timeLabel': '08:00',
-      'ruleName': 'Attendance',
-      'ruleId': '2',
-      'points': 20,
-      'isAssignedToMonitor': true,
-    },
-    {
-      'title': 'Collect homework',
-      'description': 'Collect homework assignments from all students.',
-      'dateLabel': 'Dec 12',
-      'timeLabel': '09:00',
-      'ruleName': 'Homework Collection',
-      'ruleId': '3',
-      'points': 10,
-      'isAssignedToMonitor': false,
-    },
-    {
-      'title': 'Water plants',
-      'description': 'Water all plants in the classroom.',
-      'dateLabel': 'Dec 13',
-      'timeLabel': '07:30',
-      'ruleName': 'Plant Care',
-      'ruleId': '4',
-      'points': 8,
-      'isAssignedToMonitor': false,
-    },
-  ];
-
-  final List<Map<String, dynamic>> _pendingApprovals = [
-    {
-      'memberName': 'Nguyen Van A',
-      'memberAvatar': '',
-      'dutyTitle': 'Clean Whiteboard',
-      'submittedAt': '2 hours ago',
-      'proofImageUrl': '',
-    },
-    {
-      'memberName': 'Tran Thi B',
-      'memberAvatar': '',
-      'dutyTitle': 'Arrange seating grid',
-      'submittedAt': '5 hours ago',
-      'proofImageUrl': '',
-    },
-    {
-      'memberName': 'Le Van C',
-      'memberAvatar': '',
-      'dutyTitle': 'Water plants',
-      'submittedAt': 'Yesterday',
-      'proofImageUrl': '',
-    },
-  ];
+  
+  // Local copy for mutable pending approvals
+  late List<Map<String, dynamic>> _pendingApprovals;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _pendingApprovals = List.from(MockData.pendingApprovals);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _formatDateLabel(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dutyDate = DateTime(dt.year, dt.month, dt.day);
+    
+    if (dutyDate == today) return 'Today';
+    if (dutyDate == today.add(const Duration(days: 1))) return 'Tomorrow';
+    if (dutyDate == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    return '${dt.day}/${dt.month}';
+  }
+
+  String _formatTimeLabel(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -137,17 +80,15 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
       body: SafeArea(
         child: Column(
           children: [
-            // Header - dynamic subtitle
             CustomHeader(
-              title: 'Danh sách nhiệm vụ',
+              title: 'Duty roster',
               subtitle: widget.classData.name,
             ),
-            // Search bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Tìm kiếm...',
+                  hintText: 'Search duties...',
                   hintStyle: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -166,7 +107,6 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
                 ),
               ),
             ),
-            // Tab bar
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
@@ -193,12 +133,12 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
                 ),
                 dividerColor: Colors.transparent,
                 tabs: [
-                  const Tab(text: 'Nhiệm vụ'),
+                  const Tab(text: 'All Duties'),
                   Tab(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Đang chờ'),
+                        const Text('Pending'),
                         if (_pendingApprovals.isNotEmpty) ...[
                           const SizedBox(width: 6),
                           Container(
@@ -227,14 +167,11 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
               ),
             ),
             const SizedBox(height: 16),
-            // Tab content
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  // Tab 1: All Duties
                   _buildAllDutiesTab(),
-                  // Tab 2: Pending Approvals
                   _buildPendingApprovalsTab(),
                 ],
               ),
@@ -246,22 +183,32 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
   }
 
   Widget _buildAllDutiesTab() {
+    final duties = MockData.duties;
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _duties.length,
+      itemCount: duties.length,
       itemBuilder: (context, index) {
-        final duty = _duties[index];
+        final duty = duties[index];
+        final extraInfo = MockData.parseNoteField(duty.note);
         return DutyCard(
-          title: duty['title'] as String,
-          dateLabel: duty['dateLabel'] as String,
-          timeLabel: duty['timeLabel'] as String,
-          ruleName: duty['ruleName'] as String,
-          points: duty['points'] as int,
-          isAssignedToMonitor: duty['isAssignedToMonitor'] as bool,
+          title: duty.name,
+          dateLabel: _formatDateLabel(duty.startTime),
+          timeLabel: _formatTimeLabel(duty.startTime),
+          ruleName: duty.ruleName,
+          points: duty.points.toInt(),
+          isAssignedToMonitor: index % 2 == 0,
+          extraInfo: extraInfo,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => DutyDetailsScreen(duty: duty),
+                builder: (context) => DutyDetailsScreen(duty: {
+                  'title': duty.name,
+                  'description': duty.description ?? '',
+                  'dateLabel': _formatDateLabel(duty.startTime),
+                  'timeLabel': _formatTimeLabel(duty.startTime),
+                  'ruleName': duty.ruleName,
+                  'points': duty.points.toInt(),
+                }),
               ),
             );
           },
@@ -312,7 +259,6 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
           submittedAt: approval['submittedAt'] as String,
           proofImageUrl: approval['proofImageUrl'] as String?,
           onApprove: () {
-            // Handle approve action
             setState(() {
               _pendingApprovals.removeAt(index);
             });
@@ -325,7 +271,6 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
             );
           },
           onReject: () {
-            // Handle reject action
             setState(() {
               _pendingApprovals.removeAt(index);
             });

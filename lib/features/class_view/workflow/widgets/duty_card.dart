@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/mock_data.dart';
 
 class DutyCard extends StatelessWidget {
   final String title;
@@ -8,6 +9,7 @@ class DutyCard extends StatelessWidget {
   final String ruleName;
   final int points;
   final bool isAssignedToMonitor;
+  final DutyExtraInfo? extraInfo;
   final VoidCallback? onTap;
 
   const DutyCard({
@@ -18,6 +20,7 @@ class DutyCard extends StatelessWidget {
     required this.ruleName,
     required this.points,
     this.isAssignedToMonitor = false,
+    this.extraInfo,
     this.onTap,
   });
 
@@ -180,9 +183,46 @@ class DutyCard extends StatelessWidget {
                 ],
               ],
             ),
+            // Extra info row (location or amount)
+            if (extraInfo != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: extraInfo!.type == DutyExtraType.location
+                      ? AppColors.bgBlueLight
+                      : AppColors.bgGreenLight.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      extraInfo!.icon,
+                      size: 14,
+                      color: extraInfo!.type == DutyExtraType.location
+                          ? AppColors.primaryBlue
+                          : AppColors.successGreen,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      extraInfo!.value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: extraInfo!.type == DutyExtraType.location
+                            ? AppColors.primaryBlue
+                            : AppColors.successGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 }
+
