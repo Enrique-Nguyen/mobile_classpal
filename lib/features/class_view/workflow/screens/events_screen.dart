@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
-import 'events_adding_screen.dart';
-import 'events_details_screen.dart';
+import 'create_event_screen.dart';
+import 'event_details_screen.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
 
