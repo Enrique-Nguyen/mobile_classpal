@@ -4,7 +4,7 @@ class AppColors {
   static const background = Color(0xFFF5F7FA);
   static const primaryBlue = Color(0xFF459FA7);
   static const bannerBlue = Color(0xFF4682A9);
-  static const textPrimary = Color(0xFF1A1F36);
+  static const textPrimary = Color(0xFF181B27);
   static const textGrey = Color(0xFF5E6C84);
 
   // Màu cho tính năng Funds

@@ -4,8 +4,8 @@ import 'package:mobile_classpal/core/constants/mock_data.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
-import 'package:mobile_classpal/features/main_view/screens/create_class.dart';
-import 'package:mobile_classpal/features/main_view/screens/join_class.dart';
+import 'package:mobile_classpal/features/main_view/screens/create_class_screen.dart';
+import 'package:mobile_classpal/features/main_view/screens/join_class_screen.dart';
 
 class OptionCreateJoin {
   final String routing;

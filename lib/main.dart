@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/core/constants/fonts.dart';
 import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
 import 'package:mobile_classpal/features/auth/screens/signup_screen.dart';
-import 'package:mobile_classpal/features/main_view/screens/homepage.dart';
-import 'features/main_view/screens/welcome.dart';
+import 'package:mobile_classpal/features/main_view/screens/homepage_screen.dart';
+import 'package:mobile_classpal/features/main_view/screens/welcome_screen.dart';
 import 'core/widgets/class_view_navigation.dart';
 import 'core/models/class_view_arguments.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -29,24 +30,25 @@ class App extends StatelessWidget {
           seedColor: const Color.fromARGB(255, 77, 199, 162),
         ),
         textTheme: TextTheme(
-          bodyLarge: TextStyle(
-            fontFamily: 'GoogleSans',
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF1A1F36),
-          ),
-          bodyMedium: TextStyle(
-            fontFamily: 'GoogleSans',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF1A1F36),
-          ),
-          bodySmall: TextStyle(
-            fontFamily: 'GoogleSans',
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF1A1F36),
-          ),
+          bodyLarge: Fonts.bodyLarge,
+          bodyMedium: Fonts.bodyMedium,
+          bodySmall: Fonts.bodySmall,
+
+          titleLarge: Fonts.titleLarge,
+          titleMedium: Fonts.titleMedium,
+          titleSmall: Fonts.titleSmall,
+
+          labelLarge: Fonts.labelLarge,
+          labelMedium: Fonts.labelMedium,
+          labelSmall: Fonts.labelSmall,
+
+          displayLarge: Fonts.displayLarge,
+          displayMedium: Fonts.displayMedium,
+          displaySmall: Fonts.displaySmall,
+
+          headlineLarge: Fonts.headlineLarge,
+          headlineMedium: Fonts.headlineMedium,
+          headlineSmall: Fonts.headlineSmall,
         ),
         appBarTheme: AppBarTheme(
           titleTextStyle: TextStyle(
