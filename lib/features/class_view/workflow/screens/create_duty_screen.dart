@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/models/class.dart';
-import '../../../../core/models/member.dart';
-import '../../../../core/constants/mock_data.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/constants/mock_data.dart';
+import '../widgets/assignees_selection.dart';
 
 class CreateDutyScreen extends StatefulWidget {
   final Class classData;
@@ -195,249 +196,22 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
   }
 
   Widget _buildMultiMemberSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Giao cho thành viên *',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Selected members as chips
-        if (_selectedMembers.isNotEmpty) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _selectedMembers.map((member) {
-              return Chip(
-                backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                side: BorderSide.none,
-                avatar: CircleAvatar(
-                  backgroundColor: AppColors.primaryBlue,
-                  radius: 12,
-                  child: Text(
-                    member.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                label: Text(
-                  member.name,
-                  style: const TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                deleteIcon: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: AppColors.primaryBlue,
-                ),
-                onDeleted: () {
-                  setState(() => _selectedMembers.remove(member));
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-        ],
-        // Add member button / search field
-        GestureDetector(
-          onTap: _showMemberSelectionSheet,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.person_add_outlined,
-                  size: 20,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedMembers.isEmpty 
-                        ? 'Thêm thành viên...'
-                        : 'Thêm thành viên khác...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.add_circle_outline,
-                  size: 20,
-                  color: AppColors.primaryBlue,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showMemberSelectionSheet() {
-    String searchQuery = '';
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final filteredMembers = MockData.classMembers.where((member) {
-            final nameMatch = member.name.toLowerCase().contains(searchQuery.toLowerCase());
-            final notSelected = !_selectedMembers.any((m) => m.id == member.id);
-            return nameMatch && notSelected;
-          }).toList();
-
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Chọn thành viên',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Search field
-                      TextField(
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm kiếm theo tên...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400),
-                          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-                          filled: true,
-                          fillColor: AppColors.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onChanged: (value) {
-                          setSheetState(() => searchQuery = value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: filteredMembers.isEmpty
-                      ? Center(
-                          child: Text(
-                            searchQuery.isEmpty
-                                ? 'Tất cả thành viên đã được chọn'
-                                : 'Không tìm thấy thành viên',
-                            style: const TextStyle(color: AppColors.textSecondary),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: filteredMembers.length,
-                          itemBuilder: (context, index) {
-                            final member = filteredMembers[index];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() => _selectedMembers.add(member));
-                                Navigator.pop(context);
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                                      child: Text(
-                                        member.name.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(
-                                          color: AppColors.primaryBlue,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            member.name,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                          Text(
-                                            member.role.displayName,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.add_circle_outline,
-                                      color: AppColors.primaryBlue,
-                                      size: 22,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+    return MemberSelectionField(
+      selectedMembers: _selectedMembers,
+      label: 'Giao cho thành viên',
+      required: true,
+      onAddTap: () {
+        showMemberSelectionSheet(
+          context: context,
+          selectedMembers: _selectedMembers,
+          onMemberSelected: (member) {
+            setState(() => _selectedMembers.add(member));
+          },
+        );
+      },
+      onRemoveMember: (member) {
+        setState(() => _selectedMembers.remove(member));
+      },
     );
   }
 
