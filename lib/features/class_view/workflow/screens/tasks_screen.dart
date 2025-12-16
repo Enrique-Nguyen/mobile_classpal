@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/mock_data.dart';
-import '../../../../core/widgets/custom_header.dart';
-import '../../../../core/models/class.dart';
-import '../../../../core/models/member.dart';
-import '../../../../core/models/task.dart';
-import 'task_detail_screen.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/constants/mock_data.dart';
+import 'package:mobile_classpal/core/widgets/custom_header.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/task.dart';
+import 'duty_details_screen.dart';
 
 class TasksScreenMember extends StatelessWidget {
   final Class classData;
@@ -22,9 +22,13 @@ class TasksScreenMember extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final taskDate = DateTime(dt.year, dt.month, dt.day);
     
-    if (taskDate == today) return 'Hôm nay';
-    if (taskDate == today.add(const Duration(days: 1))) return 'Ngày mai';
-    if (taskDate == today.subtract(const Duration(days: 1))) return 'Hôm qua';
+    if (taskDate == today)
+      return 'Hôm nay';
+    if (taskDate == today.add(const Duration(days: 1)))
+      return 'Ngày mai';
+    if (taskDate == today.subtract(const Duration(days: 1)))
+      return 'Hôm qua';
+
     return '${dt.day}/${dt.month}';
   }
 
@@ -159,7 +163,16 @@ class TasksScreenMember extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => TaskDetailScreen(task: task),
+            builder: (context) => DutyDetailsScreen(
+              duty: {
+                'title': task.name,
+                'description': task.description ?? '',
+                'ruleName': task.ruleName,
+                'points': task.points.toInt(),
+              },
+              isAdmin: false,
+              task: task,
+            ),
           ),
         );
       },

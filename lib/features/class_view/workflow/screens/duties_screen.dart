@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/custom_header.dart';
-import '../../../../core/models/class.dart';
-import '../../../../core/models/member.dart';
-import '../../../../core/constants/mock_data.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/widgets/custom_header.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/constants/mock_data.dart';
 import '../widgets/duty_card.dart';
 import '../widgets/pending_approval_card.dart';
 import 'duty_details_screen.dart';
@@ -80,12 +80,100 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
       body: SafeArea(
         child: Column(
           children: [
-            // Fixed header only
+            // Fixed header
             CustomHeader(
               title: 'Duty roster',
               subtitle: widget.classData.name,
             ),
-            // All content scrollable
+            // Fixed search bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search duties...',
+                  hintStyle: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: AppColors.textSecondary,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Fixed tab bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    color: const Color.fromARGB(255, 25, 25, 30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(4),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    const Tab(text: 'All Duties'),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Pending'),
+                          if (_pendingApprovals.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.errorRed,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${_pendingApprovals.length}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Tab content (scrollable)
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -103,103 +191,20 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
 
   Widget _buildAllDutiesTab() {
     final duties = MockData.duties;
+    
+    if (duties.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.assignment_outlined,
+        title: 'No duties yet',
+        subtitle: 'Create your first duty to get started',
+      );
+    }
+    
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: duties.length + 2, // +2 for search and tab bar
+      itemCount: duties.length,
       itemBuilder: (context, index) {
-        // Search bar
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 10, bottom: 10),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search duties...',
-                hintStyle: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.textSecondary,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-            ),
-          );
-        }
-        // Tab bar
-        if (index == 1) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: const Color.fromARGB(255, 25, 25, 30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: const EdgeInsets.all(4),
-                labelColor: Colors.white,
-                unselectedLabelColor: AppColors.textSecondary,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-                dividerColor: Colors.transparent,
-                tabs: [
-                  const Tab(text: 'All Duties'),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Pending'),
-                        if (_pendingApprovals.isNotEmpty) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.errorRed,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${_pendingApprovals.length}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-        // Duty cards
-        final dutyIndex = index - 2;
-        final duty = duties[dutyIndex];
+        final duty = duties[index];
         final extraInfo = MockData.parseNoteField(duty.note);
         return DutyCard(
           title: duty.name,
@@ -207,7 +212,7 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
           timeLabel: _formatTimeLabel(duty.startTime),
           ruleName: duty.ruleName,
           points: duty.points.toInt(),
-          isAssignedToMonitor: dutyIndex % 2 == 0,
+          isAssignedToMonitor: index % 2 == 0,
           extraInfo: extraInfo,
           onTap: () {
             Navigator.of(context).push(
@@ -230,36 +235,16 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
 
   Widget _buildPendingApprovalsTab() {
     if (_pendingApprovals.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 64,
-              color: AppColors.successGreen.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No pending approvals',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'All submissions have been reviewed',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-          ],
-        ),
+      return _buildEmptyState(
+        icon: Icons.check_circle_outline,
+        iconColor: AppColors.successGreen,
+        title: 'No pending approvals',
+        subtitle: 'All submissions have been reviewed',
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: _pendingApprovals.length,
       itemBuilder: (context, index) {
         final approval = _pendingApprovals[index];
@@ -295,6 +280,40 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor>
           },
         );
       },
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    Color? iconColor,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 64,
+            color: (iconColor ?? AppColors.textSecondary).withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 }

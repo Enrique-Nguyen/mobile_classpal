@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/mock_data.dart';
 import '../../../../core/models/member.dart';
+import '../../../../core/models/task.dart';
+import '../widgets/assignees_selection.dart';
 
-/// Sample assignee data
+/// Assignee model with status
 class DutyAssignee {
   final String id;
   final String name;
   final String avatar;
-  final String status; // 'pending', 'completed', 'overdue'
+  final String status; // 'pending', 'completed', 'incomplete'
   final String? completedAt;
 
   const DutyAssignee({
@@ -22,20 +26,29 @@ class DutyAssignee {
 
 class DutyDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> duty;
+  final bool isAdmin;
+  final Task? task; // For member view, pass the task
+  final bool isAssignedToAdmin; // If admin is also assigned to this duty
 
-  const DutyDetailsScreen({super.key, required this.duty});
+  const DutyDetailsScreen({
+    super.key,
+    required this.duty,
+    this.isAdmin = true,
+    this.task,
+    this.isAssignedToAdmin = false,
+  });
 
   @override
   State<DutyDetailsScreen> createState() => _DutyDetailsScreenState();
 }
 
-class _DutyDetailsScreenState extends State<DutyDetailsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late String _selectedRule;
   DateTime _selectedDateTime = DateTime.now();
+  File? _proofImage;
+  bool _isSubmitting = false;
 
   final List<Member> _selectedMembers = [];
 
@@ -48,153 +61,182 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
       completedAt: 'Dec 10, 14:30',
     ),
     DutyAssignee(id: '2', name: 'Tran Thi B', status: 'pending'),
-    DutyAssignee(id: '3', name: 'Le Van C', status: 'overdue'),
+    DutyAssignee(id: '3', name: 'Le Van C', status: 'incomplete'),
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _titleController = TextEditingController(text: widget.duty['title'] ?? '');
     _descriptionController = TextEditingController(
       text: widget.duty['description'] ?? '',
     );
     _selectedRule = widget.duty['ruleName'] ?? MockData.ruleOptions.first;
-    // Parse date from duty if available
     _initializeDateTime();
   }
 
   void _initializeDateTime() {
-    // For now, just use current time + offset
-    // TODO: Parse actual date/time from duty data when available
     _selectedDateTime = DateTime.now().add(const Duration(hours: 2));
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  // Get task status for member view
+  TaskStatus get _memberTaskStatus {
+    return widget.task?.status ?? TaskStatus.incomplete;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAFAFC),
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(10),
+      body: CustomScrollView(
+        slivers: [
+          // Gradient App Bar (matching event details screen)
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            backgroundColor: AppColors.primaryBlue,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
             ),
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 18,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-        centerTitle: true,
-        title: Column(
-          children: [
-            const Text(
-              'Sửa nhiệm vụ',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                widget.duty['title'] ?? 'Untitled',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-            ),
-            Text(
-              widget.duty['title'] ?? 'Untitled',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey.shade200,
-            height: 1,
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Tab bar
-          _buildTabBar(),
-          // Tab content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildEditTab(), _buildAssigneesTab()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: const Color.fromARGB(255, 25, 25, 30),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicatorPadding: const EdgeInsets.all(4),
-        labelColor: Colors.white,
-        unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-        dividerColor: Colors.transparent,
-        tabs: [
-          const Tab(text: 'Thông tin'),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Phân công'),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${_assignees.length}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primaryBlue,
+                      AppColors.primaryBlue.withOpacity(0.8),
+                    ],
                   ),
                 ),
-              ],
+                child: Center(
+                  child: Icon(
+                    Icons.assignment,
+                    size: 80,
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Status Badge
+                  _buildStatusBadge(),
+                  const SizedBox(height: 20),
+
+                  // Info Card
+                  _buildInfoCard(),
+                  const SizedBox(height: 20),
+
+                  // Description Section
+                  _buildDescriptionSection(),
+                  const SizedBox(height: 20),
+
+                  // Assignees Section (Admin only)
+                  if (widget.isAdmin) ...[
+                    _buildAssigneesSection(),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Proof Section (Member with incomplete status OR Admin if assigned)
+                  if (_shouldShowProofSection()) ...[
+                    _buildProofSection(),
+                    const SizedBox(height: 20),
+                  ],
+
+                  const SizedBox(height: 80), // Space for bottom bar
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomActionBar(),
+    );
+  }
+
+  bool _shouldShowProofSection() {
+    if (widget.isAdmin && widget.isAssignedToAdmin) {
+      return true;
+    }
+    if (!widget.isAdmin && _memberTaskStatus == TaskStatus.incomplete) {
+      return true;
+    }
+    return false;
+  }
+
+  Widget _buildStatusBadge() {
+    Color color;
+    String label;
+    IconData icon;
+
+    if (widget.isAdmin) {
+      color = AppColors.primaryBlue;
+      label = 'Quản lý nhiệm vụ';
+      icon = Icons.admin_panel_settings;
+    }
+    else {
+      switch (_memberTaskStatus) {
+        case TaskStatus.completed:
+          color = AppColors.successGreen;
+          label = 'Hoàn thành';
+          icon = Icons.check_circle;
+          break;
+        case TaskStatus.pending:
+          color = Colors.orange;
+          label = 'Đang chờ duyệt';
+          icon = Icons.hourglass_top;
+          break;
+        case TaskStatus.incomplete:
+          color = AppColors.errorRed;
+          label = 'Chưa hoàn thành';
+          icon = Icons.radio_button_unchecked;
+          break;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],
@@ -202,421 +244,717 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
     );
   }
 
-  Widget _buildEditTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+  Widget _buildInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildInfoRow(
+            icon: Icons.calendar_today_outlined,
+            label: 'Ngày',
+            value: _formatDate(_selectedDateTime),
+            onEdit: widget.isAdmin ? () => _editDateTime() : null,
+          ),
+          const Divider(height: 24),
+          _buildInfoRow(
+            icon: Icons.access_time_outlined,
+            label: 'Thời gian',
+            value: _formatTime(_selectedDateTime),
+            onEdit: widget.isAdmin ? () => _editDateTime() : null,
+          ),
+          const Divider(height: 24),
+          _buildInfoRow(
+            icon: Icons.bookmark_outline,
+            label: 'Quy tắc',
+            value: _selectedRule,
+            onEdit: widget.isAdmin ? () => _editRule() : null,
+          ),
+          const Divider(height: 24),
+          _buildInfoRow(
+            icon: Icons.star_outline,
+            label: 'Điểm thưởng',
+            value: '+${MockData.rulePoints[_selectedRule] ?? 10} điểm',
+            iconColor: Colors.orange,
+            onEdit: null, // Points are determined by rule
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? iconColor,
+    VoidCallback? onEdit,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: (iconColor ?? AppColors.primaryBlue).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: iconColor ?? AppColors.primaryBlue,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (onEdit != null)
+          GestureDetector(
+            onTap: onEdit,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDescriptionSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title field
-          _buildLabel('Tên nhiệm vụ'),
-          _buildTextField(_titleController, 'Nhập tên nhiệm vụ'),
-          const SizedBox(height: 20),
-          // Description field
-          _buildLabel('Mô tả'),
-          _buildTextField(
-            _descriptionController,
-            'Nhập mô tả',
-            maxLines: 4,
-          ),
-          const SizedBox(height: 24),
-          // Member selection
-          _buildSectionTitle('PHÂN CÔNG'),
-          const SizedBox(height: 12),
-          _buildMultiMemberSelector(),
-          const SizedBox(height: 24),
-          // Rule selection
-          _buildSectionTitle('PHÂN LOẠI'),
-          const SizedBox(height: 12),
-          _buildLabel('Quy tắc'),
-          _buildRuleDropdown(),
-          const SizedBox(height: 12),
-          // Points tag
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.bgGreenLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.star_rounded, size: 18, color: AppColors.successGreen),
-                const SizedBox(width: 8),
-                Text(
-                  'Điểm thưởng: +${MockData.rulePoints[_selectedRule] ?? 10}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.successGreen,
+          Row(
+            children: [
+              Icon(
+                Icons.description_outlined,
+                size: 20,
+                color: AppColors.primaryBlue,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Mô tả nhiệm vụ',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
+              ),
+              if (widget.isAdmin)
+                GestureDetector(
+                  onTap: _editDescription,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _descriptionController.text.isNotEmpty
+                ? _descriptionController.text
+                : 'Không có mô tả',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssigneesSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    size: 20,
+                    color: AppColors.primaryBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Người được phân công',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: _showMemberSelectionSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
+                      SizedBox(width: 4),
+                      Text(
+                        'Thêm',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Assignee list with status icons
+          ..._assignees.map((assignee) => _buildAssigneeRow(assignee)),
+          // Selected members (new)
+          ..._selectedMembers.map((member) => _buildSelectedMemberRow(member)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssigneeRow(DutyAssignee assignee) {
+    IconData statusIcon;
+    Color statusColor;
+
+    switch (assignee.status) {
+      case 'completed':
+        statusIcon = Icons.check_circle;
+        statusColor = AppColors.successGreen;
+        break;
+      case 'pending':
+        statusIcon = Icons.hourglass_top;
+        statusColor = Colors.orange;
+        break;
+      default:
+        statusIcon = Icons.cancel;
+        statusColor = AppColors.errorRed;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                assignee.name.isNotEmpty ? assignee.name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  assignee.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (assignee.completedAt != null)
+                  Text(
+                    'Hoàn tất: ${assignee.completedAt}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          // Time
-          _buildSectionTitle('THỜI GIAN'),
+          Icon(statusIcon, size: 20, color: statusColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedMemberRow(Member member) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              member.name,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _selectedMembers.remove(member)),
+            child: const Icon(Icons.close, size: 20, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProofSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.camera_alt_outlined,
+                size: 20,
+                color: AppColors.primaryBlue,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Minh chứng hoàn thành',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
-          _buildDateTimePicker(),
-          const SizedBox(height: 32),
-          // Save button at bottom
-          SizedBox(
-            width: double.infinity,
-            height: 52,
+          const Text(
+            'Đính kèm ảnh minh chứng để hoàn thành nhiệm vụ',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          if (_proofImage != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  Image.file(
+                    _proofImage!,
+                    width: double.infinity,
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _proofImage = null),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildImagePickerButton(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Thư viện',
+                  onTap: _pickImage,
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: _buildImagePickerButton(
+                  icon: Icons.camera_alt_outlined,
+                  label: 'Chụp ảnh',
+                  onTap: _takePhoto,
+                )),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePickerButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primaryBlue.withOpacity(0.3),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 32, color: AppColors.primaryBlue),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomActionBar() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: widget.isAdmin
+            ? _buildAdminBottomBar()
+            : _buildMemberBottomBar(),
+      ),
+    );
+  }
+
+  Widget _buildAdminBottomBar() {
+    // Show Save button, and Submit Proof if admin is assigned
+    if (widget.isAssignedToAdmin) {
+      return Row(
+        children: [
+          Expanded(
+            flex: 2,
             child: ElevatedButton(
               onPressed: _saveDuty,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.successGreen,
-                foregroundColor: Colors.white,
                 elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
               child: const Text(
-                'Lưu thay đổi',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                'LƯU',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: Colors.grey.shade500,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildMultiMemberSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Selected members as chips
-        if (_selectedMembers.isNotEmpty) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _selectedMembers.map((member) {
-              return Chip(
-                backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                side: BorderSide.none,
-                avatar: CircleAvatar(
-                  backgroundColor: AppColors.primaryBlue,
-                  radius: 12,
-                  child: Text(
-                    member.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton(
+              onPressed: _proofImage != null ? _submitProof : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                disabledBackgroundColor: AppColors.primaryBlue.withOpacity(0.3),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                label: Text(
-                  member.name,
-                  style: const TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+              ),
+              child: const Text(
+                'GỬI DUYỆT',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: Colors.white,
                 ),
-                deleteIcon: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: AppColors.primaryBlue,
-                ),
-                onDeleted: () {
-                  setState(() => _selectedMembers.remove(member));
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-        ],
-        // Add member button
-        GestureDetector(
-          onTap: _showMemberSelectionSheet,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.person_add_outlined,
-                  size: 20,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedMembers.isEmpty 
-                        ? 'Thêm thành viên...'
-                        : 'Thêm thành viên khác...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.add_circle_outline,
-                  size: 20,
-                  color: AppColors.primaryBlue,
-                ),
-              ],
+              ),
             ),
           ),
+        ],
+      );
+    }
+
+    // Just Save button for admin
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _saveDuty,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.successGreen,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
-      ],
-    );
-  }
-
-  void _showMemberSelectionSheet() {
-    String searchQuery = '';
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final filteredMembers = MockData.classMembers.where((member) {
-            final nameMatch = member.name.toLowerCase().contains(searchQuery.toLowerCase());
-            final notSelected = !_selectedMembers.any((m) => m.id == member.id);
-            return nameMatch && notSelected;
-          }).toList();
-
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Chọn thành viên',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Search field
-                      TextField(
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm kiếm theo tên...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400),
-                          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-                          filled: true,
-                          fillColor: AppColors.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onChanged: (value) {
-                          setSheetState(() => searchQuery = value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: filteredMembers.isEmpty
-                      ? Center(
-                          child: Text(
-                            searchQuery.isEmpty
-                                ? 'Tất cả thành viên đã được chọn'
-                                : 'Không tìm thấy thành viên',
-                            style: const TextStyle(color: AppColors.textSecondary),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: filteredMembers.length,
-                          itemBuilder: (context, index) {
-                            final member = filteredMembers[index];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() => _selectedMembers.add(member));
-                                Navigator.pop(context);
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                                      child: Text(
-                                        member.name.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(
-                                          color: AppColors.primaryBlue,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            member.name,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                          Text(
-                                            member.role.displayName,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.add_circle_outline,
-                                      color: AppColors.primaryBlue,
-                                      size: 22,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildAssigneesTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _assignees.length,
-      itemBuilder: (context, index) {
-        final assignee = _assignees[index];
-        return _buildAssigneeCard(assignee);
-      },
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+        child: const Text(
+          'LƯU THAY ĐỔI',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+            color: Colors.white,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint, {
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.textSecondary),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.all(16),
-      ),
-    );
+  Widget _buildMemberBottomBar() {
+    // Status-based button for member
+    switch (_memberTaskStatus) {
+      case TaskStatus.incomplete:
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isSubmitting ? null : _submitProof,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.send, color: Colors.white),
+            label: Text(
+              _isSubmitting ? 'ĐANG GỬI...' : 'GỬI MINH CHỨNG',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+
+      case TaskStatus.pending:
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEFF2F7),
+              disabledBackgroundColor: const Color(0xFFEFF2F7),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: const Icon(Icons.hourglass_top, color: Colors.orange),
+            label: const Text(
+              'ĐANG CHỜ DUYỆT',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: Colors.orange,
+              ),
+            ),
+          ),
+        );
+
+      case TaskStatus.completed:
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.successGreen.withOpacity(0.1),
+              disabledBackgroundColor: AppColors.successGreen.withOpacity(0.1),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: const Icon(Icons.check_circle, color: AppColors.successGreen),
+            label: const Text(
+              'ĐÃ HOÀN THÀNH',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: AppColors.successGreen,
+              ),
+            ),
+          ),
+        );
+    }
   }
 
-  Widget _buildDateTimePicker() {
-    return GestureDetector(
-      onTap: _pickDateTime,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.event,
-              size: 20,
-              color: AppColors.primaryBlue,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              _formatDateTime(_selectedDateTime),
-              style: const TextStyle(fontSize: 14),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.edit_calendar,
-              size: 18,
-              color: Colors.grey.shade400,
-            ),
-          ],
-        ),
-      ),
-    );
+  // Helper methods
+  String _formatDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }
 
-  Future<void> _pickDateTime() async {
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  // Edit actions
+  void _editDateTime() async {
     final date = await showDatePicker(
       context: context,
       initialDate: _selectedDateTime,
@@ -633,152 +971,159 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
 
     setState(() {
       _selectedDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
+        date.year, date.month, date.day, time.hour, time.minute,
       );
     });
   }
 
-  String _formatDateTime(DateTime dt) {
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = dt.month.toString().padLeft(2, '0');
-    final year = dt.year;
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year lúc $hour:$minute';
-  }
-
-  Widget _buildRuleDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedRule,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down),
-          items: MockData.ruleOptions.map((rule) {
-            return DropdownMenuItem<String>(
-              value: rule,
-              child: Text(rule, style: const TextStyle(fontSize: 14)),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() => _selectedRule = value);
-            }
-          },
+  void _editRule() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'Chọn quy tắc',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            ...MockData.ruleOptions.map((rule) => ListTile(
+              title: Text(rule),
+              trailing: _selectedRule == rule
+                  ? const Icon(Icons.check, color: AppColors.primaryBlue)
+                  : null,
+              onTap: () {
+                setState(() => _selectedRule = rule);
+                Navigator.pop(context);
+              },
+            )),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildAssigneeCard(DutyAssignee assignee) {
-    Color statusColor;
-    Color statusBgColor;
-    String statusText;
-
-    switch (assignee.status) {
-      case 'completed':
-        statusColor = AppColors.successGreen;
-        statusBgColor = AppColors.bgGreenLight;
-        statusText = 'Hoàn tất';
-        break;
-      case 'overdue':
-        statusColor = AppColors.errorRed;
-        statusBgColor = AppColors.bgRedLight;
-        statusText = 'Quá hạn';
-        break;
-      default:
-        statusColor = AppColors.warningOrange;
-        statusBgColor = AppColors.bgOrangeLight;
-        statusText = 'Đang chờ';
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+  void _editDescription() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.bgBlueLight,
-            child: Text(
-              assignee.name.isNotEmpty ? assignee.name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.bold,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chỉnh sửa mô tả',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          // Name and completion info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  assignee.name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 4,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Nhập mô tả...',
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                if (assignee.completedAt != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Hoàn tất: ${assignee.completedAt}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {});
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ],
-              ],
-            ),
-          ),
-          // Status badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusBgColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              statusText,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
+                  child: const Text('Xong', style: TextStyle(color: Colors.white)),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
+  // Member selection
+  void _showMemberSelectionSheet() {
+    showMemberSelectionSheet(
+      context: context,
+      selectedMembers: _selectedMembers,
+      excludedMemberIds: _assignees.map((a) => a.id).toList(),
+      closeOnSelect: false, // Keep sheet open for multiple selections
+      onMemberSelected: (member) {
+        setState(() => _selectedMembers.add(member));
+      },
+    );
+  }
+
+  // Image picker
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _proofImage = File(picked.path));
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.camera);
+    if (picked != null) {
+      setState(() => _proofImage = File(picked.path));
+    }
+  }
+
+  // Save/Submit actions
   void _saveDuty() {
-    // Handle save
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Đã lưu thay đổi!'),
@@ -787,5 +1132,31 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen>
       ),
     );
     Navigator.of(context).pop();
+  }
+
+  void _submitProof() {
+    if (_proofImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đính kèm ảnh minh chứng'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã gửi minh chứng thành công!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    });
   }
 }
