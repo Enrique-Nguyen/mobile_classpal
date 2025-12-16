@@ -14,43 +14,68 @@ class CustomHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        children: [
-          _buildIconBtn(Icons.grid_view, onTap: () => showAppDrawer(context)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.textGrey,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+      child: SizedBox(
+        height: 44, // Fixed height for header row
+        child: Stack(
+          children: [
+            // Left button
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _buildIconBtn(Icons.grid_view, onTap: () => showAppDrawer(context)),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          _buildIconBtn(
-            Icons.notifications_none,
-            onTap: () => showNotificationsSheet(context),
-          ),
-          const SizedBox(width: 8),
-          _buildIconBtn(
-            Icons.emoji_events_outlined,
-            onTap: () => showLeaderboardSheet(context),
-          ),
-        ],
+            // Centered title (absolute center)
+            Positioned.fill(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.textGrey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Right buttons
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildIconBtn(
+                      Icons.notifications_none,
+                      onTap: () => showNotificationsSheet(context),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildIconBtn(
+                      Icons.emoji_events_outlined,
+                      onTap: () => showLeaderboardSheet(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

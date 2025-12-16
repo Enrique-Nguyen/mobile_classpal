@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/mock_data.dart';
-import '../../../../core/models/member.dart';
-import '../../../../core/models/task.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/constants/mock_data.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/task.dart';
 import '../widgets/assignees_selection.dart';
 
 /// Assignee model with status
@@ -12,7 +12,7 @@ class DutyAssignee {
   final String id;
   final String name;
   final String avatar;
-  final String status; // 'pending', 'completed', 'incomplete'
+  final String status;
   final String? completedAt;
 
   const DutyAssignee({
