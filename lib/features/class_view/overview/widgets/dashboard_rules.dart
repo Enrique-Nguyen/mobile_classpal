@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/widgets/rules_sheet.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
 
 class DashboardRules extends StatelessWidget {
   final bool isAdmin;
+  final Class classData;
 
-  const DashboardRules({super.key, required this.isAdmin});
+  const DashboardRules({super.key, required this.isAdmin, required this.classData});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,7 @@ class DashboardRules extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: () => showRulesSheet(context, isAdmin: isAdmin),
+            onTap: () => showRulesSheet(context, isAdmin: isAdmin, classData: classData),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
