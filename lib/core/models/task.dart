@@ -1,13 +1,6 @@
-// class model for Task, not in data form {
-//   final String id;
-//   final String? member_id;
-//   final String? duty_id;
-//   final TaskStatus status;
-// }
-
 enum TaskStatus {
   completed,
-  pending, // pending approval
+  pending,
   incomplete,
 }
 
@@ -15,11 +8,11 @@ extension TaskStatusExtension on TaskStatus {
   String get name {
     switch (this) {
       case TaskStatus.completed:
-        return 'Completed';
+        return 'Hoàn thành';
       case TaskStatus.pending:
-        return 'Pending';
+        return 'Đang chờ';
       case TaskStatus.incomplete:
-        return 'Incomplete';
+        return 'Chưa hoàn thành';
     }
   }
 }
