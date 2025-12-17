@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../models/class.dart';
 import '../models/rule.dart';
+import 'package:mobile_classpal/features/class_view/workflow/screens/create_rule_screen.dart';
 
-void showRulesSheet(BuildContext context, {required bool isAdmin}) {
+void showRulesSheet(BuildContext context, {required bool isAdmin, required Class classData}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => RulesSheet(isAdmin: isAdmin),
+    builder: (context) => RulesSheet(isAdmin: isAdmin, classData: classData),
   );
 }
 
 class RulesSheet extends StatefulWidget {
   final bool isAdmin;
+  final Class classData;
 
-  const RulesSheet({super.key, required this.isAdmin});
+  const RulesSheet({super.key, required this.isAdmin, required this.classData});
 
   @override
   State<RulesSheet> createState() => _RulesSheetState();
 }
 
-class _RulesSheetState extends State<RulesSheet> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _RulesSheetState extends State<RulesSheet> {
+  int _currentTabIndex = 0;
   late PageController _pageController;
 
   final Map<RuleType, List<Rule>> _rulesByType = {
@@ -47,23 +50,11 @@ class _RulesSheetState extends State<RulesSheet> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _pageController = PageController();
-
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        _pageController.animateToPage(
-          _tabController.index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -132,35 +123,16 @@ class _RulesSheetState extends State<RulesSheet> with SingleTickerProviderStateM
                   ],
                 ),
               ),
-              // Tab bar
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    color: AppColors.primaryBlue,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: Colors.transparent,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  labelStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  tabs: const [
-                    Tab(text: 'Nhiệm vụ'),
-                    Tab(text: 'Sự kiện'),
-                    Tab(text: 'Quỹ'),
+              // Minimal page indicator tabs
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    _buildTabItem('Nhiệm vụ', 0),
+                    const SizedBox(width: 24),
+                    _buildTabItem('Sự kiện', 1),
+                    const SizedBox(width: 24),
+                    _buildTabItem('Quỹ', 2),
                   ],
                 ),
               ),
@@ -170,7 +142,7 @@ class _RulesSheetState extends State<RulesSheet> with SingleTickerProviderStateM
                 child: PageView(
                   controller: _pageController,
                   onPageChanged: (index) {
-                    _tabController.animateTo(index);
+                    setState(() => _currentTabIndex = index);
                   },
                   children: [
                     _buildRulesList(RuleType.duty, scrollController),
@@ -183,6 +155,43 @@ class _RulesSheetState extends State<RulesSheet> with SingleTickerProviderStateM
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTabItem(String label, int index) {
+    final isSelected = _currentTabIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _currentTabIndex = index);
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 3,
+            width: isSelected ? 24 : 0,
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -355,21 +364,24 @@ class _RulesSheetState extends State<RulesSheet> with SingleTickerProviderStateM
   }
 
   void _showAddRuleDialog(BuildContext context) {
-    // TODO: Implement add rule dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Thêm quy tắc mới (coming soon)'),
-        backgroundColor: AppColors.primaryBlue,
+    Navigator.pop(context); // Close sheet first
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateRuleScreen(classData: widget.classData),
       ),
     );
   }
 
   void _showEditRuleDialog(BuildContext context, Rule rule) {
-    // TODO: Implement edit rule dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Chỉnh sửa: ${rule.name}'),
-        backgroundColor: AppColors.primaryBlue,
+    Navigator.pop(context); // Close sheet first
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateRuleScreen(
+          classData: widget.classData,
+          existingRule: rule,
+        ),
       ),
     );
   }
