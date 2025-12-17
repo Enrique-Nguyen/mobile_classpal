@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/auth/services/auth_service.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -13,7 +14,17 @@ class _SigninScreenState extends State<SigninScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   static const Color kErrorColor = Color(0xFFD57662);
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,14 +74,17 @@ class _SigninScreenState extends State<SigninScreen> {
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _emailController, // Gán controller
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Vui lòng nhập Email';
+                          }
                           final emailRegex = RegExp(
                             r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                           );
-                          if (!emailRegex.hasMatch(value))
+                          if (!emailRegex.hasMatch(value)) {
                             return 'Email không hợp lệ';
+                          }
                           return null;
                         },
                         decoration: _buildInputDecoration(
@@ -78,9 +92,7 @@ class _SigninScreenState extends State<SigninScreen> {
                           icon: Icons.mail_outline,
                         ),
                       ),
-
-                      const SizedBox(height: 20),
-
+                      const SizedBox(height: 24),
                       const Text(
                         "Mật khẩu",
                         style: TextStyle(
@@ -91,13 +103,16 @@ class _SigninScreenState extends State<SigninScreen> {
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _passwordController, // Gán controller
                         obscureText: _obscurePassword,
                         obscuringCharacter: '●',
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Vui lòng nhập mật khẩu';
-                          if (value.length < 6)
-                            return 'Mật khẩu tối thiểu 6 ký tự';
+                          }
+                          if (value.length < 6) {
+                            return 'Mật khẩu phải có ít nhất 6 ký tự';
+                          }
                           return null;
                         },
                         decoration: _buildInputDecoration(
@@ -105,9 +120,11 @@ class _SigninScreenState extends State<SigninScreen> {
                           icon: Icons.lock_outline,
                           isPassword: true,
                           obscureText: _obscurePassword,
-                          onToggle: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
+                          onToggle: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
                       ),
                       Align(
@@ -124,7 +141,13 @@ class _SigninScreenState extends State<SigninScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _buildSignInButton(context, _formKey),
+                      // Truyền controller vào nút bấm
+                      _buildSignInButton(
+                        context,
+                        _formKey,
+                        _emailController,
+                        _passwordController,
+                      ),
                       _buildDivider(),
                       _buildGoogleButton(),
                       _buildFooter(context),
@@ -210,16 +233,59 @@ Row _buildFooter(context) {
   );
 }
 
+// Cập nhật Logic đăng nhập
 SizedBox _buildSignInButton(
   BuildContext context,
   GlobalKey<FormState> formKey,
+  TextEditingController emailCtrl,
+  TextEditingController passCtrl,
 ) {
   return SizedBox(
     width: double.infinity,
     child: ElevatedButton(
-      onPressed: () {
+      onPressed: () async {
         if (formKey.currentState!.validate()) {
-          Navigator.pushNamed(context, '/home_page');
+          // A. Hiển thị Loading Dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) =>
+                const Center(child: CircularProgressIndicator()),
+          );
+
+          try {
+            // B. Gọi Service Đăng nhập
+            final authService = AuthService();
+            final user = await authService.signIn(
+              emailCtrl.text.trim(),
+              passCtrl.text.trim(),
+            );
+
+            // C. Tắt loading
+            if (!context.mounted) return;
+            Navigator.pop(context);
+
+            if (user != null) {
+              // D. Đăng nhập thành công -> Chuyển trang
+              Navigator.pushNamed(context, '/home_page');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Đăng nhập thành công!"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            // E. Xử lý lỗi (Sai mật khẩu, không tìm thấy user...)
+            if (!context.mounted) return;
+            Navigator.pop(context); // Tắt loading
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.toString().replaceAll("Exception: ", "")),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       },
       style: ElevatedButton.styleFrom(
