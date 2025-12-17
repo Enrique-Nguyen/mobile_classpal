@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_core/firebase_core.dart';
 import 'package:mobile_classpal/core/constants/fonts.dart';
 import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
 import 'package:mobile_classpal/features/auth/screens/signup_screen.dart';
@@ -7,13 +6,30 @@ import 'package:mobile_classpal/features/main_view/screens/homepage_screen.dart'
 import 'package:mobile_classpal/features/main_view/screens/welcome_screen.dart';
 import 'core/widgets/class_view_navigation.dart';
 import 'core/models/class_view_arguments.dart';
-// import 'firebase_options.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   // WidgetsFlutterBinding.ensureInitialized();
   // await Firebase.initializeApp(
   //   options: DefaultFirebaseOptions.currentPlatform,
   // );
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Khởi tạo Firebase
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 2. KẾT NỐI VÀO EMULATOR (Chỉ chạy khi đang debug)
+  if (kDebugMode) {
+    try {
+      await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+      print("🔥 Đã kết nối tới Auth Emulator!");
+    } catch (e) {
+      print(e);
+    }
+  }
 
   runApp(const App());
 }

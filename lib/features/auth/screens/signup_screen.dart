@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/auth/services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,6 +14,9 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscureConfirmPassword = true;
 
   final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -21,6 +25,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
+    // Dispose tất cả controller
+    _nameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -73,6 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _nameController, // Gán controller
                         validator: (value) {
                           if (value == null || value.isEmpty)
                             return 'Vui lòng nhập họ tên';
@@ -96,6 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _emailController, // Gán controller
                         validator: (value) {
                           if (value == null || value.isEmpty)
                             return 'Vui lòng nhập Email';
@@ -180,7 +189,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
 
                       const SizedBox(height: 30),
-                      _buildSignUpButton(context, _formKey),
+                      // 3. Truyền các controller vào hàm build Button để xử lý Logic
+                      _buildSignUpButton(
+                        context,
+                        _formKey,
+                        _nameController,
+                        _emailController,
+                        _passwordController,
+                      ),
                       _buildDivider(),
                       _buildGoogleButton(),
                       _buildFooter(context),
@@ -264,16 +280,66 @@ Row _buildFooter(BuildContext context) {
   );
 }
 
+// Cập nhật hàm này để nhận Controller và xử lý Auth
 SizedBox _buildSignUpButton(
   BuildContext context,
   GlobalKey<FormState> formKey,
+  TextEditingController nameCtrl,
+  TextEditingController emailCtrl,
+  TextEditingController passCtrl,
 ) {
   return SizedBox(
     width: double.infinity,
     child: ElevatedButton(
-      onPressed: () {
+      onPressed: () async {
         if (formKey.currentState!.validate()) {
-          Navigator.pushNamed(context, '/class');
+          // A. Hiển thị Loading Dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) =>
+                const Center(child: CircularProgressIndicator()),
+          );
+
+          try {
+            // B. Gọi Service Đăng ký
+            final authService = AuthService();
+            final user = await authService.signUp(
+              emailCtrl.text.trim(),
+              passCtrl.text.trim(),
+            );
+
+            if (user != null) {
+              // C. Cập nhật tên hiển thị (Display Name) cho user
+              await user.updateDisplayName(nameCtrl.text.trim());
+              await user.reload(); // Refresh để cập nhật data mới
+
+              // D. Tắt loading
+              if (!context.mounted) return;
+              Navigator.pop(context);
+
+              // E. Thông báo thành công
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Đăng ký thành công!"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+
+              // F. Chuyển trang
+              Navigator.pushNamed(context, '/class');
+            }
+          } catch (e) {
+            // G. Xử lý lỗi
+            if (!context.mounted) return;
+            Navigator.pop(context); // Tắt loading trước
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.toString().replaceAll("Exception: ", "")),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       },
       style: ElevatedButton.styleFrom(
