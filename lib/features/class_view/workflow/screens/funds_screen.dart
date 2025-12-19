@@ -8,8 +8,10 @@ import '../../../../core/models/member.dart';
 import '../widgets/fund_overview_card.dart';
 import '../widgets/unpaid_members_card.dart';
 import '../widgets/transaction_history_card.dart';
+import 'funds_transaction_screen.dart';
+import '../models/fund_transaction.dart';
 
-class ClassFundsScreenContent extends StatelessWidget {
+class ClassFundsScreenContent extends StatefulWidget {
   final Class classData;
   final Member currentMember;
 
@@ -19,7 +21,40 @@ class ClassFundsScreenContent extends StatelessWidget {
     required this.currentMember,
   });
 
-  void _showFundOptions(BuildContext context) async {
+  @override
+  State<ClassFundsScreenContent> createState() => _ClassFundsScreenContentState();
+}
+
+class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
+  final List<FundTransaction> _transactions = [
+    FundTransaction(
+      type: 'payment',
+      title: 'Đóng quỹ tháng 11',
+      amount: 2000000,
+      description: 'Thu quỹ định kỳ',
+      createdAt: DateTime(2024, 11, 5),
+    ),
+    FundTransaction(
+      type: 'expense',
+      title: 'Mua đồ dùng sự kiện',
+      amount: 800000,
+      description: 'Trang trí buổi tổng kết',
+      createdAt: DateTime(2024, 11, 10),
+    ),
+    FundTransaction(
+      type: 'income',
+      title: 'Tài trợ từ cựu sinh viên',
+      amount: 1500000,
+      description: 'Ủng hộ hoạt động lớp',
+      createdAt: DateTime(2024, 11, 15),
+    ),
+  ];
+
+  double get _totalIncome => _transactions.where((t) => t.isIncome).fold<double>(0, (sum, t) => sum + t.amount);
+  double get _totalExpense => _transactions.where((t) => !t.isIncome).fold<double>(0, (sum, t) => sum + t.amount);
+  double get _balance => _totalIncome - _totalExpense;
+
+  Future<void> _showFundOptions(BuildContext context) async {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
 
@@ -89,21 +124,22 @@ class ClassFundsScreenContent extends StatelessWidget {
       ],
     );
 
-    if (result == 'expense') {
-      // TODO: Navigate to expense screen
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tính năng đang phát triển')),
-      );
-    } else if (result == 'income') {
-      // TODO: Navigate to income screen
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tính năng đang phát triển')),
-      );
-    } else if (result == 'payment') {
-      // TODO: Navigate to create payment request screen
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tính năng đang phát triển')),
-      );
+    if (result == null) return;
+
+    final newTx = await Navigator.push<FundTransaction>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FundsTransactionScreen(
+          transactionType: result,
+          classData: widget.classData,
+        ),
+      ),
+    );
+
+    if (newTx != null) {
+      setState(() {
+        _transactions.insert(0, newTx);
+      });
     }
   }
 
@@ -119,24 +155,25 @@ class ClassFundsScreenContent extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header (consistent with other screens) - dynamic subtitle
             CustomHeader(
               title: "Class Funds",
-              subtitle: classData.name,
+              subtitle: widget.classData.name,
             ),
-
-            // Main content (scrollable)
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
-                  children: const [
-                    FundOverviewCard(),
-                    SizedBox(height: 20),
-                    UnpaidMembersCard(),
-                    SizedBox(height: 20),
-                    TransactionHistoryCard(),
-                    SizedBox(height: 20),
+                  children: [
+                    FundOverviewCard(
+                      totalBalance: _balance,
+                      totalIncome: _totalIncome,
+                      totalExpense: _totalExpense,
+                    ),
+                    const SizedBox(height: 20),
+                    const UnpaidMembersCard(),
+                    const SizedBox(height: 20),
+                    TransactionHistoryCard(transactions: _transactions),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
