@@ -103,21 +103,24 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildSectionTitle('TÊN QUY TẮC'),
+              const SizedBox(height: 8),
               _buildInputField(
                 controller: _nameController,
-                label: 'Tên quy tắc',
                 hint: 'Ví dụ: Classroom Maintenance',
                 validator: (value) => value?.isEmpty ?? true
                     ? 'Vui lòng nhập tên quy tắc'
                     : null,
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 20),
               _buildSectionTitle('LOẠI QUY TẮC'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildTypeSelector(),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 20),
               _buildSectionTitle('ĐIỂM THƯỞNG'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildPointsInput(),
               const SizedBox(height: 12),
               // Points preview
@@ -188,7 +191,6 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
-    required String label,
     String? hint,
     int maxLines = 1,
     TextInputType? keyboardType,
@@ -197,15 +199,6 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
@@ -294,15 +287,6 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Số điểm',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         Row(
           children: [
             // Decrease button

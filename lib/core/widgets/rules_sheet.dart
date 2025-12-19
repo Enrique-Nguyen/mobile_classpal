@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/features/class_view/workflow/screens/create_rule_screen.dart';
 import '../constants/app_colors.dart';
 import '../models/class.dart';
 import '../models/rule.dart';
-import 'package:mobile_classpal/features/class_view/workflow/screens/create_rule_screen.dart';
 
 void showRulesSheet(BuildContext context, {required bool isAdmin, required Class classData}) {
   showModalBottomSheet(
@@ -127,12 +127,19 @@ class _RulesSheetState extends State<RulesSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildTabItem('Nhiệm vụ', 0),
+                    Expanded(
+                      child: _buildTabItem(label: 'Nhiệm vụ', index: 0),
+                    ),
                     const SizedBox(width: 24),
-                    _buildTabItem('Sự kiện', 1),
+                    Expanded(
+                      child: _buildTabItem(label: 'Sự kiện', index: 1),
+                    ),
                     const SizedBox(width: 24),
-                    _buildTabItem('Quỹ', 2),
+                    Expanded(
+                      child: _buildTabItem(label: 'Quỹ', index: 2),
+                    ),
                   ],
                 ),
               ),
@@ -158,7 +165,7 @@ class _RulesSheetState extends State<RulesSheet> {
     );
   }
 
-  Widget _buildTabItem(String label, int index) {
+  Widget _buildTabItem({required String label, required int index}) {
     final isSelected = _currentTabIndex == index;
     return GestureDetector(
       onTap: () {
@@ -184,7 +191,7 @@ class _RulesSheetState extends State<RulesSheet> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             height: 3,
-            width: isSelected ? 24 : 0,
+            width: isSelected ? (MediaQuery.of(context).size.width / 2) : 0,
             decoration: BoxDecoration(
               color: AppColors.primaryBlue,
               borderRadius: BorderRadius.circular(2),
