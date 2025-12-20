@@ -94,30 +94,31 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildSectionTitle('TÊN NHIỆM VỤ'),
+              const SizedBox(height: 8),
               _buildInputField(
                 controller: _titleController,
-                label: 'Tên nhiệm vụ',
                 hint: 'Ví dụ: Lau bảng sau giờ học',
                 validator: (value) => value?.isEmpty ?? true
                     ? 'Vui lòng nhập tên nhiệm vụ'
                     : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _buildSectionTitle('MÔ TẢ'),
+              const SizedBox(height: 8),
               _buildInputField(
                 controller: _descriptionController,
-                label: 'Mô tả',
                 hint: 'Mô tả chi tiết về nhiệm vụ...',
                 maxLines: 3,
               ),
               const SizedBox(height: 24),
               _buildSectionTitle('PHÂN CÔNG'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildMultiMemberSelector(),
               const SizedBox(height: 24),
               _buildSectionTitle('PHÂN LOẠI'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildDropdownField(
-                label: 'Quy tắc',
                 value: _selectedRule,
                 items: MockData.ruleOptions,
                 onChanged: (value) {
@@ -150,7 +151,7 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
               ),
               const SizedBox(height: 24),
               _buildSectionTitle('THỜI GIAN'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildDateTimePicker(),
               const SizedBox(height: 40),
               SizedBox(
@@ -198,7 +199,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
   Widget _buildMultiMemberSelector() {
     return MemberSelectionField(
       selectedMembers: _selectedMembers,
-      label: 'Giao cho thành viên',
       required: true,
       onAddTap: () {
         showMemberSelectionSheet(
@@ -217,7 +217,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
-    required String label,
     String? hint,
     int maxLines = 1,
     TextInputType? keyboardType,
@@ -226,15 +225,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
@@ -275,7 +265,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
   }
 
   Widget _buildDropdownField({
-    required String label,
     required String value,
     required List<String> items,
     required void Function(String?) onChanged,
@@ -283,15 +272,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
@@ -322,15 +302,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Ngày và giờ',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         GestureDetector(
           onTap: _pickDateTime,
           child: Container(
