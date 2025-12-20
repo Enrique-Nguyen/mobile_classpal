@@ -53,12 +53,9 @@ class AuthService {
       print(credential.user);
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        throw Exception('Không tìm thấy tài khoản.');
-      } else if (e.code == 'wrong-password') {
-        throw Exception('Sai mật khẩu.');
-      }
-      throw Exception(e.message); // Hiển thị lỗi gốc nếu không bắt được
+      if (e.code == 'invalid-credential')
+        throw Exception('Email hoặc mật khẩu không chính xác.');
+      throw Exception(e.message);
     }
   }
 
