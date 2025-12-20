@@ -530,7 +530,7 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
 
                 // Event Category Field
                 const Text(
-                  'Thể loại sự kiện',
+                  'Luật sự kiện',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
