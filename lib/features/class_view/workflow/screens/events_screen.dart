@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_header.dart';
 import 'create_event_screen.dart';
-import 'event_details_screen.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
+import '../widgets/event_card.dart';
 
 class Event {
   final String title;
@@ -15,6 +15,10 @@ class Event {
   final int registeredCount;
   final int maxCount;
   final bool isJoinable;
+  final String? category;
+  final String? registrationEndDate;
+  final String? registrationEndTime;
+  final int? rewardPoints;
 
   Event({
     required this.title,
@@ -25,259 +29,11 @@ class Event {
     required this.registeredCount,
     required this.maxCount,
     this.isJoinable = true,
+    this.category,
+    this.registrationEndDate,
+    this.registrationEndTime,
+    this.rewardPoints,
   });
-}
-
-class EventCard extends StatefulWidget {
-  final String title;
-  final String description;
-  final String date;
-  final String time;
-  final String location;
-  final int registeredCount;
-  final int maxCount;
-  final bool isJoinable;
-
-  const EventCard({
-    super.key,
-    required this.title,
-    required this.description,
-    required this.date,
-    required this.time,
-    required this.location,
-    required this.registeredCount,
-    required this.maxCount,
-    this.isJoinable = true,
-  });
-
-  @override
-  State<EventCard> createState() => _EventCardState();
-}
-
-class _EventCardState extends State<EventCard> {
-  late bool _isJoined;
-
-  @override
-  void initState() {
-    super.initState();
-    _isJoined = !widget.isJoinable;
-  }
-
-  void _handleJoin() {
-    setState(() {
-      _isJoined = true;
-    });
-  }
-
-  void _handleUnjoin() {
-    setState(() {
-      _isJoined = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EventDetailsScreen(
-              event: Event(
-                title: widget.title,
-                description: widget.description,
-                date: widget.date,
-                time: widget.time,
-                location: widget.location,
-                registeredCount: widget.registeredCount,
-                maxCount: widget.maxCount,
-                isJoinable: widget.isJoinable,
-              ),
-            ),
-          ),
-        );
-      },
-      child: Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title
-          Text(
-            widget.title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Description
-          Text(
-            widget.description,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Info Row (Date & Location)
-          Row(
-            children: [
-              _buildIconText(Icons.calendar_today_outlined, "${widget.date}\n${widget.time}"),
-              const SizedBox(width: 24),
-              _buildIconText(Icons.location_on_outlined, widget.location),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Join/Unjoin Buttons
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: _isJoined
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEFF2F7),
-                            disabledBackgroundColor: const Color(0xFFEFF2F7),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            "ĐÃ THAM GIA",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _handleUnjoin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF6B6B),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            "HỦY THAM GIA",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : ElevatedButton(
-                    onPressed: _handleJoin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check, color: Colors.white, size: 18),
-                        SizedBox(width: 8),
-                        Text(
-                          "THAM GIA",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 12),
-          // Registration Progress
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Đã đăng ký",
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  "${widget.registeredCount}/${widget.maxCount}",
-                  style: const TextStyle(
-                    color: AppColors.successGreen,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-    );
-  }
-
-  Widget _buildIconText(IconData icon, String text) {
-    return Expanded(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: AppColors.primaryBlue),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class EventsScreenContent extends StatefulWidget {
@@ -300,31 +56,43 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
       title: "Văn nghệ 20/11",
       description: "Tham dự đi để lấy điểm rèn luyện!",
       date: "Dec 1, 2024",
-      time: "18:00 - 22:00",
+      time: "18:00",
       location: "Hội trường T45",
       registeredCount: 18,
       maxCount: 30,
       isJoinable: true,
+      category: "Giải trí",
+      registrationEndDate: "Nov 28, 2024",
+      registrationEndTime: "23:59",
+      rewardPoints: 15,
     ),
     Event(
       title: "Trường học không ma tóe",
       description: "Sự kiện của VTV",
       date: "Nov 30, 2024",
-      time: "14:00 - 17:00",
+      time: "14:00",
       location: "Tập trung tại cổng trường",
       registeredCount: 22,
       maxCount: 30,
       isJoinable: false,
+      category: "Tình nguyện",
+      registrationEndDate: "Nov 27, 2024",
+      registrationEndTime: "21:00",
+      rewardPoints: 20,
     ),
     Event(
       title: "Talkshow về AI trong thời đại số",
       description: "Diễn giả nổi tiếng của Meta về trường",
       date: "Dec 5, 2024",
-      time: "15:00 - 17:00",
+      time: "15:00",
       location: "Hội trường T35",
       registeredCount: 15,
       maxCount: 30,
       isJoinable: true,
+      category: "Học tập",
+      registrationEndDate: "Dec 3, 2024",
+      registrationEndTime: "18:00",
+      rewardPoints: 25,
     ),
   ];
 
@@ -402,6 +170,10 @@ class _EventsScreenContentState extends State<EventsScreenContent> {
                       registeredCount: event.registeredCount,
                       maxCount: event.maxCount,
                       isJoinable: event.isJoinable,
+                      category: event.category,
+                      registrationEndDate: event.registrationEndDate,
+                      registrationEndTime: event.registrationEndTime,
+                      rewardPoints: event.rewardPoints,
                     )),
                   ],
                 ),

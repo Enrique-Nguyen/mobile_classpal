@@ -185,14 +185,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         children: [
           _buildInfoRow(
             Icons.calendar_today_outlined,
-            'Ngày tổ chức',
-            widget.event.date,
-          ),
-          const Divider(height: 24),
-          _buildInfoRow(
-            Icons.access_time_outlined,
-            'Thời gian',
-            widget.event.time,
+            'Ngày & Thời gian',
+            '${widget.event.date} - ${widget.event.time}',
           ),
           const Divider(height: 24),
           _buildInfoRow(
@@ -200,6 +194,31 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             'Địa điểm',
             widget.event.location,
           ),
+          if (widget.event.category != null) ...[
+            const Divider(height: 24),
+            _buildInfoRow(
+              Icons.label_outline,
+              'Thể loại',
+              widget.event.category!,
+            ),
+          ],
+          if (widget.event.rewardPoints != null) ...[
+            const Divider(height: 24),
+            _buildInfoRow(
+              Icons.star_outline,
+              'Điểm thưởng',
+              '${widget.event.rewardPoints} điểm',
+            ),
+          ],
+          if (widget.event.registrationEndDate != null &&
+              widget.event.registrationEndTime != null) ...[
+            const Divider(height: 24),
+            _buildInfoRow(
+              Icons.access_time_outlined,
+              'Hạn đăng kí',
+              '${widget.event.registrationEndDate} - ${widget.event.registrationEndTime}',
+            ),
+          ],
         ],
       ),
     );

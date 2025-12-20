@@ -19,10 +19,13 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _maxCountController = TextEditingController();
+  final _rewardPointsController = TextEditingController();
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedStartTime;
-  TimeOfDay? _selectedEndTime;
+  DateTime? _selectedRegistrationEndDate;
+  TimeOfDay? _selectedRegistrationEndTime;
+  String? _selectedCategory;
 
   @override
   void dispose() {
@@ -30,6 +33,7 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
     _descriptionController.dispose();
     _locationController.dispose();
     _maxCountController.dispose();
+    _rewardPointsController.dispose();
     super.dispose();
   }
 
@@ -80,9 +84,57 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
       setState(() {
         if (isStartTime) {
           _selectedStartTime = picked;
-        } else {
-          _selectedEndTime = picked;
         }
+      });
+    }
+  }
+
+  Future<void> _selectRegistrationEndDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2026),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedRegistrationEndDate) {
+      setState(() {
+        _selectedRegistrationEndDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectRegistrationEndTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedRegistrationEndTime = picked;
       });
     }
   }
@@ -99,16 +151,34 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vui lòng chọn ngày sự kiện'),
+            content: Text('Vui lòng chọn ngày và thời gian sự kiện'),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
-      if (_selectedStartTime == null || _selectedEndTime == null) {
+      if (_selectedStartTime == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vui lòng chọn thời gian bắt đầu và kết thúc'),
+            content: Text('Vui lòng chọn thời gian bắt đầu'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (_selectedRegistrationEndDate == null || _selectedRegistrationEndTime == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng chọn hạn đăng kí tham gia'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (_selectedCategory == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng chọn thể loại sự kiện'),
             backgroundColor: Colors.red,
           ),
         );
@@ -120,11 +190,15 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
         title: _titleController.text,
         description: _descriptionController.text,
         date: DateFormat('MMM d, yyyy').format(_selectedDate!),
-        time: '${_formatTime(_selectedStartTime)} - ${_formatTime(_selectedEndTime)}',
+        time: _formatTime(_selectedStartTime),
         location: _locationController.text,
         registeredCount: 0,
         maxCount: int.parse(_maxCountController.text),
         isJoinable: true,
+        category: _selectedCategory,
+        registrationEndDate: DateFormat('MMM d, yyyy').format(_selectedRegistrationEndDate!),
+        registrationEndTime: _formatTime(_selectedRegistrationEndTime),
+        rewardPoints: int.parse(_rewardPointsController.text),
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -275,55 +349,9 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Date Field
+                // Date and Start Time Field
                 const Text(
-                  'Ngày tổ chức',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          color: AppColors.primaryBlue,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _selectedDate == null
-                              ? 'Chọn ngày'
-                              : DateFormat('dd/MM/yyyy').format(_selectedDate!),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: _selectedDate == null
-                                ? AppColors.textSecondary
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Time Fields
-                const Text(
-                  'Thời gian',
+                  'Ngày tổ chức và thời gian bắt đầu',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -333,6 +361,44 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Expanded(
+                      flex: 2,
+                      child: InkWell(
+                        onTap: () => _selectDate(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                color: AppColors.primaryBlue,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _selectedDate == null
+                                    ? 'Ngày'
+                                    : DateFormat('dd/MM/yyyy').format(_selectedDate!),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: _selectedDate == null
+                                      ? AppColors.textSecondary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: InkWell(
                         onTap: () => _selectTime(context, true),
@@ -352,59 +418,14 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                                 color: AppColors.primaryBlue,
                                 size: 20,
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 8),
                               Text(
                                 _selectedStartTime == null
-                                    ? 'Bắt đầu'
+                                    ? 'Giờ'
                                     : _formatTime(_selectedStartTime),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: _selectedStartTime == null
-                                      ? AppColors.textSecondary
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      '-',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _selectTime(context, false),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.access_time,
-                                color: AppColors.primaryBlue,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                _selectedEndTime == null
-                                    ? 'Kết thúc'
-                                    : _formatTime(_selectedEndTime),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: _selectedEndTime == null
                                       ? AppColors.textSecondary
                                       : AppColors.textPrimary,
                                 ),
@@ -501,6 +522,202 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                     final count = int.tryParse(value);
                     if (count == null || count <= 0) {
                       return 'Số lượng phải lớn hơn 0';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // Event Category Field
+                const Text(
+                  'Luật sự kiện',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _selectedCategory,
+                    hint: const Text(
+                      'Chọn thể loại sự kiện',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Học tập',
+                        child: Text('Học tập'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Thể thao',
+                        child: Text('Thể thao'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Giải trí',
+                        child: Text('Giải trí'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Tình nguyện',
+                        child: Text('Tình nguyện'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Khác',
+                        child: Text('Khác'),
+                      ),
+                    ],
+                    onChanged: (String? value) {
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Registration End Date and Time
+                const Text(
+                  'Hạn đăng kí tham gia',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: InkWell(
+                        onTap: () => _selectRegistrationEndDate(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                color: AppColors.primaryBlue,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _selectedRegistrationEndDate == null
+                                    ? 'Ngày'
+                                    : DateFormat('dd/MM/yyyy')
+                                        .format(_selectedRegistrationEndDate!),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: _selectedRegistrationEndDate == null
+                                      ? AppColors.textSecondary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _selectRegistrationEndTime(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                color: AppColors.primaryBlue,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _selectedRegistrationEndTime == null
+                                    ? 'Giờ'
+                                    : _formatTime(_selectedRegistrationEndTime),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: _selectedRegistrationEndTime == null
+                                      ? AppColors.textSecondary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Reward Points Field
+                const Text(
+                  'Điểm thưởng',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _rewardPointsController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập số điểm thưởng',
+                    hintStyle: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.star_outline,
+                      color: AppColors.primaryBlue,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Vui lòng nhập số điểm thưởng';
+                    }
+                    final points = int.tryParse(value);
+                    if (points == null || points < 0) {
+                      return 'Điểm thưởng phải là số không âm';
                     }
                     return null;
                   },
