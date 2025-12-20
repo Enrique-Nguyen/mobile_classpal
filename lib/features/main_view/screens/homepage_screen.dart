@@ -173,6 +173,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
 
                   // 2. Trạng thái lỗi
                   if (snapshot.hasError) {
+                    print(snapshot.error);
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
