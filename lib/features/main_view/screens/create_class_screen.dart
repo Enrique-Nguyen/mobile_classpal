@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/main_view/services/class_service.dart';
 
 class CreateClassScreen extends StatefulWidget {
   const CreateClassScreen({super.key});
@@ -10,7 +11,7 @@ class CreateClassScreen extends StatefulWidget {
 
 class _CreateClassScreenState extends State<CreateClassScreen> {
   final _formKey = GlobalKey<FormState>();
-
+  final TextEditingController _nameController = TextEditingController();
   static const Color kErrorColor = Color(0xFFD57662);
 
   @override
@@ -62,23 +63,24 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                       _buildTitleField("Tên lớp"),
                       const SizedBox(height: 8),
                       _buildTextField(
+                        controller: _nameController,
                         hint: "e.g. CS101-Intro to Programming",
                         errorText: "Vui lòng nhập tên lớp",
                       ),
-                      const SizedBox(height: 24),
-                      _buildTitleField("Tên giáo viên"),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        hint: "e.g. Kiều Tuấn Dũng",
-                        errorText: "Vui lòng nhập tên giáo viên",
-                      ),
-                      const SizedBox(height: 24),
-                      _buildTitleField("Lịch học"),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        hint: "e.g. Mon 09:00-11:00",
-                        errorText: "Vui lòng nhập lịch học",
-                      ),
+                      // const SizedBox(height: 24),
+                      // _buildTitleField("Tên giáo viên"),
+                      // const SizedBox(height: 8),
+                      // _buildTextField(
+                      //   hint: "e.g. Kiều Tuấn Dũng",
+                      //   errorText: "Vui lòng nhập tên giáo viên",
+                      // ),
+                      // const SizedBox(height: 24),
+                      // _buildTitleField("Lịch học"),
+                      // const SizedBox(height: 8),
+                      // _buildTextField(
+                      //   hint: "e.g. Mon 09:00-11:00",
+                      //   errorText: "Vui lòng nhập lịch học",
+                      // ),
                       const SizedBox(height: 40),
                       _buildCreateClassButton(context),
                     ],
@@ -92,8 +94,13 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     );
   }
 
-  Widget _buildTextField({required String hint, required String errorText}) {
+  Widget _buildTextField({
+    required String hint,
+    required String errorText,
+    required TextEditingController controller,
+  }) {
     return TextFormField(
+      controller: controller, // Gắn controller vào đây
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return errorText;
@@ -145,10 +152,30 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          if (_formKey.currentState!.validate()) {
-            Navigator.pushNamed(context, '/home_page');
-          }
+        onPressed: () async {
+          if (_formKey.currentState!.validate())
+            try {
+              // Gọi Service tạo lớp (chỉ truyền name)
+              await ClassService().createClass(_nameController.text.trim());
+              if (context.mounted) {
+                Navigator.pop(context); // Tắt dialog
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Tạo lớp thành công!"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(e.toString()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.bannerBlue,

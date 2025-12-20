@@ -20,6 +20,10 @@
       }
     }
   },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "emulators": {
     "singleProjectMode": true,
     "auth": {
@@ -27,6 +31,9 @@
     },
     "ui": {
       "enabled": true
+    },
+    "firestore": {
+      "port": 8080
     }
   }
 }

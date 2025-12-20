@@ -305,8 +305,9 @@ SizedBox _buildSignUpButton(
             // B. Gọi Service Đăng ký
             final authService = AuthService();
             final user = await authService.signUp(
-              emailCtrl.text.trim(),
-              passCtrl.text.trim(),
+              email: emailCtrl.text.trim(),
+              password: passCtrl.text.trim(),
+              userName: nameCtrl.text,
             );
 
             if (user != null) {
@@ -327,7 +328,7 @@ SizedBox _buildSignUpButton(
               );
 
               // F. Chuyển trang
-              Navigator.pushNamed(context, '/class');
+              Navigator.pushNamed(context, '/home_page');
             }
           } catch (e) {
             // G. Xử lý lỗi

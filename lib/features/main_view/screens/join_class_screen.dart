@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/main_view/services/class_service.dart';
 
 class JoinClassScreen extends StatefulWidget {
   const JoinClassScreen({super.key});
@@ -9,10 +10,8 @@ class JoinClassScreen extends StatefulWidget {
 }
 
 class _JoinClassScreenState extends State<JoinClassScreen> {
-  // 1. Khai báo Key để quản lý Validation
   final _formKey = GlobalKey<FormState>();
-
-  // Màu lỗi đồng bộ theo yêu cầu
+  final TextEditingController _codeController = TextEditingController();
   static const Color kErrorColor = Color(0xFFD57662);
 
   @override
@@ -22,7 +21,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24), // Đồng bộ padding 24
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -82,9 +81,9 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     );
   }
 
-  // Widget TextField đồng bộ style ClassPal
   Widget _buildTextField({required String hint, required String errorText}) {
     return TextFormField(
+      controller: _codeController,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return errorText;
@@ -138,10 +137,29 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          if (_formKey.currentState!.validate()) {
-            Navigator.pushNamed(context, '/home_page');
-          }
+        onPressed: () async {
+          if (_formKey.currentState!.validate())
+            try {
+              await ClassService().joinClass(_codeController.text.trim());
+              if (context.mounted) {
+                Navigator.pop(context); // Tắt dialog
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Vào lớp thành công!"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(e.toString()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.bannerBlue,
@@ -164,7 +182,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     );
   }
 
-  // Nút phụ: Quét mã QR (Style Outlined hiện đại)
+  // Nút phụ: Quét mã QR
   Widget _buildJoinQRButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,

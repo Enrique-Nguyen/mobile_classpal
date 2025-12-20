@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/fonts.dart';
 import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
@@ -25,7 +26,8 @@ void main() async {
   if (kDebugMode) {
     try {
       await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-      print("🔥 Đã kết nối tới Auth Emulator!");
+      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+      print("Đã kết nối tới Auth Emulator!");
     } catch (e) {
       print(e);
     }
