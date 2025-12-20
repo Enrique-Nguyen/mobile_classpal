@@ -12,23 +12,17 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-void main() {
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. Khởi tạo Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // 2. KẾT NỐI VÀO EMULATOR (Chỉ chạy khi đang debug)
   if (kDebugMode) {
     try {
       await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
       FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
       print("Đã kết nối tới Auth Emulator!");
-    } catch (e) {
+    }
+    catch (e) {
       print(e);
     }
   }
