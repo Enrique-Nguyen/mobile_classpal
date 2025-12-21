@@ -3,6 +3,7 @@ import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class ProfileScreen extends StatelessWidget {
   final Class classData;
@@ -22,10 +23,7 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             // Fixed header only
-            CustomHeader(
-              title: "Trang cá nhân",
-              subtitle: classData.name,
-            ),
+            CustomHeader(title: "Trang cá nhân", subtitle: classData.name),
             // Main content (scrollable)
             Expanded(
               child: SingleChildScrollView(
@@ -36,7 +34,7 @@ class ProfileScreen extends StatelessWidget {
                       radius: 40,
                       backgroundColor: const Color(0xFF4682A9),
                       child: Text(
-                        currentMember.name.isNotEmpty 
+                        currentMember.name.isNotEmpty
                             ? currentMember.name.substring(0, 1).toUpperCase()
                             : '?',
                         style: const TextStyle(
@@ -54,17 +52,20 @@ class ProfileScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      "ID: ${currentMember.uid}",
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: AppColors.textGrey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    // Text(
+                    //   "ID: ${currentMember.uid}",
+                    //   style: const TextStyle(
+                    //     fontSize: 15,
+                    //     color: AppColors.textGrey,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
                     const SizedBox(height: 5),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryBlue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -107,7 +108,7 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                     _buildPersonalInformation(),
                     const SizedBox(height: 10),
-                    _buildClassCurrent(),
+                    _buildClassID(context),
                     const SizedBox(height: 10),
                     _buildAchievements(),
                   ],
@@ -120,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildClassCurrent() {
+  Widget _buildClassID(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
@@ -139,7 +140,7 @@ class ProfileScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "LỚP HIỆN TẠI",
+            "ID LỚP HỌC",
             style: TextStyle(
               fontSize: 15,
               color: AppColors.textGrey,
@@ -149,7 +150,7 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
@@ -161,17 +162,132 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text(
-              classData.name,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Mã lớp
+                Expanded(
+                  child: Text(
+                    classData.joinCode,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    _showQRCodeDialog(context, classData.joinCode);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: const [
+                        Icon(
+                          Icons.qr_code_2,
+                          color:
+                              AppColors.bannerBlue, // Hoặc màu chủ đạo của App
+                          size: 24,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          "Mã QR",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.bannerBlue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // Hàm hiển thị Dialog chứa QR Code
+  void _showQRCodeDialog(BuildContext context, String code) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Dialog chỉ to vừa nội dung
+              children: [
+                const Text(
+                  "Quét để tham gia",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                QrImageView(
+                  data: code,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                  backgroundColor: Colors.white,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  code,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2.0,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.grey.shade100,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      "Đóng",
+                      style: TextStyle(color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -206,12 +322,7 @@ class ProfileScreen extends StatelessWidget {
             title: currentMember.name,
             iconColor: Colors.blue,
           ),
-          _buildDetailInformation(
-            icon: Icons.tag,
-            subtitle: "ID người dùng",
-            title: currentMember.uid,
-            iconColor: Colors.purple,
-          ),
+
           _buildDetailInformation(
             icon: Icons.badge_outlined,
             subtitle: "Vai trò",
@@ -223,6 +334,17 @@ class ProfileScreen extends StatelessWidget {
             subtitle: "Lớp",
             title: classData.name,
             iconColor: Colors.orange,
+          ),
+          _buildDetailInformation(
+            icon: Icons.calendar_month,
+            subtitle: "Ngày vào lớp",
+            title:
+                currentMember.joinedAt.day.toString().padLeft(2, '0') +
+                '/' +
+                currentMember.joinedAt.month.toString().padLeft(2, '0') +
+                '/' +
+                currentMember.joinedAt.year.toString(),
+            iconColor: Colors.purple,
           ),
         ],
       ),
@@ -255,7 +377,10 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Text(
                     subtitle,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textGrey,
+                    ),
                   ),
                   Text(
                     title,
