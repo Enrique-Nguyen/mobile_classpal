@@ -7,8 +7,8 @@ import 'package:mobile_classpal/features/auth/screens/signup_screen.dart';
 import 'package:mobile_classpal/features/main_view/screens/homepage_screen.dart';
 import 'package:mobile_classpal/features/main_view/screens/welcome_screen.dart';
 import 'package:mobile_classpal/features/auth/widgets/auth_wrapper.dart';
-import 'core/widgets/class_view_navigation.dart';
-import 'core/models/class_view_arguments.dart';
+import 'package:mobile_classpal/core/widgets/class_view_navigation.dart';
+import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 import 'firebase_options.dart';
 
 void main() async {

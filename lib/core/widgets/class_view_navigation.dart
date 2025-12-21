@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/features/class_view/overview/screens/dashboard_screen.dart';
+import 'package:mobile_classpal/features/class_view/overview/screens/profile_screen.dart';
+import 'package:mobile_classpal/features/class_view/workflow/screens/duties_screen.dart';
+import 'package:mobile_classpal/features/class_view/workflow/screens/tasks_screen.dart';
+import 'package:mobile_classpal/features/class_view/workflow/screens/events_screen.dart';
+import 'package:mobile_classpal/features/class_view/workflow/screens/funds_screen.dart';
 import '../constants/app_colors.dart';
-import '../models/class_view_arguments.dart';
 import '../models/class.dart';
 import '../models/member.dart';
-import '../../features/class_view/overview/screens/dashboard_screen.dart';
-import '../../features/class_view/overview/screens/profile_screen.dart';
-import '../../features/class_view/workflow/screens/duties_screen.dart';
-import '../../features/class_view/workflow/screens/tasks_screen.dart';
-import '../../features/class_view/workflow/screens/events_screen.dart';
-import '../../features/class_view/workflow/screens/funds_screen.dart';
+import '../models/class_view_arguments.dart';
 
 class ClassViewNavigation extends StatefulWidget {
   final ClassViewArguments arguments;

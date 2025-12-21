@@ -16,11 +16,9 @@ enum MemberRole {
 
   static MemberRole fromString(String role) {
     switch (role) {
-      case 'quanLyLop':
-      case 'teacher': // Optional fallback for compatibility
+      case 'quanLyLop' || "Quản lý lớp":
         return MemberRole.quanLyLop;
-      case 'canBoLop':
-      case 'leader':
+      case 'canBoLop'  || "Cán bộ lớp":
         return MemberRole.canBoLop;
       default:
         return MemberRole.thanhVien;
@@ -31,9 +29,9 @@ enum MemberRole {
 }
 
 class Member {
-  final String uid; // Changed from id to uid for consistency with Firebase
+  final String uid;
   final String name;
-  final String? avatarUrl; // Changed from image to avatarUrl
+  final String? avatarUrl;
   final String classId;
   final MemberRole role;
   final DateTime joinedAt;
@@ -55,7 +53,7 @@ class Member {
       'name': name,
       'avatarUrl': avatarUrl,
       'classId': classId,
-      'role': role.toJson(),
+      'role': role.displayName,
       'joinedAt': joinedAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
     };
