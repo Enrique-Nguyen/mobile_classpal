@@ -54,7 +54,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               ),
                             ),
                           )
-                        : const SizedBox(height: 32),
+                        : const SizedBox(height: 48),
                   ),
                 ),
 

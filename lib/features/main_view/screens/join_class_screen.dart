@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/main_view/screens/qr_scanner_screen.dart';
 import 'package:mobile_classpal/features/main_view/services/class_service.dart';
 
 class JoinClassScreen extends StatefulWidget {
@@ -187,9 +188,21 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: () {
-          // Logic quét mã QR sẽ thêm sau
-          Navigator.pushNamed(context, '/home_page');
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+          );
+          if (result != null && result is String) {
+            print(result);
+            print(context);
+            setState(() {
+              _codeController.text = result;
+            });
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("Đã quét được mã: $result")));
+          }
         },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.textGrey.withOpacity(0.2)),
