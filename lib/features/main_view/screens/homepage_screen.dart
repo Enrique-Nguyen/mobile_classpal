@@ -1,14 +1,14 @@
-import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/models/class_model.dart';
 import 'package:mobile_classpal/core/models/member_model.dart';
-import 'package:mobile_classpal/features/main_view/screens/create_class_screen.dart';
-import 'package:mobile_classpal/features/main_view/screens/join_class_screen.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
+import '../providers/class_provider.dart';
+import 'create_class_screen.dart';
+import 'join_class_screen.dart';
 
-// Class phụ để gom dữ liệu lại cho UI dễ hiển thị
 class UserClassData {
   final ClassModel classModel;
   final MemberModel member;
@@ -21,102 +21,12 @@ class UserClassData {
   });
 }
 
-class HomepageScreen extends StatefulWidget {
+class HomepageScreen extends ConsumerWidget {
   const HomepageScreen({super.key});
 
   @override
-  State<HomepageScreen> createState() => _HomepageScreenState();
-}
-
-class _HomepageScreenState extends State<HomepageScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  late Stream<DocumentSnapshot> _userStream;
-  late Stream<List<UserClassData>> _classesStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _initStreams();
-  }
-
-  void _initStreams() {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
-
-    // 1. Stream lấy tên User hiển thị lời chào
-    _userStream = _firestore.collection('users').doc(uid).snapshots();
-
-    // 2. Stream lấy danh sách lớp
-    // Tìm tất cả document trong collection 'members' có uid trùng với user hiện tại
-    _classesStream = _firestore
-        .collectionGroup('members')
-        .where('uid', isEqualTo: uid)
-        .snapshots()
-        .asyncMap((snapshot) async {
-          List<UserClassData> loadedData = [];
-
-          // Dùng Future.wait để tải song song thông tin chi tiết của các lớp
-          await Future.wait(
-            snapshot.docs.map((memberDoc) async {
-              try {
-                // A. Parse Member từ Firestore bằng hàm toObject
-                MemberModel member = MemberModel.toObject(memberDoc.data());
-
-                // B. Lấy reference đến document Class cha (nằm trên members 2 cấp)
-                // Cấu trúc: classes/{classId}/members/{uid} -> parent là members -> parent.parent là classes/{classId}
-                DocumentReference classRef = memberDoc.reference.parent.parent!;
-
-                DocumentSnapshot classSnap = await classRef.get();
-
-                if (classSnap.exists) {
-                  // C. Parse ClassModel từ Firestore bằng hàm toObject bạn cung cấp
-                  ClassModel classModel = ClassModel.toObject(
-                    classSnap.data() as Map<String, dynamic>,
-                  );
-
-                  // D. Tạo màu ngẫu nhiên dựa trên ID lớp
-                  Color randomColor = _generateColorFromId(classModel.classId);
-
-                  loadedData.add(
-                    UserClassData(
-                      classModel: classModel,
-                      member: member,
-                      borderColor: randomColor,
-                    ),
-                  );
-                }
-              } catch (e) {
-                print("Lỗi parse data lớp: $e");
-              }
-            }),
-          );
-
-          // Sắp xếp lớp mới tạo lên đầu
-          loadedData.sort(
-            (a, b) => b.classModel.createdAt.compareTo(a.classModel.createdAt),
-          );
-
-          return loadedData;
-        });
-  }
-
-  // Hàm sinh màu cố định theo ID (để reload không bị đổi màu lung tung)
-  Color _generateColorFromId(String id) {
-    final int hash = id.hashCode;
-    final Random random = Random(hash);
-    return Color.fromARGB(
-      255,
-      random.nextInt(100) + 100, // Màu pastel tươi sáng
-      random.nextInt(100) + 100,
-      random.nextInt(100) + 100,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final uid = _auth.currentUser?.uid;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(AuthStateProvider.currentUserProvider)?.uid;
     if (uid == null) {
       return const Scaffold(
         body: Center(child: Text("Vui lòng đăng nhập lại")),
@@ -141,92 +51,64 @@ class _HomepageScreenState extends State<HomepageScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: _userStream,
-                    builder: (context, snapshot) {
-                      String displayName = "Bạn";
-                      if (snapshot.hasData && snapshot.data!.exists) {
-                        final data =
-                            snapshot.data!.data() as Map<String, dynamic>;
-                        displayName =
-                            data['userName'] ??
-                            _auth.currentUser?.email ??
-                            "Bạn";
-                      }
-                      return _buildHelloWelcomeClass(displayName);
-                    },
-                  ),
-                  _buildLogoutButton(context),
-                ],
+                    _buildHelloWelcomeClass(ref.watch(AuthStateProvider.currentUserProvider)?.displayName ?? "Bạn"),
+                    _buildLogoutButton(context, ref),
+                  ],
+                ),
               ),
-            ),
 
-            // --- DANH SÁCH LỚP HỌC ---
-            Expanded(
-              child: StreamBuilder<List<UserClassData>>(
-                stream: _classesStream,
-                builder: (context, snapshot) {
-                  // 1. Trạng thái đang tải
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  // 2. Trạng thái lỗi
-                  if (snapshot.hasError) {
-                    print(snapshot.error);
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Text("Lỗi tải dữ liệu: ${snapshot.error}"),
-                      ),
-                    );
-                  }
-
-                  final classes = snapshot.data ?? [];
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Tiêu đề section + Số lượng lớp
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          "Lớp của bạn (${classes.length})",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: AppColors.textGrey, // Đã map theo AppColors
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // ListView hiển thị thẻ lớp
-                      Expanded(
-                        child: classes.isEmpty
-                            ? _buildEmptyState()
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
+              // --- DANH SÁCH LỚP HỌC ---
+              Expanded(
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final classesAsync = ref.watch(userClassesProvider);
+                    
+                    return classesAsync.when(
+                      data: (classes) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Text(
+                                "Lớp của bạn (${classes.length})",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: AppColors.textGrey,
                                 ),
-                                itemCount: classes.length,
-                                itemBuilder: (context, index) {
-                                  final data = classes[index];
-                                  return _buildClassCard(
-                                    context: context,
-                                    borderColor: data.borderColor,
-                                    title: data.classModel.name,
-                                    // Logic hiển thị vai trò
-                                    subtitle: 'Vai trò: ${data.member.role}',
-                                    classModel: data.classModel,
-                                  );
-                                },
                               ),
-                      ),
-                    ],
-                  );
-                },
+                            ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: classes.isEmpty
+                                  ? _buildEmptyState()
+                                  : ListView.builder(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      itemCount: classes.length,
+                                      itemBuilder: (context, index) {
+                                        final data = classes[index];
+                                        return _buildClassCard(
+                                          context: context,
+                                          ref: ref,
+                                          borderColor: data.borderColor,
+                                          title: data.classModel.name,
+                                          subtitle: 'Vai trò: ${data.member.role}',
+                                          classModel: data.classModel,
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (e, stack) => Center(child: Text("Lỗi: $e")),
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -270,7 +152,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context) {
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return Container(
       width: 44,
       height: 44,
@@ -296,6 +178,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
 
   Widget _buildClassCard({
     required BuildContext context,
+    required WidgetRef ref,
     required Color borderColor,
     required String title,
     required String subtitle,
@@ -305,6 +188,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: TextButton(
         onPressed: () {
+          ref.read(selectedClassIdProvider.notifier).setSelectedClassId(classModel.classId);
           // Navigator.pushNamed(context, '/class_detail', arguments: classModel);
         },
         style: TextButton.styleFrom(padding: EdgeInsets.zero),

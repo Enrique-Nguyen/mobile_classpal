@@ -35,11 +35,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     child: _currentPage < 2
                         ? TextButton(
                             onPressed: () {
-                              _pageController.animateToPage(
-                                2,
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.easeInOut,
-                              );
+                              Navigator.pushNamed(context, '/signin');
                             },
 
                             style: TextButton.styleFrom(

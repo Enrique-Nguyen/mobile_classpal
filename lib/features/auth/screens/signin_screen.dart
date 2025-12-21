@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/features/auth/services/auth_service.dart';
 
@@ -142,11 +143,16 @@ class _SigninScreenState extends State<SigninScreen> {
                       ),
                       const SizedBox(height: 20),
                       // Truyền controller vào nút bấm
-                      _buildSignInButton(
-                        context,
-                        _formKey,
-                        _emailController,
-                        _passwordController,
+                      Consumer(
+                        builder: (context, ref, child) {
+                          return _buildSignInButton(
+                            context,
+                            ref,
+                            _formKey,
+                            _emailController,
+                            _passwordController,
+                          );
+                        },
                       ),
                       _buildDivider(),
                       _buildGoogleButton(),
@@ -208,7 +214,7 @@ class _SigninScreenState extends State<SigninScreen> {
   }
 }
 
-Row _buildFooter(context) {
+Row _buildFooter(BuildContext context) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
@@ -236,6 +242,7 @@ Row _buildFooter(context) {
 // Cập nhật Logic đăng nhập
 SizedBox _buildSignInButton(
   BuildContext context,
+  WidgetRef ref,
   GlobalKey<FormState> formKey,
   TextEditingController emailCtrl,
   TextEditingController passCtrl,
