@@ -1,18 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_classpal/core/models/class_model.dart';
-import 'package:mobile_classpal/core/models/member_model.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
 import 'dart:math';
 
 class UserClassData {
-  final ClassModel classModel;
-  final MemberModel member;
+  final Class classData;
+  final Member member;
   final Color borderColor;
 
   UserClassData({
-    required this.classModel,
+    required this.classData,
     required this.member,
     required this.borderColor,
   });
@@ -32,16 +32,16 @@ class ClassProvider {
         await Future.wait(
           snapshot.docs.map((memberDoc) async {
             try {
-              MemberModel member = MemberModel.toObject(memberDoc.data());
+              Member member = Member.fromMap(memberDoc.data());
               DocumentReference classRef = memberDoc.reference.parent.parent!;
               DocumentSnapshot classSnap = await classRef.get();
 
               if (classSnap.exists) {
-                ClassModel classModel = ClassModel.toObject(
+                Class classObj = Class.fromMap(
                   classSnap.data() as Map<String, dynamic>,
                 );
                 
-                final int hash = classModel.classId.hashCode;
+                final int hash = classObj.classId.hashCode;
                 final Random random = Random(hash);
                 Color randomColor = Color.fromARGB(
                   255,
@@ -52,7 +52,7 @@ class ClassProvider {
 
                 loadedData.add(
                   UserClassData(
-                    classModel: classModel,
+                    classData: classObj,
                     member: member,
                     borderColor: randomColor,
                   ),
@@ -65,7 +65,7 @@ class ClassProvider {
         );
 
         loadedData.sort(
-          (a, b) => b.classModel.createdAt.compareTo(a.classModel.createdAt),
+          (a, b) => b.classData.createdAt.compareTo(a.classData.createdAt),
         );
         return loadedData;
       });

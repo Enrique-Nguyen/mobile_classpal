@@ -9,64 +9,74 @@ class MockData {
   static const String currentUserId = 'user_1';
 
   static final List<Member> classMembers = [
-    Member(id: 'm1', name: 'Nguyễn Văn An', classId: '1', role: MemberRole.thanhVien),
-    Member(id: 'm2', name: 'Trần Thị Bình', classId: '1', role: MemberRole.thanhVien),
-    Member(id: 'm3', name: 'Lê Văn Cường', classId: '1', role: MemberRole.thanhVien),
-    Member(id: 'm4', name: 'Phạm Thị Dung', classId: '1', role: MemberRole.canBoLop),
-    Member(id: 'm5', name: 'Hoàng Văn Em', classId: '1', role: MemberRole.thanhVien),
-    Member(id: 'm6', name: 'Vũ Thị Phương', classId: '1', role: MemberRole.thanhVien),
-    Member(id: 'm7', name: 'Đỗ Văn Giang', classId: '1', role: MemberRole.thanhVien),
-    Member(id: 'm8', name: 'Bùi Thị Hương', classId: '1', role: MemberRole.thanhVien),
+    Member(uid: 'm1', name: 'Nguyễn Văn An', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm2', name: 'Trần Thị Bình', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm3', name: 'Lê Văn Cường', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm4', name: 'Phạm Thị Dung', classId: '1', role: MemberRole.canBoLop, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm5', name: 'Hoàng Văn Em', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm6', name: 'Vũ Thị Phương', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm7', name: 'Đỗ Văn Giang', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
+    Member(uid: 'm8', name: 'Bùi Thị Hương', classId: '1', role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now()),
   ];
 
   static final List<ClassMemberData> userClasses = [
     ClassMemberData(
-      classData: Class(id: '1', name: 'CS101·Product Ops'),
+      classData: Class(classId: '1', name: 'CS101·Product Ops', joinCode: 'PROD101', createdAt: DateTime.now(), updatedAt: DateTime.now()),
       member: Member(
-        id: '1',
+        uid: '1',
         name: currentUserName,
         classId: '1',
         role: MemberRole.quanLyLop,
+        joinedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       ),
       borderColor: Colors.red,
     ),
     ClassMemberData(
-      classData: Class(id: '2', name: 'CS202·Advanced AI'),
+      classData: Class(classId: '2', name: 'CS202·Advanced AI', joinCode: 'AI202', createdAt: DateTime.now(), updatedAt: DateTime.now()),
       member: Member(
-        id: '2',
+        uid: '2',
         name: currentUserName,
         classId: '2',
         role: MemberRole.canBoLop,
+        joinedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       ),
       borderColor: Colors.blue,
     ),
     ClassMemberData(
-      classData: Class(id: '3', name: 'CS303·Data Science'),
+      classData: Class(classId: '3', name: 'CS303·Data Science', joinCode: 'DATA303', createdAt: DateTime.now(), updatedAt: DateTime.now()),
       member: Member(
-        id: '3',
+        uid: '3',
         name: currentUserName,
         classId: '3',
         role: MemberRole.thanhVien,
+        joinedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       ),
       borderColor: Colors.green,
     ),
     ClassMemberData(
-      classData: Class(id: '4', name: 'CS404·Mobile Development'),
+      classData: Class(classId: '4', name: 'CS404·Mobile Development', joinCode: 'MOB404', createdAt: DateTime.now(), updatedAt: DateTime.now()),
       member: Member(
-        id: '4',
+        uid: '4',
         name: currentUserName,
         classId: '4',
         role: MemberRole.canBoLop,
+        joinedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       ),
       borderColor: Colors.orange,
     ),
     ClassMemberData(
-      classData: Class(id: '5', name: 'CS505·Cloud Computing'),
+      classData: Class(classId: '5', name: 'CS505·Cloud Computing', joinCode: 'CLOUD505', createdAt: DateTime.now(), updatedAt: DateTime.now()),
       member: Member(
-        id: '5',
+        uid: '5',
         name: currentUserName,
         classId: '5',
         role: MemberRole.thanhVien,
+        joinedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       ),
       borderColor: Colors.purple,
     ),
@@ -281,7 +291,7 @@ class ClassMemberData {
   final Member member;
   final Color borderColor;
 
-  const ClassMemberData({
+  ClassMemberData({
     required this.classData,
     required this.member,
     required this.borderColor,

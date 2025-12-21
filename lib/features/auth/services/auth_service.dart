@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_classpal/core/models/user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   // Hàm Đăng ký
   Future<User?> signUp({
     required String email,
@@ -18,14 +18,13 @@ class AuthService {
       );
       User? user = credential.user;
       if (user != null) {
-        UserModel newUser = UserModel(
-          uid: user.uid, // Lấy ID từ Auth gán sang
-          email: email,
-          userName: userName,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-        await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'userName': userName,
+          'createdAt': DateTime.now(),
+          'updatedAt': DateTime.now(),
+        });
         await user.updateDisplayName(userName);
       }
       return user;

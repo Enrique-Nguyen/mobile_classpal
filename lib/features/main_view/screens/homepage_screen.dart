@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_classpal/core/models/class_model.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
 import '../providers/class_provider.dart';
@@ -80,9 +82,10 @@ class HomepageScreen extends ConsumerWidget {
                                           context: context,
                                           ref: ref,
                                           borderColor: data.borderColor,
-                                          title: data.classModel.name,
-                                          subtitle: 'Vai trò: ${data.member.role}',
-                                          classModel: data.classModel,
+                                          title: data.classData.name,
+                                          subtitle: 'Vai trò: ${data.member.role.displayName}',
+                                          classData: data.classData,
+                                          member: data.member,
                                         );
                                       },
                                     ),
@@ -169,14 +172,21 @@ class HomepageScreen extends ConsumerWidget {
     required Color borderColor,
     required String title,
     required String subtitle,
-    required ClassModel classModel,
+    required Class classData,
+    required Member member,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextButton(
         onPressed: () {
-          // ref.read(selectedClassIdProvider.notifier).setSelectedClassId(classModel.classId);
-          // Navigator.pushNamed(context, '/class_detail', arguments: classModel);
+          Navigator.pushNamed(
+            context,
+            '/class',
+            arguments: ClassViewArguments(
+              classData: classData,
+              member: member,
+            ),
+          );
         },
         style: TextButton.styleFrom(padding: EdgeInsets.zero),
         child: Container(

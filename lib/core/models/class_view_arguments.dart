@@ -3,10 +3,10 @@ import 'member.dart';
 
 class ClassViewArguments {
   final Class classData;
-  final Member currentMember;
+  final Member member;
 
   const ClassViewArguments({
     required this.classData,
-    required this.currentMember,
+    required this.member,
   });
 }

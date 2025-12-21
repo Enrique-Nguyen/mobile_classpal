@@ -6,11 +6,13 @@ import 'package:mobile_classpal/core/widgets/leaderboard_sheet.dart';
 
 class DashboardHeader extends StatelessWidget {
   final String className;
+  final String role;
   final String displayName;
 
   const DashboardHeader({
     super.key,
     required this.className,
+    required this.role,
     required this.displayName,
   });
 
@@ -99,7 +101,7 @@ class DashboardHeader extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: Text(
-                  displayName,
+                  '$displayName ($role)',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 14,

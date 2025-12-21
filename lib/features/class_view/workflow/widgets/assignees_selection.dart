@@ -20,8 +20,8 @@ void showMemberSelectionSheet({
       builder: (sheetContext, setSheetState) {
         final filteredMembers = MockData.classMembers.where((member) {
           final nameMatch = member.name.toLowerCase().contains(searchQuery.toLowerCase());
-          final notSelected = !selectedMembers.any((m) => m.id == member.id);
-          final notExcluded = !excludedMemberIds.contains(member.id);
+          final notSelected = !selectedMembers.any((m) => m.uid == member.uid);
+          final notExcluded = !excludedMemberIds.contains(member.uid);
           return nameMatch && notSelected && notExcluded;
         }).toList();
 

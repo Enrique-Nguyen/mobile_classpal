@@ -55,7 +55,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      "ID: ${currentMember.id}",
+                      "ID: ${currentMember.uid}",
                       style: const TextStyle(
                         fontSize: 15,
                         color: AppColors.textGrey,
@@ -209,7 +209,7 @@ class ProfileScreen extends StatelessWidget {
           _buildDetailInformation(
             icon: Icons.tag,
             subtitle: "ID người dùng",
-            title: currentMember.id,
+            title: currentMember.uid,
             iconColor: Colors.purple,
           ),
           _buildDetailInformation(

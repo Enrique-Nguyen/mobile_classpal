@@ -25,7 +25,11 @@ class DashboardScreen extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           // Header
-          SliverToBoxAdapter(child: DashboardHeader(className: classData.name, displayName: currentMember.name)),
+          SliverToBoxAdapter(child: DashboardHeader(
+            className: classData.name,
+            role: currentMember.role.displayName,
+            displayName: currentMember.name,
+          )),
           // Content
           SliverToBoxAdapter(
             child: Container(

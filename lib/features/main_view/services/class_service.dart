@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_classpal/core/models/class_model.dart';
+import 'package:mobile_classpal/core/models/class.dart';
 
 class ClassService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,7 +26,7 @@ class ClassService {
       DateTime now = DateTime.now();
 
       // 2. Chuẩn bị dữ liệu lớp học
-      ClassModel newClass = ClassModel(
+      Class newClass = Class(
         classId: classRef.id,
         name: name,
         joinCode: joinCode,

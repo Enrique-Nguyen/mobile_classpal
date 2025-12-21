@@ -23,7 +23,7 @@ class _ClassViewNavigationState extends State<ClassViewNavigation> {
   int _currentIndex = 0;
 
   Class get classData => widget.arguments.classData;
-  Member get currentMember => widget.arguments.currentMember;
+  Member get currentMember => widget.arguments.member;
 
   @override
   Widget build(BuildContext context) {
