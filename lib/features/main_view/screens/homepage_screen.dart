@@ -2,24 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/models/class_model.dart';
-import 'package:mobile_classpal/core/models/member_model.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
 import '../providers/class_provider.dart';
 import 'create_class_screen.dart';
 import 'join_class_screen.dart';
-
-class UserClassData {
-  final ClassModel classModel;
-  final MemberModel member;
-  final Color borderColor;
-
-  UserClassData({
-    required this.classModel,
-    required this.member,
-    required this.borderColor,
-  });
-}
 
 class HomepageScreen extends ConsumerWidget {
   const HomepageScreen({super.key});
@@ -61,8 +48,8 @@ class HomepageScreen extends ConsumerWidget {
               Expanded(
                 child: Consumer(
                   builder: (context, ref, child) {
-                    final classesAsync = ref.watch(userClassesProvider);
-                    
+                    final classesAsync = ref.watch(ClassProvider.userClassesProvider);
+
                     return classesAsync.when(
                       data: (classes) {
                         return Column(
@@ -188,7 +175,7 @@ class HomepageScreen extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: TextButton(
         onPressed: () {
-          ref.read(selectedClassIdProvider.notifier).setSelectedClassId(classModel.classId);
+          // ref.read(selectedClassIdProvider.notifier).setSelectedClassId(classModel.classId);
           // Navigator.pushNamed(context, '/class_detail', arguments: classModel);
         },
         style: TextButton.styleFrom(padding: EdgeInsets.zero),
