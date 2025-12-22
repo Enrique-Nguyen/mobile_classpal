@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_classpal/core/widgets/rules_sheet.dart';
-import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'rules_sheet.dart';
 
 class DashboardRules extends StatelessWidget {
   final bool isAdmin;
@@ -17,7 +17,7 @@ class DashboardRules extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'QUY TẮC LỚP HỌC',
+            'LUẬT',
             style: TextStyle(
               color: Colors.grey.shade500,
               fontSize: 12,
@@ -61,7 +61,7 @@ class DashboardRules extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Xem quy tắc lớp',
+                          'Xem luật tính điểm',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

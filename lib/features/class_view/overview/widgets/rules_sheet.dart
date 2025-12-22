@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_classpal/features/class_view/workflow/screens/create_rule_screen.dart';
-import '../constants/app_colors.dart';
-import '../models/class.dart';
-import '../models/rule.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/rule.dart';
+import '../services/rule_service.dart';
+import 'create_rule_screen.dart';
 
 void showRulesSheet(BuildContext context, {required bool isAdmin, required Class classData}) {
   showModalBottomSheet(
@@ -25,39 +26,6 @@ class RulesSheet extends StatefulWidget {
 
 class _RulesSheetState extends State<RulesSheet> {
   int _currentTabIndex = 0;
-  late PageController _pageController;
-
-  final Map<RuleType, List<Rule>> _rulesByType = {
-    RuleType.duty: [
-      Rule(id: 'r1', name: 'Classroom Maintenance', type: RuleType.duty, points: 12),
-      Rule(id: 'r2', name: 'Seating Arrangement', type: RuleType.duty, points: 15),
-      Rule(id: 'r3', name: 'Attendance', type: RuleType.duty, points: 20),
-      Rule(id: 'r4', name: 'Plant Care', type: RuleType.duty, points: 8),
-      Rule(id: 'r5', name: 'Equipment Management', type: RuleType.duty, points: 15),
-      Rule(id: 'r6', name: 'Homework Collection', type: RuleType.duty, points: 10),
-    ],
-    RuleType.event: [
-      Rule(id: 'r7', name: 'Cultural Events', type: RuleType.event, points: 20),
-      Rule(id: 'r8', name: 'Workshops', type: RuleType.event, points: 15),
-      Rule(id: 'r9', name: 'Sports Day', type: RuleType.event, points: 18),
-    ],
-    RuleType.fund: [
-      Rule(id: 'r10', name: 'Class Fund', type: RuleType.fund, points: 10),
-      Rule(id: 'r11', name: 'Expense Tracking', type: RuleType.fund, points: 8),
-    ],
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +63,7 @@ class _RulesSheetState extends State<RulesSheet> {
                     ),
                     const SizedBox(width: 10),
                     const Text(
-                      'Quy tắc lớp học',
+                      'Luật tính điểm',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -146,16 +114,31 @@ class _RulesSheetState extends State<RulesSheet> {
               const SizedBox(height: 12),
               // Page view content
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() => _currentTabIndex = index);
+                child: StreamBuilder<List<Rule>>(
+                  stream: RuleService.getRules(widget.classData.classId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting)
+                      return const Center(child: CircularProgressIndicator());
+                    if (snapshot.hasError)
+                      return Center(child: Text('Lỗi: ${snapshot.error}'));
+                    
+                    final allRules = snapshot.data ?? [];
+                    List<Rule> dutyRules = [], eventRules = [], fundRules = [];
+                    for (var rule in allRules) {
+                      if (rule.type == RuleType.duty) dutyRules.add(rule);
+                      else if (rule.type == RuleType.event) eventRules.add(rule);
+                      else if (rule.type == RuleType.fund) fundRules.add(rule);
+                    }
+
+                    return IndexedStack(
+                      index: _currentTabIndex,
+                      children: [
+                        _buildRulesList(type: RuleType.duty, rules: dutyRules),
+                        _buildRulesList(type: RuleType.event, rules: eventRules),
+                        _buildRulesList(type: RuleType.fund, rules: fundRules),
+                      ],
+                    );
                   },
-                  children: [
-                    _buildRulesList(RuleType.duty, scrollController),
-                    _buildRulesList(RuleType.event, scrollController),
-                    _buildRulesList(RuleType.fund, scrollController),
-                  ],
                 ),
               ),
             ],
@@ -169,12 +152,8 @@ class _RulesSheetState extends State<RulesSheet> {
     final isSelected = _currentTabIndex == index;
     return GestureDetector(
       onTap: () {
+        if (isSelected) return;
         setState(() => _currentTabIndex = index);
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -202,9 +181,7 @@ class _RulesSheetState extends State<RulesSheet> {
     );
   }
 
-  Widget _buildRulesList(RuleType type, ScrollController scrollController) {
-    final rules = _rulesByType[type] ?? [];
-
+  Widget _buildRulesList({required RuleType type, required List<Rule> rules}) {
     if (rules.isEmpty) {
       return Center(
         child: Column(
@@ -228,13 +205,15 @@ class _RulesSheetState extends State<RulesSheet> {
       );
     }
 
-    return ListView.builder(
-      controller: scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: rules.length,
-      itemBuilder: (context, index) {
-        return _buildRuleCard(rules[index], type);
-      },
+    return SizedBox.expand(
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: rules.length,
+        itemBuilder: (context, index) {
+          return _buildRuleCard(rules[index], type);
+        },
+      ),
     );
   }
 

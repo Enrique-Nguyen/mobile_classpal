@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/models/member.dart';
-import 'package:mobile_classpal/core/constants/mock_data.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 
 void showMemberSelectionSheet({
   required BuildContext context,
+  required List<Member> allMembers,
   required List<Member> selectedMembers,
   required void Function(Member member) onMemberSelected,
   List<String> excludedMemberIds = const [],
@@ -18,7 +18,7 @@ void showMemberSelectionSheet({
     backgroundColor: Colors.transparent,
     builder: (sheetContext) => StatefulBuilder(
       builder: (sheetContext, setSheetState) {
-        final filteredMembers = MockData.classMembers.where((member) {
+        final filteredMembers = allMembers.where((member) {
           final nameMatch = member.name.toLowerCase().contains(searchQuery.toLowerCase());
           final notSelected = !selectedMembers.any((m) => m.uid == member.uid);
           final notExcluded = !excludedMemberIds.contains(member.uid);
@@ -82,9 +82,7 @@ void showMemberSelectionSheet({
                 child: filteredMembers.isEmpty
                     ? Center(
                         child: Text(
-                          searchQuery.isEmpty
-                              ? 'Tất cả thành viên đã được chọn'
-                              : 'Không tìm thấy thành viên',
+                          searchQuery.isEmpty ? 'Tất cả thành viên đã được chọn' : 'Không tìm thấy thành viên',
                           style: const TextStyle(color: AppColors.textSecondary),
                         ),
                       )
