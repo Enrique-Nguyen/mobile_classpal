@@ -91,7 +91,10 @@ class MockData {
       startTime: DateTime.now().add(const Duration(hours: 2)),
       ruleName: 'Classroom Maintenance',
       points: 12,
-      note: null, // Plain duty, no extra field
+      note: null,
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Duty(
       id: 'd2',
@@ -101,7 +104,10 @@ class MockData {
       startTime: DateTime.now().add(const Duration(days: 1)),
       ruleName: 'Seating Arrangement',
       points: 15,
-      note: null, // Plain duty
+      note: null,
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Duty(
       id: 'd3',
@@ -111,7 +117,10 @@ class MockData {
       startTime: DateTime.now().subtract(const Duration(days: 1)),
       ruleName: 'Events',
       points: 20,
-      note: 'location:Hội trường T45', // Event-related, has location
+      note: 'location:Hội trường T45',
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Duty(
       id: 'd4',
@@ -121,7 +130,10 @@ class MockData {
       startTime: DateTime.now().add(const Duration(days: 3)),
       ruleName: 'Funds',
       points: 10,
-      note: 'amount:50000', // Fund-related, has amount
+      note: 'amount:50000',
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Duty(
       id: 'd5',
@@ -131,7 +143,10 @@ class MockData {
       startTime: DateTime.now().add(const Duration(days: 4)),
       ruleName: 'Plant Care',
       points: 8,
-      note: null, // Plain duty
+      note: null,
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Duty(
       id: 'd6',
@@ -141,7 +156,10 @@ class MockData {
       startTime: DateTime.now().add(const Duration(days: 2)),
       ruleName: 'Events',
       points: 25,
-      note: 'location:Phòng hội thảo F301', // Event-related
+      note: 'location:Phòng hội thảo F301',
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Duty(
       id: 'd7',
@@ -151,7 +169,10 @@ class MockData {
       startTime: DateTime.now().add(const Duration(days: 5)),
       ruleName: 'Funds',
       points: 15,
-      note: 'amount:120000', // Fund-related
+      note: 'amount:120000',
+      assigneeIds: ['user_1'],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
   ];
 
@@ -208,6 +229,9 @@ class MockData {
   static final List<Task> memberTasks = [
     Task(
       id: 't1',
+      dutyId: 'd1',
+      classId: '1',
+      uid: 'user_1',
       name: 'Clean Whiteboard',
       description: 'Clean the whiteboard after each class session.',
       status: TaskStatus.incomplete,
@@ -215,9 +239,13 @@ class MockData {
       ruleName: 'Classroom Maintenance',
       points: 12,
       note: null,
+      createdAt: DateTime.now(),
     ),
     Task(
       id: 't2',
+      dutyId: 'd2',
+      classId: '1',
+      uid: 'user_1',
       name: 'Arrange seating grid',
       description: 'Arrange desks and chairs according to the seating plan.',
       status: TaskStatus.pending,
@@ -225,9 +253,13 @@ class MockData {
       ruleName: 'Seating Arrangement',
       points: 15,
       note: null,
+      createdAt: DateTime.now(),
     ),
     Task(
       id: 't3',
+      dutyId: 'd3',
+      classId: '1',
+      uid: 'user_1',
       name: 'Event: Văn nghệ 20/11',
       description: 'Prepare for cultural performance event.',
       status: TaskStatus.completed,
@@ -235,9 +267,13 @@ class MockData {
       ruleName: 'Events',
       points: 20,
       note: 'location:Hội trường T45',
+      createdAt: DateTime.now(),
     ),
     Task(
       id: 't4',
+      dutyId: 'd5',
+      classId: '1',
+      uid: 'user_1',
       name: 'Water plants',
       description: 'Water all plants in the classroom.',
       status: TaskStatus.incomplete,
@@ -245,9 +281,13 @@ class MockData {
       ruleName: 'Plant Care',
       points: 8,
       note: null,
+      createdAt: DateTime.now(),
     ),
     Task(
       id: 't5',
+      dutyId: 'd4',
+      classId: '1',
+      uid: 'user_1',
       name: 'Collect class fund',
       description: 'Collect monthly class fund from all students.',
       status: TaskStatus.incomplete,
@@ -255,6 +295,7 @@ class MockData {
       ruleName: 'Funds',
       points: 10,
       note: 'amount:50000',
+      createdAt: DateTime.now(),
     ),
   ];
 

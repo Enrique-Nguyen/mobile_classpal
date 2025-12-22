@@ -5,6 +5,7 @@ import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/constants/mock_data.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/task.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/assignees_selection.dart';
 
 /// Assignee model with status
@@ -428,77 +429,91 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Widget _buildAssigneesSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final classId = widget.duty['classId'] ?? '';
+    
+    return StreamBuilder<List<Member>>(
+      stream: FirebaseFirestore.instance
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .snapshots()
+          .map((snapshot) => snapshot.docs.map((doc) => Member.fromMap(doc.data())).toList()),
+      builder: (context, snapshot) {
+        final allMembers = snapshot.data ?? [];
+        
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 20,
-                    color: AppColors.primaryBlue,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Người được phân công',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: _showMemberSelectionSheet,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Row(
                     children: [
-                      Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
-                      SizedBox(width: 4),
-                      Text(
-                        'Thêm',
+                      const Icon(
+                        Icons.people_outline,
+                        size: 20,
+                        color: AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Người được phân công',
                         style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryBlue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
                   ),
-                ),
+                  GestureDetector(
+                    onTap: () => _showMemberSelectionSheet(allMembers),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
+                          SizedBox(width: 4),
+                          Text(
+                            'Thêm',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 16),
+              // Assignee list with status icons
+              ..._assignees.map((assignee) => _buildAssigneeRow(assignee)),
+              // Selected members (new)
+              ..._selectedMembers.map((member) => _buildSelectedMemberRow(member)),
             ],
           ),
-          const SizedBox(height: 16),
-          // Assignee list with status icons
-          ..._assignees.map((assignee) => _buildAssigneeRow(assignee)),
-          // Selected members (new)
-          ..._selectedMembers.map((member) => _buildSelectedMemberRow(member)),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1093,9 +1108,10 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   // Member selection
-  void _showMemberSelectionSheet() {
+  void _showMemberSelectionSheet(List<Member> allMembers) {
     showMemberSelectionSheet(
       context: context,
+      allMembers: allMembers,
       selectedMembers: _selectedMembers,
       excludedMemberIds: _assignees.map((a) => a.id).toList(),
       closeOnSelect: false, // Keep sheet open for multiple selections
