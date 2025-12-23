@@ -34,6 +34,9 @@ class Rule {
   final String classId;
   final DateTime createdAt;
 
+  @override
+  int get hashCode => id.hashCode;
+
   Rule({
     required this.id,
     required this.name,
@@ -42,6 +45,14 @@ class Rule {
     required this.classId,
     required this.createdAt,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other))
+      return true;
+
+    return other is Rule && other.id == id;
+  }
 
   Map<String, dynamic> toMap() {
     return {

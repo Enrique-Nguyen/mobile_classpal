@@ -125,9 +125,17 @@ class _RulesSheetState extends State<RulesSheet> {
                     final allRules = snapshot.data ?? [];
                     List<Rule> dutyRules = [], eventRules = [], fundRules = [];
                     for (var rule in allRules) {
-                      if (rule.type == RuleType.duty) dutyRules.add(rule);
-                      else if (rule.type == RuleType.event) eventRules.add(rule);
-                      else if (rule.type == RuleType.fund) fundRules.add(rule);
+                      switch (rule.type) {
+                        case RuleType.duty:
+                          dutyRules.add(rule);
+                          break;
+                        case RuleType.event:
+                          eventRules.add(rule);
+                          break;
+                        case RuleType.fund:
+                          fundRules.add(rule);
+                          break;
+                      }
                     }
 
                     return IndexedStack(
@@ -207,7 +215,7 @@ class _RulesSheetState extends State<RulesSheet> {
 
     return SizedBox.expand(
       child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
+        // physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: rules.length,
         itemBuilder: (context, index) {

@@ -156,7 +156,7 @@ class TasksScreenMember extends StatelessWidget {
   }
 
   Widget _buildTaskCard(BuildContext context, Task task) {
-    final extraInfo = MockData.parseNoteField(task.note);
+    // final extraInfo = MockData.parseNoteField(task.note);
     
     return GestureDetector(
       onTap: () {
@@ -165,10 +165,14 @@ class TasksScreenMember extends StatelessWidget {
           MaterialPageRoute(
             builder: (context) => DutyDetailsScreen(
               duty: {
-                'title': task.name,
-                'description': task.description ?? '',
-                'ruleName': task.ruleName,
-                'points': task.points.toInt(),
+                // 'title': task.name ?? "",
+                // 'description': task.description ?? '',
+                // 'ruleName': task.ruleName,
+                // 'points': task.points.toInt(),
+                'title': "",
+                'description': "",
+                'ruleName': "",
+                'points': 0,
               },
               isAdmin: false,
               task: task,
@@ -214,7 +218,8 @@ class TasksScreenMember extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '+${task.points.toInt()}',
+                        // '+${task.points.toInt()}',
+                        '+0',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -229,7 +234,8 @@ class TasksScreenMember extends StatelessWidget {
             const SizedBox(height: 12),
             // Title
             Text(
-              task.name,
+              // task.name ?? "",
+              "",
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -247,7 +253,8 @@ class TasksScreenMember extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '${_formatDateLabel(task.startTime)} · ${_formatTimeLabel(task.startTime)}',
+                  // '${_formatDateLabel(task.startTime)} · ${_formatTimeLabel(task.startTime)}',
+                  "",
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -262,7 +269,8 @@ class TasksScreenMember extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    task.ruleName,
+                    // task.ruleName,
+                    "",
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.primaryBlue.withOpacity(0.7),
@@ -273,41 +281,41 @@ class TasksScreenMember extends StatelessWidget {
               ],
             ),
             // Extra info (location/amount)
-            if (extraInfo != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: extraInfo.type == DutyExtraType.location
-                      ? AppColors.bgBlueLight
-                      : AppColors.bgGreenLight.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      extraInfo.icon,
-                      size: 14,
-                      color: extraInfo.type == DutyExtraType.location
-                          ? AppColors.primaryBlue
-                          : AppColors.successGreen,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      extraInfo.value,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: extraInfo.type == DutyExtraType.location
-                            ? AppColors.primaryBlue
-                            : AppColors.successGreen,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            // if (extraInfo != null) ...[
+            //   const SizedBox(height: 8),
+            //   Container(
+            //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            //     decoration: BoxDecoration(
+            //       color: extraInfo.type == DutyExtraType.location
+            //           ? AppColors.bgBlueLight
+            //           : AppColors.bgGreenLight.withOpacity(0.5),
+            //       borderRadius: BorderRadius.circular(8),
+            //     ),
+            //     child: Row(
+            //       mainAxisSize: MainAxisSize.min,
+            //       children: [
+            //         Icon(
+            //           extraInfo.icon,
+            //           size: 14,
+            //           color: extraInfo.type == DutyExtraType.location
+            //               ? AppColors.primaryBlue
+            //               : AppColors.successGreen,
+            //         ),
+            //         const SizedBox(width: 6),
+            //         Text(
+            //           extraInfo.value,
+            //           style: TextStyle(
+            //             fontSize: 12,
+            //             fontWeight: FontWeight.w500,
+            //             color: extraInfo.type == DutyExtraType.location
+            //                 ? AppColors.primaryBlue
+            //                 : AppColors.successGreen,
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ],
           ],
         ),
       ),
