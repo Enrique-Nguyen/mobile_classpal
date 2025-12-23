@@ -296,7 +296,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
               onChanged: (Rule? newValue) {
-                if (newValue != null) {
+                if (newValue != null && _selectedRule != newValue) {
                   setState(() => _selectedRule = newValue);
                 }
               },

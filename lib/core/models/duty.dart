@@ -1,12 +1,14 @@
 class Duty {
   final String id;
   final String classId;
+  final String? originId;
+  final String? originType;
   final String name;
+  final String? note;
   final String? description;
   final DateTime startTime;
   final String ruleName;
   final double points;
-  final String? note;
   final List<String> assigneeIds;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -15,6 +17,8 @@ class Duty {
     required this.id,
     required this.classId,
     required this.name,
+    this.originId,
+    this.originType,
     this.description,
     required this.startTime,
     required this.ruleName,
@@ -30,6 +34,8 @@ class Duty {
       'id': id,
       'classId': classId,
       'name': name,
+      'originId': originId,
+      'originType': originType,
       'description': description,
       'startTime': startTime.millisecondsSinceEpoch,
       'ruleName': ruleName,
@@ -46,6 +52,8 @@ class Duty {
       id: map['id'] ?? '',
       classId: map['classId'] ?? '',
       name: map['name'] ?? '',
+      originId: map['originId'],
+      originType: map['originType'],
       description: map['description'],
       startTime: DateTime.fromMillisecondsSinceEpoch(map['startTime'] ?? 0),
       ruleName: map['ruleName'] ?? '',

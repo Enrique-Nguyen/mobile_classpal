@@ -1,25 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 
 class DutyService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static Future<String> createDuty({
     required String classId,
     required String name,
+    String? originId,
+    String? originType,
     String? description,
     required DateTime startTime,
     required String ruleName,
     required double points,
     List<Member>? assignees,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
-
-    final now = DateTime.now();
+    final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
 
     final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc();
@@ -27,12 +24,13 @@ class DutyService {
       'id': dutyRef.id,
       'classId': classId,
       'name': name,
+      'originId': originId,
+      'originType': originType,
       'description': description,
-      'startTime': startTime,
+      'startTime': startTime.millisecondsSinceEpoch,
       'ruleName': ruleName,
       'points': points,
       'assigneeIds': assignees?.map((m) => m.uid).toList() ?? [],
-      'createdBy': user.uid,
       'createdAt': now,
       'updatedAt': now,
     });
@@ -44,11 +42,6 @@ class DutyService {
           classId: classId,
           dutyId: dutyRef.id,
           assigneeUid: assignee.uid,
-          name: name,
-          description: description,
-          startTime: startTime,
-          ruleName: ruleName,
-          points: points,
           createdAt: now,
         );
       }
@@ -62,13 +55,8 @@ class DutyService {
     required String classId,
     required String dutyId,
     required String assigneeUid,
-    required String name,
-    String? description,
-    required DateTime startTime,
-    required String ruleName,
-    required double points,
   }) async {
-    final now = DateTime.now();
+    final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
     
     _addTaskToBatch(
@@ -76,18 +64,13 @@ class DutyService {
       classId: classId,
       dutyId: dutyId,
       assigneeUid: assigneeUid,
-      name: name,
-      description: description,
-      startTime: startTime,
-      ruleName: ruleName,
-      points: points,
       createdAt: now,
     );
 
     final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId);
     batch.update(dutyRef, {
       'assigneeIds': FieldValue.arrayUnion([assigneeUid]),
-      'updatedAt': now.millisecondsSinceEpoch,
+      'updatedAt': now,
     });
 
     await batch.commit();
@@ -98,25 +81,14 @@ class DutyService {
     required String classId,
     required String dutyId,
     required String assigneeUid,
-    required String name,
-    String? description,
-    required DateTime startTime,
-    required String ruleName,
-    required double points,
-    required DateTime createdAt,
+    required int createdAt,
   }) {
-    final taskRef = _firestore.collection('classes').doc(classId).collection('tasks').doc();
+    final taskRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId).collection('tasks').doc();
     batch.set(taskRef, {
       'id': taskRef.id,
-      'dutyId': dutyId,
       'classId': classId,
       'uid': assigneeUid,
-      'name': name,
-      'description': description,
-      'status': TaskStatus.incomplete,
-      'startTime': startTime,
-      'ruleName': ruleName,
-      'points': points,
+      'status': TaskStatus.incomplete.storageKey,
       'createdAt': createdAt,
     });
   }
