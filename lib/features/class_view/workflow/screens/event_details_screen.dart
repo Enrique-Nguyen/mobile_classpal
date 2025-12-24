@@ -1,49 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'events_screen.dart';
+import '../../../../core/models/event.dart';
+import '../../../../core/models/member.dart';
+import '../services/event_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
+  final String classId;
+  final String memberUid;
 
-  const EventDetailsScreen({super.key, required this.event});
+  const EventDetailsScreen({
+    super.key,
+    required this.event,
+    required this.classId,
+    required this.memberUid,
+  });
 
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
 }
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
-  late bool _isJoined;
+  bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _isJoined = !widget.event.isJoinable;
+  String _formatDate(DateTime dateTime) {
+    return DateFormat('dd/MM/yyyy').format(dateTime);
   }
 
-  void _handleJoin() {
-    setState(() {
-      _isJoined = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bạn đã tham gia sự kiện thành công!'),
-        backgroundColor: AppColors.successGreen,
-        duration: Duration(seconds: 2),
-      ),
-    );
+  String _formatTime(DateTime dateTime) {
+    return DateFormat('HH:mm').format(dateTime);
   }
 
-  void _handleUnjoin() {
-    setState(() {
-      _isJoined = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bạn đã hủy tham gia sự kiện'),
-        backgroundColor: Colors.orange,
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _handleJoin() async {
+    setState(() => _isLoading = true);
+    try {
+      await EventService.registerForEvent(
+        classId: widget.classId,
+        eventId: widget.event.id,
+        memberUid: widget.memberUid,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn đã tham gia sự kiện thành công!'),
+            backgroundColor: AppColors.successGreen,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleUnjoin() async {
+    setState(() => _isLoading = true);
+    try {
+      await EventService.unregisterFromEvent(
+        classId: widget.classId,
+        eventId: widget.event.id,
+        memberUid: widget.memberUid,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn đã hủy tham gia sự kiện'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -63,7 +111,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             ),
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                widget.event.title,
+                widget.event.name,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -129,41 +177,51 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Widget _buildStatusBadge() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: _isJoined
-                ? AppColors.successGreen.withOpacity(0.1)
-                : AppColors.primaryBlue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: _isJoined ? AppColors.successGreen : AppColors.primaryBlue,
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _isJoined ? Icons.check_circle : Icons.access_time,
-                size: 16,
-                color: _isJoined ? AppColors.successGreen : AppColors.primaryBlue,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                _isJoined ? 'Đã tham gia' : 'Chưa tham gia',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: _isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+    return StreamBuilder<bool>(
+      stream: EventService.streamIsRegistered(
+        widget.classId,
+        widget.event.id,
+        widget.memberUid,
+      ),
+      builder: (context, snapshot) {
+        final isJoined = snapshot.data ?? false;
+        return Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isJoined
+                    ? AppColors.successGreen.withOpacity(0.1)
+                    : AppColors.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+                  width: 1.5,
                 ),
               ),
-            ],
-          ),
-        ),
-      ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isJoined ? Icons.check_circle : Icons.access_time,
+                    size: 16,
+                    color: isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isJoined ? 'Đã tham gia' : 'Chưa tham gia',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -186,39 +244,34 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           _buildInfoRow(
             Icons.calendar_today_outlined,
             'Ngày & Thời gian',
-            '${widget.event.date} - ${widget.event.time}',
+            '${_formatDate(widget.event.startTime)} - ${_formatTime(widget.event.startTime)}',
+          ),
+          if (widget.event.location != null) ...[
+            const Divider(height: 24),
+            _buildInfoRow(
+              Icons.location_on_outlined,
+              'Địa điểm',
+              widget.event.location!,
+            ),
+          ],
+          const Divider(height: 24),
+          _buildInfoRow(
+            Icons.label_outline,
+            'Thể loại',
+            widget.event.ruleName,
           ),
           const Divider(height: 24),
           _buildInfoRow(
-            Icons.location_on_outlined,
-            'Địa điểm',
-            widget.event.location,
+            Icons.star_outline,
+            'Điểm thưởng',
+            '${widget.event.points.toInt()} điểm',
           ),
-          if (widget.event.category != null) ...[
-            const Divider(height: 24),
-            _buildInfoRow(
-              Icons.label_outline,
-              'Thể loại',
-              widget.event.category!,
-            ),
-          ],
-          if (widget.event.rewardPoints != null) ...[
-            const Divider(height: 24),
-            _buildInfoRow(
-              Icons.star_outline,
-              'Điểm thưởng',
-              '${widget.event.rewardPoints} điểm',
-            ),
-          ],
-          if (widget.event.registrationEndDate != null &&
-              widget.event.registrationEndTime != null) ...[
-            const Divider(height: 24),
-            _buildInfoRow(
-              Icons.access_time_outlined,
-              'Hạn đăng kí',
-              '${widget.event.registrationEndDate} - ${widget.event.registrationEndTime}',
-            ),
-          ],
+          const Divider(height: 24),
+          _buildInfoRow(
+            Icons.access_time_outlined,
+            'Hạn đăng kí',
+            '${_formatDate(widget.event.signupEndTime)} - ${_formatTime(widget.event.signupEndTime)}',
+          ),
         ],
       ),
     );
@@ -304,7 +357,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.event.description,
+            widget.event.description ?? 'Không có mô tả',
             style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -317,237 +370,352 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Widget _buildRegistrationStats() {
-    final progress = widget.event.registeredCount / widget.event.maxCount;
-    final percentage = (progress * 100).toInt();
+    return StreamBuilder<int>(
+      stream: EventService.streamRegisteredCount(widget.classId, widget.event.id),
+      builder: (context, snapshot) {
+        final registeredCount = snapshot.data ?? 0;
+        final maxCount = widget.event.maxQuantity.toInt();
+        final progress = registeredCount / maxCount;
+        final percentage = (progress * 100).toInt();
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Đăng ký tham gia',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                '${widget.event.registeredCount}/${widget.event.maxCount}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: AppColors.background,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress >= 0.9
-                    ? Colors.orange
-                    : progress >= 0.7
-                        ? AppColors.primaryBlue
-                        : AppColors.successGreen,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$percentage% đã đăng ký',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildParticipantsSection() {
-    // Sample participants data
-    final participants = [
-      {'name': 'Nguyễn Văn A', 'avatar': '👨'},
-      {'name': 'Trần Thị B', 'avatar': '👩'},
-      {'name': 'Lê Văn C', 'avatar': '👨'},
-      {'name': 'Phạm Thị D', 'avatar': '👩'},
-      {'name': 'Hoàng Văn E', 'avatar': '👨'},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 20,
-                    color: AppColors.primaryBlue,
-                  ),
-                  const SizedBox(width: 8),
                   const Text(
-                    'Người tham gia',
+                    'Đăng ký tham gia',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
                   ),
+                  Text(
+                    '$registeredCount/$maxCount',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
                 ],
               ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Xem tất cả',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.primaryBlue,
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: AppColors.background,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress >= 0.9
+                        ? Colors.orange
+                        : progress >= 0.7
+                            ? AppColors.primaryBlue
+                            : AppColors.successGreen,
                   ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$percentage% đã đăng ký',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ...participants.take(5).map((participant) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
+        );
+      },
+    );
+  }
+
+  Widget _buildParticipantsSection() {
+    return StreamBuilder<List<Member>>(
+      stream: EventService.streamRegisteredMembers(widget.classId, widget.event.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final participants = snapshot.data ?? [];
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        participant['avatar']!,
-                        style: const TextStyle(fontSize: 20),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.people_outline,
+                        size: 20,
+                        color: AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Người tham gia',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (participants.length > 5)
+                    TextButton(
+                      onPressed: () {
+                        // TODO: Navigate to full participants list
+                      },
+                      child: const Text(
+                        'Xem tất cả',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primaryBlue,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      participant['name']!,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.check_circle,
-                    size: 18,
-                    color: AppColors.successGreen,
-                  ),
                 ],
               ),
-            );
-          }),
-        ],
-      ),
+              const SizedBox(height: 12),
+              if (participants.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'Chưa có người tham gia',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...participants.take(5).map((participant) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              participant.name.isNotEmpty 
+                                  ? participant.name[0].toUpperCase() 
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryBlue,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                participant.name,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                participant.role.displayName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.check_circle,
+                          size: 18,
+                          color: AppColors.successGreen,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildBottomActionBar() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
+    return StreamBuilder<bool>(
+      stream: EventService.streamIsRegistered(
+        widget.classId,
+        widget.event.id,
+        widget.memberUid,
       ),
-      child: SafeArea(
-        child: _isJoined
-            ? Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: null,
+      builder: (context, snapshot) {
+        final isJoined = snapshot.data ?? false;
+        final isJoinable = DateTime.now().isBefore(widget.event.signupEndTime);
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: isJoined
+                ? Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEFF2F7),
+                            disabledBackgroundColor: const Color(0xFFEFF2F7),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            'ĐÃ THAM GIA',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleUnjoin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF6B6B),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'HỦY',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  )
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: (_isLoading || !isJoinable) ? null : _handleJoin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEFF2F7),
-                        disabledBackgroundColor: const Color(0xFFEFF2F7),
+                        backgroundColor: AppColors.primaryBlue,
+                        disabledBackgroundColor: Colors.grey.shade300,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        'ĐÃ THAM GIA',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: ElevatedButton(
-                      onPressed: _handleUnjoin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF6B6B),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'HỦY',
-                        style: TextStyle(
-                          fontSize: 14,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.check_circle, color: Colors.white),
+                      label: Text(
+                        !isJoinable
+                            ? 'HẾT HẠN ĐĂNG KÝ'
+                            : 'THAM GIA SỰ KIỆN',
+                        style: const TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                           color: Colors.white,
@@ -555,33 +723,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       ),
                     ),
                   ),
-                ],
-              )
-            : SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _handleJoin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.check_circle, color: Colors.white),
-                  label: const Text(
-                    'THAM GIA SỰ KIỆN',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

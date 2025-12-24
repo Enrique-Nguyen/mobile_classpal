@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/class.dart';
+import '../../../../core/models/member.dart';
 import '../../../../core/models/rule.dart';
-import 'events_screen.dart';
+import '../../overview/services/rule_service.dart';
+import '../services/event_service.dart';
 
-class EventsAddingScreen extends StatefulWidget {
-  final Class? classData;
+class EventsAddingScreen extends ConsumerStatefulWidget {
+  final Class classData;
+  final Member currentMember;
 
-  const EventsAddingScreen({super.key, this.classData});
+  const EventsAddingScreen({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
-  State<EventsAddingScreen> createState() => _EventsAddingScreenState();
+  ConsumerState<EventsAddingScreen> createState() => _EventsAddingScreenState();
 }
 
-class _EventsAddingScreenState extends State<EventsAddingScreen> {
+class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -26,13 +34,10 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
   DateTime? _selectedRegistrationEndDate;
   TimeOfDay? _selectedRegistrationEndTime;
   Rule? _selectedRule;
+  bool _isLoading = false;
 
-  // Rules for events from RuleType.event
-  final List<Rule> eventRules = [
-    Rule(id: 'r7', name: 'Cultural Events', type: RuleType.event, points: 20),
-    Rule(id: 'r8', name: 'Workshops', type: RuleType.event, points: 15),
-    Rule(id: 'r9', name: 'Sports Day', type: RuleType.event, points: 18),
-  ];
+  Stream<List<Rule>> get _rulesStream => RuleService.getRules(widget.classData.classId)
+      .map((rules) => rules.where((r) => r.type == RuleType.event).toList());
 
   @override
   void dispose() {
@@ -152,7 +157,7 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
     return '$hour:$minute';
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -191,31 +196,64 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
         return;
       }
 
-      // Tạo sự kiện mới
-      final newEvent = Event(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        date: DateFormat('MMM d, yyyy').format(_selectedDate!),
-        time: _formatTime(_selectedStartTime),
-        location: _locationController.text,
-        registeredCount: 0,
-        maxCount: int.parse(_maxCountController.text),
-        isJoinable: true,
-        category: _selectedRule!.name,
-        registrationEndDate: DateFormat('MMM d, yyyy').format(_selectedRegistrationEndDate!),
-        registrationEndTime: _formatTime(_selectedRegistrationEndTime),
-        rewardPoints: _selectedRule!.points.toInt(),
-      );
+      setState(() => _isLoading = true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tạo sự kiện thành công!'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
-      
-      // Trả về sự kiện mới
-      Navigator.pop(context, newEvent);
+      try {
+        // Tạo DateTime cho startTime
+        final startDateTime = DateTime(
+          _selectedDate!.year,
+          _selectedDate!.month,
+          _selectedDate!.day,
+          _selectedStartTime!.hour,
+          _selectedStartTime!.minute,
+        );
+
+        // Tạo DateTime cho signupEndTime
+        final signupEndDateTime = DateTime(
+          _selectedRegistrationEndDate!.year,
+          _selectedRegistrationEndDate!.month,
+          _selectedRegistrationEndDate!.day,
+          _selectedRegistrationEndTime!.hour,
+          _selectedRegistrationEndTime!.minute,
+        );
+
+        await EventService.createEvent(
+          classId: widget.classData.classId,
+          name: _titleController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty 
+              ? null 
+              : _descriptionController.text.trim(),
+          location: _locationController.text.trim().isEmpty 
+              ? null 
+              : _locationController.text.trim(),
+          maxQuantity: double.parse(_maxCountController.text),
+          signupEndTime: signupEndDateTime,
+          startTime: startDateTime,
+          ruleName: _selectedRule!.name,
+          points: _selectedRule!.points,
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tạo sự kiện thành công!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        
+        Navigator.pop(context);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -252,14 +290,13 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (widget.classData != null)
-              Text(
-                widget.classData!.name,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
+            Text(
+              widget.classData.name,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
               ),
+            ),
           ],
         ),
         bottom: PreferredSize(
@@ -545,40 +582,54 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: DropdownButton<Rule>(
-                    value: _selectedRule,
-                    hint: const Text(
-                      'Chọn phân loại sự kiện',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
+                StreamBuilder<List<Rule>>(
+                  stream: _rulesStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final rules = snapshot.data ?? [];
+                    if (_selectedRule == null && rules.isNotEmpty) {
+                      _selectedRule = rules.first;
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                    ),
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    items: eventRules.map((Rule rule) {
-                      return DropdownMenuItem<Rule>(
-                        value: rule,
-                        child: Text(
-                          rule.name,
-                          style: const TextStyle(
+                      child: DropdownButton<Rule>(
+                        value: _selectedRule,
+                        hint: const Text(
+                          'Chọn phân loại sự kiện',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
                             fontSize: 14,
                           ),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (Rule? value) {
-                      setState(() {
-                        _selectedRule = value;
-                      });
-                    },
-                  ),
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        items: rules.map((Rule rule) {
+                          return DropdownMenuItem<Rule>(
+                            value: rule,
+                            child: Text(
+                              rule.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (Rule? value) {
+                          setState(() {
+                            _selectedRule = value;
+                          });
+                        },
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 // Points display (automatically from selected rule)
@@ -703,7 +754,7 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: _submitForm,
+                    onPressed: _isLoading ? null : _submitForm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
                       elevation: 0,
@@ -711,14 +762,23 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
-                      'Tạo sự kiện',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Tạo sự kiện',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 20),
