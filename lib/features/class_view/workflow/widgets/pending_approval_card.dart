@@ -119,7 +119,7 @@ class PendingApprovalCard extends StatelessWidget {
             ),
           ),
           // Proof image (if available)
-          if (proofImageUrl != null && proofImageUrl!.isNotEmpty) ...[
+          if (proofImageUrl != null && proofImageUrl!.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(12),

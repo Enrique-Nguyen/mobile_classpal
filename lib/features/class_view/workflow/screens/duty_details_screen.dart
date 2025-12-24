@@ -1,32 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+
 import 'package:mobile_classpal/core/constants/app_colors.dart';
-import 'package:mobile_classpal/core/constants/mock_data.dart';
+import 'package:mobile_classpal/core/models/duty.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/task.dart';
+import 'package:mobile_classpal/core/models/rule.dart';
+import 'package:mobile_classpal/features/class_view/overview/services/rule_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/assignees_selection.dart';
 
-/// Assignee model with status
-class DutyAssignee {
-  final String id;
-  final String name;
-  final String avatar;
-  final String status;
-  final String? completedAt;
+import 'package:mobile_classpal/features/class_view/workflow/services/duty_service.dart';
 
-  const DutyAssignee({
-    required this.id,
-    required this.name,
-    this.avatar = '',
-    required this.status,
-    this.completedAt,
-  });
-}
 
 class DutyDetailsScreen extends StatefulWidget {
-  final Map<String, dynamic> duty;
+  final Duty duty;
   final bool isAdmin;
   final Task? task; // For member view, pass the task
   final bool isAssignedToAdmin; // If admin is also assigned to this duty
@@ -47,32 +34,21 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late String _selectedRule;
+  late double _selectedPoints;
   DateTime _selectedDateTime = DateTime.now();
-  File? _proofImage;
+
   bool _isSubmitting = false;
 
   final List<Member> _selectedMembers = [];
-
-  // Sample assignees
-  final List<DutyAssignee> _assignees = const [
-    DutyAssignee(
-      id: '1',
-      name: 'Nguyen Van A',
-      status: 'completed',
-      completedAt: 'Dec 10, 14:30',
-    ),
-    DutyAssignee(id: '2', name: 'Tran Thi B', status: 'pending'),
-    DutyAssignee(id: '3', name: 'Le Van C', status: 'incomplete'),
-  ];
+  final Set<String> _removedMemberIds = {};
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.duty['title'] ?? '');
-    _descriptionController = TextEditingController(
-      text: widget.duty['description'] ?? '',
-    );
-    _selectedRule = widget.duty['ruleName'] ?? MockData.ruleOptions.first;
+    _titleController = TextEditingController(text: widget.duty.name);
+    _descriptionController = TextEditingController(text: widget.duty.description ?? '');
+    _selectedRule = widget.duty.ruleName;
+    _selectedPoints = widget.duty.points.toDouble();
     _initializeDateTime();
   }
 
@@ -109,7 +85,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             ),
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                widget.duty['title'] ?? 'Untitled',
+                widget.duty.name,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -163,9 +139,9 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // Proof Section (Member with incomplete status OR Admin if assigned)
-                  if (_shouldShowProofSection()) ...[
-                    _buildProofSection(),
+                  // Proof/Action Section
+                  if (_shouldShowActionSection()) ...[
+                    _buildActionSection(),
                     const SizedBox(height: 20),
                   ],
 
@@ -177,10 +153,18 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
         ],
       ),
       bottomNavigationBar: _buildBottomActionBar(),
+      floatingActionButton: widget.isAdmin 
+        ? FloatingActionButton.extended(
+            onPressed: _saveChanges,
+            label: const Text('Lưu thay đổi'),
+            icon: const Icon(Icons.save),
+            backgroundColor: AppColors.primaryBlue,
+          )
+        : null,
     );
   }
 
-  bool _shouldShowProofSection() {
+  bool _shouldShowActionSection() {
     if (widget.isAdmin && widget.isAssignedToAdmin) {
       return true;
     }
@@ -285,7 +269,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           _buildInfoRow(
             icon: Icons.star_outline,
             label: 'Điểm thưởng',
-            value: '+${MockData.rulePoints[_selectedRule] ?? 10} điểm',
+            value: '+${_selectedPoints.toInt()} điểm',
             iconColor: Colors.orange,
             onEdit: null, // Points are determined by rule
           ),
@@ -429,110 +413,150 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Widget _buildAssigneesSection() {
-    final classId = widget.duty['classId'] ?? '';
-    
+    final classId = widget.duty.classId;
+    final dutyId = widget.duty.id;
+    final assigneeIds = List<String>.from(widget.duty.assigneeIds);
+
     return StreamBuilder<List<Member>>(
       stream: FirebaseFirestore.instance
-          .collection('classes')
-          .doc(classId)
-          .collection('members')
-          .snapshots()
-          .map((snapshot) => snapshot.docs.map((doc) => Member.fromMap(doc.data())).toList()),
-      builder: (context, snapshot) {
-        final allMembers = snapshot.data ?? [];
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => Member.fromMap(doc.data())).toList()),
+      builder: (context, membersSnapshot) {
+        final allMembers = membersSnapshot.data ?? [];
         
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+        return StreamBuilder<List<Task>>(
+          stream: DutyService.streamDutyTasks(classId, dutyId),
+          builder: (context, tasksSnapshot) {
+            final tasks = tasksSnapshot.data ?? [];
+            
+            // Map member ID to Task for easy lookup
+            final memberTasks = {for (var t in tasks) t.uid: t};
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(
-                        Icons.people_outline,
-                        size: 20,
-                        color: AppColors.primaryBlue,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Người được phân công',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  GestureDetector(
-                    onTap: () => _showMemberSelectionSheet(allMembers),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Row(
                         children: [
-                          Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
-                          SizedBox(width: 4),
-                          Text(
-                            'Thêm',
+                          const Icon(
+                            Icons.people_outline,
+                            size: 20,
+                            color: AppColors.primaryBlue,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Người được phân công',
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryBlue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      GestureDetector(
+                        onTap: () => _showMemberSelectionSheet(allMembers),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
+                              SizedBox(width: 4),
+                              Text(
+                                'Thêm',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 16),
+                  
+                  // Display assigned members with their task status
+                  if (assigneeIds.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text("Chưa có ai được phân công", style: TextStyle(color: AppColors.textSecondary)),
+                    ),
+
+                  ...assigneeIds.map((uid) {
+                    final member = allMembers.firstWhere(
+                      (m) => m.uid == uid, 
+                      orElse: () => Member(uid: uid, name: 'Unknown', classId: classId, role: MemberRole.thanhVien, joinedAt: DateTime.now(), updatedAt: DateTime.now())
+                    );
+                    final task = memberTasks[uid];
+                    
+                    return _buildAssigneeRow(member, task);
+                  }),
+
+                  // Selected members to be added (new)
+                  if (_selectedMembers.isNotEmpty) ...[
+                    const Divider(),
+                    const Text('Đang chọn:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    const SizedBox(height: 8),
+                    ..._selectedMembers.map((member) => _buildSelectedMemberRow(member)),
+                  ],
                 ],
               ),
-              const SizedBox(height: 16),
-              // Assignee list with status icons
-              ..._assignees.map((assignee) => _buildAssigneeRow(assignee)),
-              // Selected members (new)
-              ..._selectedMembers.map((member) => _buildSelectedMemberRow(member)),
-            ],
-          ),
+            );
+          }
         );
       },
     );
   }
 
-  Widget _buildAssigneeRow(DutyAssignee assignee) {
-    IconData statusIcon;
-    Color statusColor;
+  Widget _buildAssigneeRow(Member member, Task? task) {
+    IconData statusIcon = Icons.radio_button_unchecked;
+    Color statusColor = AppColors.textSecondary;
+    String statusText = 'Chưa nhận';
 
-    switch (assignee.status) {
-      case 'completed':
-        statusIcon = Icons.check_circle;
-        statusColor = AppColors.successGreen;
-        break;
-      case 'pending':
-        statusIcon = Icons.hourglass_top;
-        statusColor = Colors.orange;
-        break;
-      default:
-        statusIcon = Icons.cancel;
-        statusColor = AppColors.errorRed;
+    if (task != null) {
+      switch (task.status) {
+        case TaskStatus.completed:
+          statusIcon = Icons.check_circle;
+          statusColor = AppColors.successGreen;
+          statusText = 'Hoàn thành';
+          break;
+        case TaskStatus.pending:
+          statusIcon = Icons.hourglass_top;
+          statusColor = Colors.orange;
+          statusText = 'Chờ duyệt';
+          break;
+        case TaskStatus.incomplete:
+          statusIcon = Icons.error_outline;
+          statusColor = AppColors.errorRed;
+          statusText = 'Chưa hoàn thành';
+          break;
+      }
     }
 
     return Padding(
@@ -548,7 +572,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             ),
             child: Center(
               child: Text(
-                assignee.name.isNotEmpty ? assignee.name[0].toUpperCase() : '?',
+                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -563,25 +587,53 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  assignee.name,
+                  member.name,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                if (assignee.completedAt != null)
-                  Text(
-                    'Hoàn tất: ${assignee.completedAt}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
+                Text(
+                  statusText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: statusColor,
                   ),
+                ),
               ],
             ),
           ),
-          Icon(statusIcon, size: 20, color: statusColor),
+          if (widget.isAdmin && task != null) // Admin controls
+             if (task.status == TaskStatus.pending)
+               PopupMenuButton<String>(
+                icon: Icon(statusIcon, size: 20, color: statusColor),
+                onSelected: (value) {
+                  if (value == 'approve') {
+                    DutyService.updateTaskStatus(
+                      classId: widget.duty.classId,
+                      dutyId: widget.duty.id,
+                      taskId: task.id,
+                      newStatus: TaskStatus.completed,
+                    );
+                  } else if (value == 'reject') {
+                    DutyService.updateTaskStatus(
+                      classId: widget.duty.classId,
+                      dutyId: widget.duty.id,
+                      taskId: task.id,
+                      newStatus: TaskStatus.incomplete,
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'approve', child: Text('Duyệt / Hoàn thành')),
+                  const PopupMenuItem(value: 'reject', child: Text('Từ chối / Chưa xong')),
+                ],
+              )
+             else
+               Icon(statusIcon, size: 20, color: statusColor)
+          else
+            Icon(statusIcon, size: 20, color: statusColor),
         ],
       ),
     );
@@ -630,7 +682,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     );
   }
 
-  Widget _buildProofSection() {
+  Widget _buildActionSection() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -650,14 +702,14 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.camera_alt_outlined,
+              const Icon(
+                Icons.check_circle_outline,
                 size: 20,
                 color: AppColors.primaryBlue,
               ),
               const SizedBox(width: 8),
               const Text(
-                'Minh chứng hoàn thành',
+                'Hành động',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -668,98 +720,51 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Đính kèm ảnh minh chứng để hoàn thành nhiệm vụ',
+            'Xác nhận hoàn thành nhiệm vụ này?',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 12),
-          if (_proofImage != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  Image.file(
-                    _proofImage!,
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _proofImage = null),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          const SizedBox(height: 16),
+           SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isSubmitting ? null : () async {
+                setState(() => _isSubmitting = true);
+                try {
+                  if (widget.task == null) return;
+                    await DutyService.updateTaskStatus(
+                    classId: widget.duty.classId,
+                    dutyId: widget.duty.id,
+                    taskId: widget.task!.id,
+                    newStatus: TaskStatus.pending,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã gửi xác nhận!")));
+                    Navigator.pop(context);
+                  }
+                } finally {
+                  if (mounted) setState(() => _isSubmitting = false);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: _isSubmitting 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.check, color: Colors.white),
+              label: Text(
+                _isSubmitting ? 'ĐANG GỬI...' : 'ĐÁNH DẤU LÀ XONG',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(child: _buildImagePickerButton(
-                  icon: Icons.photo_library_outlined,
-                  label: 'Thư viện',
-                  onTap: _pickImage,
-                )),
-                const SizedBox(width: 12),
-                Expanded(child: _buildImagePickerButton(
-                  icon: Icons.camera_alt_outlined,
-                  label: 'Chụp ảnh',
-                  onTap: _takePhoto,
-                )),
-              ],
-            ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildImagePickerButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.primaryBlue.withOpacity(0.3),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: AppColors.primaryBlue),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildBottomActionBar() {
     return Container(
@@ -790,7 +795,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: _saveDuty,
+              onPressed: _saveChanges,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.successGreen,
                 elevation: 0,
@@ -814,7 +819,25 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: _proofImage != null ? _submitProof : null,
+              onPressed: () async {
+                setState(() => _isSubmitting = true);
+                try {
+                  if (widget.task == null) return;
+                   await DutyService.updateTaskStatus(
+                    classId: widget.duty.classId,
+                    dutyId: widget.duty.id,
+                    taskId: widget.task!.id,
+                    newStatus: TaskStatus.pending,
+                    // proofUrl: ...
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã gửi minh chứng thành công!")));
+                    Navigator.pop(context);
+                  }
+                } finally {
+                  if (mounted) setState(() => _isSubmitting = false);
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
                 disabledBackgroundColor: AppColors.primaryBlue.withOpacity(0.3),
@@ -824,15 +847,17 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'GỬI DUYỆT',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                  color: Colors.white,
+              child: _isSubmitting 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text(
+                  'GỬI MINH CHỨNG',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
             ),
           ),
         ],
@@ -843,7 +868,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _saveDuty,
+        onPressed: _saveChanges,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.successGreen,
           elevation: 0,
@@ -872,7 +897,26 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
         return SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: _isSubmitting ? null : _submitProof,
+            onPressed: _isSubmitting ? null : () async {
+              setState(() => _isSubmitting = true);
+              try {
+                // For member, widget.task should be available
+                if (widget.task == null) return;
+                 await DutyService.updateTaskStatus(
+                  classId: widget.duty.classId,
+                  dutyId: widget.duty.id,
+                  taskId: widget.task!.id,
+                  newStatus: TaskStatus.pending,
+                  // proofUrl: ...
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã gửi minh chứng thành công!")));
+                  Navigator.pop(context);
+                }
+              } finally {
+                if (mounted) setState(() => _isSubmitting = false);
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               elevation: 0,
@@ -1023,16 +1067,37 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 ),
               ),
             ),
-            ...MockData.ruleOptions.map((rule) => ListTile(
-              title: Text(rule),
-              trailing: _selectedRule == rule
-                  ? const Icon(Icons.check, color: AppColors.primaryBlue)
-                  : null,
-              onTap: () {
-                setState(() => _selectedRule = rule);
-                Navigator.pop(context);
+
+            const SizedBox(height: 16),
+            StreamBuilder<List<Rule>>(
+              stream: RuleService.getRules(widget.duty.classId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return const Center(child: CircularProgressIndicator());
+
+                final rules = snapshot.data?.where((r) => r.type == RuleType.duty).toList() ?? [];
+                if (rules.isEmpty)
+                  return const Text("No rules found");
+
+                return Column(
+                  children: rules.map((rule) => ListTile(
+                    title: Text(rule.name),
+                    subtitle: Text('+${rule.points.toInt()} pts'),
+                    trailing: _selectedRule == rule.name
+                        ? const Icon(Icons.check, color: AppColors.primaryBlue)
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedRule = rule.name;
+                        _selectedPoints = rule.points;
+                      });
+                      Navigator.pop(context);
+                    },
+                  )).toList(),
+                );
               },
-            )),
+            ),
+
             const SizedBox(height: 20),
           ],
         ),
@@ -1113,7 +1178,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       context: context,
       allMembers: allMembers,
       selectedMembers: _selectedMembers,
-      excludedMemberIds: _assignees.map((a) => a.id).toList(),
+      excludedMemberIds: (List<String>.from(widget.duty.assigneeIds))
+        ..addAll(_selectedMembers.map((m) => m.uid)),
       closeOnSelect: false, // Keep sheet open for multiple selections
       onMemberSelected: (member) {
         setState(() => _selectedMembers.add(member));
@@ -1121,58 +1187,89 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     );
   }
 
-  // Image picker
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _proofImage = File(picked.path));
-    }
-  }
 
-  Future<void> _takePhoto() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera);
-    if (picked != null) {
-      setState(() => _proofImage = File(picked.path));
-    }
-  }
 
   // Save/Submit actions
-  void _saveDuty() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã lưu thay đổi!'),
-        backgroundColor: AppColors.successGreen,
-        duration: Duration(milliseconds: 1300),
-      ),
-    );
-    Navigator.of(context).pop();
-  }
+  Future<void> _saveChanges() async {
+    // Collect all final assignees
+    // Start with original assignees, filter REMOVED ones
 
-  void _submitProof() {
-    if (_proofImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng đính kèm ảnh minh chứng'),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
     
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã gửi minh chứng thành công!'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-        Navigator.pop(context);
+    // Check if we need to fetch member objects for the final list? 
+    // DutyService.updateDuty accepts List<Member>? which is used to create tasks.
+    // If we only have IDs, we can't create tasks easily unless we have Member objects.
+    // But we only need Member objects for NEW tasks.
+    // However, updateDuty logic I wrote takes `List<Member>? newAssignees` and replaces the list.
+    // So I need to provide the FULL list of Member objects.
+    
+    // This is tricky because I don't have Member objects for existing assignees easily available synchronously.
+    // I only have their IDs in `widget.duty.assigneeIds`.
+    // I'd need to fetch them or change `updateDuty` to accept ids and members separately.
+    // Let's modify `updateDuty`? No, let's just use what we have.
+    // I can fetch the missing members or...
+    
+    // Wait, `_buildAssigneesSection` streams them. 
+    // I can't access stream data synchronously easily.
+    
+    // Alternative: Just send the inputs I have to service, and service handles it.
+    // Service needs to know which IDs to ADD and which to REMOVE.
+    // I can pass `addedMembers` and `removedMemberIds` to `updateDuty`? 
+    // That would be cleaner.
+    // But `updateDuty` signature currently is `List<Member>? newAssignees`.
+    
+    // Let's rely on the fact that existing members ALREADY have tasks. 
+    // We only need to create tasks for `_selectedMembers`.
+    // And delete tasks for `_removedMemberIds`.
+    // So if I pass the full list of Assignee IDs to `updateDuty`... 
+    // The service calculates diff. 
+    // But service needs Member objects to create new tasks (because it copies data? No, `_addTaskToBatch` only needs `assigneeUid`).
+    // Oh, `createDuty` used `assignee` member object, but `_addTaskToBatch` only takes `uid`.
+    // Let's check `DutyService`.
+    // `_addTaskToBatch` takes `assigneeUid`. It doesn't use other member data.
+    // So I only need Member UIDs!
+    // Wait, `updateDuty` signature: `List<Member>? newAssignees`.
+    // inside `updateDuty`: `final newAssigneeIds = newAssignees.map((m) => m.uid).toList();`
+    // It CONVERTS to UIDs immediately.
+    // So I can just pass dummy Member objects with correct UIDs if I have to, OR update the service to accept `List<String> newAssigneeIds`.
+    // Updating service is better. But I can't easily do it right now without potentially breaking other things (createDuty calls).
+    // Actually `createDuty` passes `List<Member>`.
+    
+    // Hack: Create dummy members for existing IDs that are not removed.
+    // `Member(uid: id, ...)`
+    
+    final List<Member> finalMembers = [];
+    
+    // Add existing members (preserved)
+    for (final id in widget.duty.assigneeIds) {
+      if (!_removedMemberIds.contains(id)) {
+        finalMembers.add(Member(
+          uid: id, 
+          classId: widget.duty.classId, 
+          name: '', 
+          role: MemberRole.thanhVien, 
+          joinedAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ));
       }
-    });
+    }
+    
+    // Add new members
+    finalMembers.addAll(_selectedMembers);
+    
+    await DutyService.updateDuty(
+      classId: widget.duty.classId,
+      dutyId: widget.duty.id,
+      name: _titleController.text != widget.duty.name ? _titleController.text : null,
+      description: _descriptionController.text != widget.duty.description ? _descriptionController.text : null,
+      startTime: _selectedDateTime != widget.duty.startTime ? _selectedDateTime : null,
+      ruleName: _selectedRule != widget.duty.ruleName ? _selectedRule : null,
+      points: _selectedPoints != widget.duty.points ? _selectedPoints : null,
+      newAssignees: finalMembers,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu thay đổi!')));
+      Navigator.pop(context);
+    }
   }
 }

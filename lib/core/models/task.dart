@@ -70,25 +70,31 @@ extension TaskStatusExtension on TaskStatus {
 class Task {
   final String id;
   final String classId;
+  final String dutyId;
   final String uid;
   final TaskStatus status;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Task({
     required this.id,
     required this.classId,
+    required this.dutyId,
     required this.uid,
     required this.status,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'classId': classId,
+      'dutyId': dutyId,
       'uid': uid,
       'status': status.displayName,
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt.millisecondsSinceEpoch,
     };
   }
 
@@ -96,9 +102,11 @@ class Task {
     return Task(
       id: map['id'] ?? '',
       classId: map['classId'] ?? '',
+      dutyId: map['dutyId'] ?? '',
       uid: map['uid'] ?? '',
       status: TaskStatus.fromTaskString(map['status']),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
     );
   }
 }
