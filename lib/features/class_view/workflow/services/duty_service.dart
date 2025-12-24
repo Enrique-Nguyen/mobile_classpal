@@ -85,15 +85,14 @@ class DutyService {
     required String assigneeUid,
     required int createdAt,
   }) {
-    // USE UID AS DOC ID for easy O(1) lookup
     final taskRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc(dutyId)
-        .collection('tasks')
-        .doc(assigneeUid);
-        
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .collection('tasks')
+      .doc();
+
     batch.set(taskRef, {
       'id': taskRef.id,
       'classId': classId,
@@ -104,49 +103,48 @@ class DutyService {
     });
   }
 
-  /// Stream tasks combined with their parent duty for a specific member
-  /// Queries duties where assigneeIds contains memberUid, then fetches the specific task doc (by uid)
   static Stream<List<DutyWithTask>> streamMemberDutiesWithTasks(String classId, String memberUid) {
     return _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .where('assigneeIds', arrayContains: memberUid)
-        .orderBy('startTime', descending: true)
-        .snapshots()
-        .asyncMap((dutyQuerySnapshot) async {
-      if (dutyQuerySnapshot.docs.isEmpty) return [];
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .where('assigneeIds', arrayContains: memberUid)
+      // .orderBy('createdAt', descending: true)
+      .snapshots()
+      .asyncMap((dutyQuerySnapshot) async {
+        if (dutyQuerySnapshot.docs.isEmpty) return [] as List<DutyWithTask>;
 
-      final futures = dutyQuerySnapshot.docs.map((dutyDoc) async {
-        final duty = Duty.fromMap(dutyDoc.data());
-        final taskDoc = await dutyDoc.reference.collection('tasks').doc(memberUid).get();
-        
-        if (!taskDoc.exists) {
-          return DutyWithTask(
-            duty: duty,
-            task: Task(
-              id: "",
-              classId: "",
-              dutyId: "",
-              uid: "",
-              status: TaskStatus.incomplete,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          );
-        }
-        
-        return DutyWithTask(
-          duty: duty,
-          task: Task.fromMap(taskDoc.data()!),
-        );
+        final futures = dutyQuerySnapshot.docs.map((dutyDoc) async {
+          final duty = Duty.fromMap(dutyDoc.data());
+          final taskDoc = await dutyDoc.reference
+            .collection('tasks')
+            .where("dutyId", isEqualTo: duty.id)
+            .where("uid", isEqualTo: memberUid)
+            .get();
+
+          if (taskDoc.docs.isEmpty) {
+            return DutyWithTask(
+              duty: duty,
+              task: Task(
+                id: "",
+                classId: "",
+                dutyId: "",
+                uid: "",
+                status: TaskStatus.incomplete,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+          }
+          final task = Task.fromMap(taskDoc.docs.first.data());
+          return DutyWithTask(duty: duty, task: task);
+        });
+
+        final duties = await Future.wait(futures);
+        return duties;
       });
-
-      return Future.wait(futures);
-    });
   }
 
-  /// Stream all tasks for a specific duty (for admin view)
   static Stream<List<Task>> streamDutyTasks(String classId, String dutyId) {
     return _firestore
       .collection('classes')
@@ -158,23 +156,16 @@ class DutyService {
       .map((snapshot) => snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList());
   }
 
-  /// Stream all pending approvals for the class (tasks with status 'pending')
-  /// Since we can't efficiently collectionGroup query with the new structure easily without composite indexes sometimes,
-  /// we can stick to collectionGroup IF we maintain the tasks as we do.
-  /// BUT if we change Task IDs to be `uid`, collectionGroup might have uniqueness issues per collection? No, document IDs don't need to be unique globally, just within collection.
-  /// However, for pending approvals, we can just query the duties and filter/fetch or check `tasks`. 
-  /// Let's keep collectionGroup for now as it's the efficient way to find ALL pending tasks across ALL duties.
   static Stream<List<Task>> streamPendingApprovals(String classId) {
     return _firestore
-        .collectionGroup('tasks')
-        .where('classId', isEqualTo: classId)
-        .where('status', isEqualTo: TaskStatus.pending.storageKey)
-        .orderBy('createdAt', descending: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList());
+      .collectionGroup('tasks')
+      .where('classId', isEqualTo: classId)
+      .where('status', isEqualTo: TaskStatus.pending.storageKey)
+      // .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList());
   }
 
-  /// Update task status
   static Future<void> updateTaskStatus({
     required String classId,
     required String dutyId,
@@ -182,12 +173,12 @@ class DutyService {
     required TaskStatus newStatus,
   }) async {
     final taskRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc(dutyId)
-        .collection('tasks')
-        .doc(taskId);
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .collection('tasks')
+      .doc(taskId);
 
     await taskRef.update({
       'status': newStatus.storageKey,
@@ -195,7 +186,6 @@ class DutyService {
     });
   }
 
-  /// Update duty details and sync assignees
   static Future<void> updateDuty({
     required String classId,
     required String dutyId,
@@ -207,10 +197,10 @@ class DutyService {
     List<Member>? newAssignees,
   }) async {
     final dutyRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc(dutyId);
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId);
 
     return _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(dutyRef);
@@ -239,21 +229,21 @@ class DutyService {
 
         // Add new tasks
         for (final uid in toAdd) {
-           final taskRef = dutyRef.collection('tasks').doc(uid); // Use UID as doc ID
-           transaction.set(taskRef, {
-             'id': uid, // Task ID is UID
-             'classId': classId,
-             'dutyId': dutyId,
-             'uid': uid,
-             'status': TaskStatus.incomplete.storageKey,
-             'createdAt': DateTime.now().millisecondsSinceEpoch,
-           });
+          final taskRef = dutyRef.collection('tasks').doc();
+          transaction.set(taskRef, {
+            'id': taskRef.id,
+            'classId': classId,
+            'dutyId': dutyId,
+            'uid': uid,
+            'status': TaskStatus.incomplete.storageKey,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+          });
         }
 
         // Remove old tasks
         for (final uid in toRemove) {
-          final taskRef = dutyRef.collection('tasks').doc(uid);
-          transaction.delete(taskRef);
+          final taskRef = await dutyRef.collection('tasks').where('uid', isEqualTo: uid).get();
+          if (taskRef.docs.isNotEmpty) transaction.delete(taskRef.docs.first.reference);
         }
       }
 
@@ -263,11 +253,11 @@ class DutyService {
 
   static Future<Duty?> getDuty(String classId, String dutyId) async {
     final doc = await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc(dutyId)
-        .get();
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .get();
 
     if (doc.exists)
       return Duty.fromMap(doc.data()!);
