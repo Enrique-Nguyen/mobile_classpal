@@ -57,7 +57,7 @@ class TasksScreenMember extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
 
                   if (snapshot.hasError)
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(child: Text('Lỗi: ${snapshot.error}'));
 
                   final dutyTasks = snapshot.data ?? [];
                   if (dutyTasks.isEmpty)
