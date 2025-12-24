@@ -205,54 +205,80 @@ class _EventCardState extends State<EventCard> {
             SizedBox(
               width: double.infinity,
               height: 48,
-              child: _isJoined
-                  ? Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEFF2F7),
-                              disabledBackgroundColor: const Color(0xFFEFF2F7),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Text(
-                              "ĐÃ THAM GIA",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                                color: AppColors.textSecondary,
-                              ),
+              child: _isJoined ?
+                  //  Row(
+                  //     children: [
+                  //       Expanded(
+                  //         child: ElevatedButton(
+                  //           onPressed: null,
+                  //           style: ElevatedButton.styleFrom(
+                  //             backgroundColor: const Color(0xFFEFF2F7),
+                  //             disabledBackgroundColor: const Color(0xFFEFF2F7),
+                  //             elevation: 0,
+                  //             shape: RoundedRectangleBorder(
+                  //               borderRadius: BorderRadius.circular(14),
+                  //             ),
+                  //           ),
+                  //           child: const Text(
+                  //             "ĐÃ THAM GIA",
+                  //             style: TextStyle(
+                  //               fontSize: 14,
+                  //               fontWeight: FontWeight.bold,
+                  //               letterSpacing: 1,
+                  //               color: AppColors.textSecondary,
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //       const SizedBox(width: 12),
+                  //       Expanded(
+                  //         child: ElevatedButton(
+                  //           onPressed: _handleUnjoin,
+                  //           style: ElevatedButton.styleFrom(
+                  //             backgroundColor: const Color(0xFFFF6B6B),
+                  //             elevation: 0,
+                  //             shape: RoundedRectangleBorder(
+                  //               borderRadius: BorderRadius.circular(14),
+                  //             ),
+                  //           ),
+                  //           child: const Text(
+                  //             "HỦY THAM GIA",
+                  //             style: TextStyle(
+                  //               fontSize: 14,
+                  //               fontWeight: FontWeight.bold,
+                  //               letterSpacing: 1,
+                  //               color: Colors.white,
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   )
+                    ElevatedButton(
+                      onPressed: _handleUnjoin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF6B6B),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            "HỦY THAM GIA",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _handleUnjoin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF6B6B),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Text(
-                              "HỦY THAM GIA",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     )
                   : ElevatedButton(
                       onPressed: _handleJoin,
