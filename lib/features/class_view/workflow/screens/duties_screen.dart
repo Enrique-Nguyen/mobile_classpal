@@ -51,11 +51,11 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
     final dutyDate = DateTime(dt.year, dt.month, dt.day);
     
     if (dutyDate == today)
-      return 'Today';
+      return 'Hôm nay';
     if (dutyDate == today.add(const Duration(days: 1)))
-      return 'Tomorrow';
+      return 'Ngày mai';
     if (dutyDate == today.subtract(const Duration(days: 1)))
-      return 'Yesterday';
+      return 'Hôm qua';
 
     return '${dt.day}/${dt.month}';
   }
@@ -130,9 +130,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
                           return Center(child: Text('Lỗi: ${snapshot.error}'));
 
                         final duties = _filterDuties(snapshot.data ?? []);
-                        return Column(
-                          children: _buildDutiesList(duties),
-                        );
+                        return Column(children: _buildDutiesList(duties));
                       },
                     )
                   else
@@ -145,17 +143,12 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
                           return Center(child: Text('Lỗi: ${snapshot.error}'));
 
                         final tasks = snapshot.data ?? [];
-                        // Client-side filtering if needed, though search is mainly for names
-                        // We need to filter tasks based on member name or duty name which requires async data... 
-                        // For simplicity, we won't filter initially or will do it inside the item builder (not ideal for strict search).
-                        // Let's just show all for now, or implement a smarter filter later.
-                        
                         if (tasks.isEmpty) {
                           return _buildEmptyState(
                             icon: Icons.check_circle_outline,
                             iconColor: AppColors.successGreen,
-                            title: 'No pending approvals',
-                            subtitle: 'All submissions have been reviewed',
+                            title: 'Không có yêu cầu chờ duyệt',
+                            subtitle: 'Tất cả đã được xem xét',
                           );
                         }
 
@@ -200,7 +193,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
     catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Lỗi: $e')),
         );
       }
     }
@@ -211,9 +204,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
       controller: _searchController,
       onChanged: (value) => setState(() => _searchQuery = value),
       decoration: InputDecoration(
-        hintText: _selectedTabIndex == 0 
-          ? 'Search duties...' 
-          : 'Search pending...',
+        hintText: _selectedTabIndex == 0 ? 'Tìm kiếm nhiệm vụ...' : 'Tìm kiếm chờ duyệt...',
         hintStyle: const TextStyle(
           color: AppColors.textSecondary,
           fontSize: 14,
@@ -223,14 +214,14 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
           color: AppColors.textSecondary,
         ),
         suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 20),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-              )
-            : null,
+          ? IconButton(
+              icon: const Icon(Icons.clear, size: 20),
+              onPressed: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+            )
+          : null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -266,7 +257,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'All Duties',
+                  'Tất cả',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -300,7 +291,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Pending',
+                          'Chờ duyệt',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: _selectedTabIndex == 1 ? FontWeight.w600 : FontWeight.w500,
@@ -342,14 +333,14 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
       return [
         _buildEmptyState(
           icon: _searchQuery.isEmpty ? Icons.assignment_outlined : Icons.search_off,
-          title: _searchQuery.isEmpty ? 'No duties yet' : 'No duties found',
+          title: _searchQuery.isEmpty ? 'Chưa có nhiệm vụ' : 'Không tìm thấy',
           subtitle: _searchQuery.isEmpty 
-            ? 'Create your first duty to get started'
-            : 'Try a different search term',
+            ? 'Tạo nhiệm vụ đầu tiên để bắt đầu'
+            : 'Thử từ khóa khác',
         ),
       ];
     }
-    
+
     return duties.map((duty) => DutyCard(
       title: duty.name,
       dateLabel: _formatDateLabel(duty.startTime),
@@ -358,17 +349,35 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
       points: duty.points.toInt(),
       isAssignedToMonitor: duty.assigneeIds.contains(widget.currentMember.uid),
       extraInfo: DutyHelper.parseNoteField(duty),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DutyDetailsScreen(
-              duty: duty,
-              isAdmin: true,
-              isAssignedToAdmin: duty.assigneeIds.contains(widget.currentMember.uid),
+      onTap: () async {
+        final isAssignedToAdmin = duty.assigneeIds.contains(widget.currentMember.uid);
+        Task? adminTask;
+        if (isAssignedToAdmin) {
+          final tasksSnapshot = await FirebaseFirestore.instance
+            .collection('classes')
+            .doc(widget.classData.classId)
+            .collection('duties')
+            .doc(duty.id)
+            .collection('tasks')
+            .where('uid', isEqualTo: widget.currentMember.uid)
+            .get();
+
+          if (tasksSnapshot.docs.isNotEmpty)
+            adminTask = Task.fromMap(tasksSnapshot.docs.first.data());
+        }
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DutyDetailsScreen(
+                duty: duty,
+                isAdmin: true,
+                isAssignedToAdmin: isAssignedToAdmin,
+                task: adminTask,
+              ),
             ),
-          ),
-        );
+          );
+        }
       },
     )).toList();
   }
@@ -453,7 +462,6 @@ class _PendingApprovalItem extends StatelessWidget {
           memberAvatar: member.avatarUrl ?? '',
           dutyTitle: duty.name,
           submittedAt: _formatTime(task.updatedAt.millisecondsSinceEpoch > 0 ? task.updatedAt : task.createdAt),
-          proofImageUrl: null, // TODO: Add proofUrl to Task
           onApprove: onApprove,
           onReject: onReject,
         );

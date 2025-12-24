@@ -105,43 +105,32 @@ class DutyService {
 
   static Stream<List<DutyWithTask>> streamMemberDutiesWithTasks(String classId, String memberUid) {
     return _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .where('assigneeIds', arrayContains: memberUid)
-      // .orderBy('createdAt', descending: true)
+      .collectionGroup('tasks')
+      .where('classId', isEqualTo: classId)
+      .where('uid', isEqualTo: memberUid)
       .snapshots()
-      .asyncMap((dutyQuerySnapshot) async {
-        if (dutyQuerySnapshot.docs.isEmpty) return [] as List<DutyWithTask>;
+      .asyncMap((taskSnapshot) async {
+        if (taskSnapshot.docs.isEmpty) return <DutyWithTask>[];
 
-        final futures = dutyQuerySnapshot.docs.map((dutyDoc) async {
-          final duty = Duty.fromMap(dutyDoc.data());
-          final taskDoc = await dutyDoc.reference
-            .collection('tasks')
-            .where("dutyId", isEqualTo: duty.id)
-            .where("uid", isEqualTo: memberUid)
+        final futures = taskSnapshot.docs.map((taskDoc) async {
+          final task = Task.fromMap(taskDoc.data());
+          
+          // Fetch the parent duty for each task
+          final dutyDoc = await _firestore
+            .collection('classes')
+            .doc(classId)
+            .collection('duties')
+            .doc(task.dutyId)
             .get();
 
-          if (taskDoc.docs.isEmpty) {
-            return DutyWithTask(
-              duty: duty,
-              task: Task(
-                id: "",
-                classId: "",
-                dutyId: "",
-                uid: "",
-                status: TaskStatus.incomplete,
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              ),
-            );
-          }
-          final task = Task.fromMap(taskDoc.docs.first.data());
+          if (!dutyDoc.exists) return null;
+          
+          final duty = Duty.fromMap(dutyDoc.data()!);
           return DutyWithTask(duty: duty, task: task);
         });
 
-        final duties = await Future.wait(futures);
-        return duties;
+        final results = await Future.wait(futures);
+        return results.whereType<DutyWithTask>().toList();
       });
   }
 

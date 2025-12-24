@@ -153,9 +153,11 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   bool _shouldShowActionSection() {
+    if (widget.task == null || _memberTaskStatus != TaskStatus.incomplete)
+      return false;
     if (widget.isAdmin && widget.isAssignedToAdmin)
       return true;
-    if (!widget.isAdmin && _memberTaskStatus == TaskStatus.incomplete)
+    if (!widget.isAdmin)
       return true;
 
     return false;
@@ -711,7 +713,6 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isSubmitting ? null : () async {
-                print("Task ID: ${widget.task?.id}");
                 setState(() => _isSubmitting = true);
                 try {
                   if (widget.task == null) return;
