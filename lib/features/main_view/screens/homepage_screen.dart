@@ -6,6 +6,7 @@ import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
+import 'package:mobile_classpal/features/auth/services/auth_service.dart';
 import '../providers/class_provider.dart';
 import 'create_class_screen.dart';
 import 'join_class_screen.dart';
@@ -40,65 +41,74 @@ class HomepageScreen extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                    _buildHelloWelcomeClass(ref.watch(AuthStateProvider.currentUserProvider)?.displayName ?? "Bạn"),
-                    _buildLogoutButton(context, ref),
-                  ],
-                ),
+                  _buildHelloWelcomeClass(
+                    ref
+                            .watch(AuthStateProvider.currentUserProvider)
+                            ?.displayName ??
+                        "Bạn",
+                  ),
+                  _buildLogoutButton(context, ref),
+                ],
               ),
+            ),
 
-              // --- DANH SÁCH LỚP HỌC ---
-              Expanded(
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final classesAsync = ref.watch(ClassProvider.userClassesProvider);
+            // --- DANH SÁCH LỚP HỌC ---
+            Expanded(
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final classesAsync = ref.watch(
+                    ClassProvider.userClassesProvider,
+                  );
 
-                    return classesAsync.when(
-                      data: (classes) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              child: Text(
-                                "Lớp của bạn (${classes.length})",
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  color: AppColors.textGrey,
-                                ),
+                  return classesAsync.when(
+                    data: (classes) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              "Lớp của bạn (${classes.length})",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: AppColors.textGrey,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              child: classes.isEmpty
-                                  ? _buildEmptyState()
-                                  : ListView.builder(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                      ),
-                                      itemCount: classes.length,
-                                      itemBuilder: (context, index) {
-                                        final data = classes[index];
-                                        return _buildClassCard(
-                                          context: context,
-                                          ref: ref,
-                                          borderColor: data.borderColor,
-                                          title: data.classData.name,
-                                          subtitle: 'Vai trò: ${data.member.role.displayName}',
-                                          classData: data.classData,
-                                          member: data.member,
-                                        );
-                                      },
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: classes.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
                                     ),
-                            ),
-                          ],
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (e, stack) => Center(child: Text("Lỗi: $e")),
-                    );
-                  },
-                ),
+                                    itemCount: classes.length,
+                                    itemBuilder: (context, index) {
+                                      final data = classes[index];
+                                      return _buildClassCard(
+                                        context: context,
+                                        ref: ref,
+                                        borderColor: data.borderColor,
+                                        title: data.classData.name,
+                                        subtitle:
+                                            'Vai trò: ${data.member.role.displayName}',
+                                        classData: data.classData,
+                                        member: data.member,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, stack) => Center(child: Text("Lỗi: $e")),
+                  );
+                },
               ),
+            ),
           ],
         ),
       ),
@@ -153,14 +163,7 @@ class HomepageScreen extends ConsumerWidget {
       child: IconButton(
         icon: const Icon(Icons.logout_outlined, color: Colors.red, size: 20),
         onPressed: () async {
-          await FirebaseAuth.instance.signOut();
-          if (context.mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/welcome',
-              (route) => false,
-            );
-          }
+          await AuthService().signOut(context);
         },
       ),
     );
@@ -182,10 +185,7 @@ class HomepageScreen extends ConsumerWidget {
           Navigator.pushNamed(
             context,
             '/class',
-            arguments: ClassViewArguments(
-              classData: classData,
-              member: member,
-            ),
+            arguments: ClassViewArguments(classData: classData, member: member),
           );
         },
         style: TextButton.styleFrom(padding: EdgeInsets.zero),
