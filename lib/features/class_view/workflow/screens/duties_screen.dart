@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
-import 'package:mobile_classpal/core/constants/mock_data.dart';
+import 'package:mobile_classpal/core/models/duty.dart';
+import 'package:mobile_classpal/core/helpers/duty_helper.dart';
+import 'package:mobile_classpal/features/auth/services/auth_service.dart';
+import 'package:mobile_classpal/features/class_view/workflow/services/duty_service.dart';
+import 'package:mobile_classpal/core/models/task.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/duty_card.dart';
 import '../widgets/pending_approval_card.dart';
-import 'duty_details_screen.dart';
 import 'create_duty_screen.dart';
+import 'duty_details_screen.dart';
 
-class DutiesScreenMonitor extends StatefulWidget {
+class DutiesScreenMonitor extends ConsumerStatefulWidget {
   final Class classData;
   final Member currentMember;
 
@@ -20,19 +26,17 @@ class DutiesScreenMonitor extends StatefulWidget {
   });
 
   @override
-  State<DutiesScreenMonitor> createState() => _DutiesScreenMonitorState();
+  ConsumerState<DutiesScreenMonitor> createState() => _DutiesScreenMonitorState();
 }
 
-class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
+class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
   int _selectedTabIndex = 0;
   String _searchQuery = '';
-  late List<Map<String, dynamic>> _pendingApprovals;
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _pendingApprovals = List.from(MockData.pendingApprovals);
   }
 
   @override
@@ -47,11 +51,11 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
     final dutyDate = DateTime(dt.year, dt.month, dt.day);
     
     if (dutyDate == today)
-      return 'Today';
+      return 'Hôm nay';
     if (dutyDate == today.add(const Duration(days: 1)))
-      return 'Tomorrow';
+      return 'Ngày mai';
     if (dutyDate == today.subtract(const Duration(days: 1)))
-      return 'Yesterday';
+      return 'Hôm qua';
 
     return '${dt.day}/${dt.month}';
   }
@@ -60,24 +64,20 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  // Get filtered duties based on search query
-  List<dynamic> get _filteredDuties {
-    final duties = MockData.duties;
-    if (_searchQuery.isEmpty) return duties;
-    
-    return duties.where((duty) {
-      return duty.name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+  Stream<List<Duty>> get _dutiesStream {
+    return FirebaseFirestore.instance
+      .collection('classes')
+      .doc(widget.classData.classId)
+      .collection('duties')
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => Duty.fromMap(doc.data())).toList());
   }
 
-  // Get filtered pending approvals based on search query (duty name OR member name)
-  List<Map<String, dynamic>> get _filteredPendingApprovals {
-    if (_searchQuery.isEmpty) return _pendingApprovals;
-    
-    return _pendingApprovals.where((approval) {
-      final dutyMatch = (approval['dutyTitle'] as String).toLowerCase().contains(_searchQuery.toLowerCase());
-      final memberMatch = (approval['memberName'] as String).toLowerCase().contains(_searchQuery.toLowerCase());
-      return dutyMatch || memberMatch;
+  List<Duty> _filterDuties(List<Duty> duties) {
+    if (_searchQuery.isEmpty) return duties;
+    return duties.where((duty) {
+      return duty.name.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
   }
 
@@ -103,9 +103,8 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
       body: SafeArea(
         child: Column(
           children: [
-            // Fixed header only
             CustomHeader(
-              title: 'Duty roster',
+              title: 'Nhiệm vụ',
               subtitle: widget.classData.name,
             ),
             // Scrollable content (search, tabs, and items)
@@ -122,9 +121,48 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
                   const SizedBox(height: 16),
                   // Content based on selected tab
                   if (_selectedTabIndex == 0)
-                    ..._buildDutiesList()
+                    StreamBuilder<List<Duty>>(
+                      stream: _dutiesStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.hasError)
+                          return Center(child: Text('Lỗi: ${snapshot.error}'));
+
+                        final duties = _filterDuties(snapshot.data ?? []);
+                        return Column(children: _buildDutiesList(duties));
+                      },
+                    )
                   else
-                    ..._buildPendingApprovalsList(),
+                    StreamBuilder<List<Task>>(
+                      stream: DutyService.streamPendingApprovals(widget.classData.classId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.hasError)
+                          return Center(child: Text('Lỗi: ${snapshot.error}'));
+
+                        final tasks = snapshot.data ?? [];
+                        if (tasks.isEmpty) {
+                          return _buildEmptyState(
+                            icon: Icons.check_circle_outline,
+                            iconColor: AppColors.successGreen,
+                            title: 'Không có yêu cầu chờ duyệt',
+                            subtitle: 'Tất cả đã được xem xét',
+                          );
+                        }
+
+                        return Column(
+                          children: tasks.map((task) => _PendingApprovalItem(
+                            task: task,
+                            classId: widget.classData.classId,
+                            searchQuery: _searchQuery,
+                            onApprove: () => _handleApproval(task, true),
+                            onReject: () => _handleApproval(task, false),
+                          )).toList(),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -134,14 +172,39 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
     );
   }
 
+  Future<void> _handleApproval(Task task, bool approved) async {
+    try {
+      await DutyService.updateTaskStatus(
+        classId: widget.classData.classId,
+        dutyId: task.dutyId,
+        taskId: task.id,
+        newStatus: approved ? TaskStatus.completed : TaskStatus.incomplete,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(approved ? 'Đã duyệt nhiệm vụ' : 'Đã từ chối nhiệm vụ'),
+            backgroundColor: approved ? AppColors.successGreen : AppColors.errorRed,
+            duration: const Duration(milliseconds: 1300),
+          ),
+        );
+      }
+    }
+    catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e')),
+        );
+      }
+    }
+  }
+
   Widget _buildSearchBar() {
     return TextField(
       controller: _searchController,
       onChanged: (value) => setState(() => _searchQuery = value),
       decoration: InputDecoration(
-        hintText: _selectedTabIndex == 0 
-            ? 'Search duties...' 
-            : 'Search by duty or member name...',
+        hintText: _selectedTabIndex == 0 ? 'Tìm kiếm nhiệm vụ...' : 'Tìm kiếm chờ duyệt...',
         hintStyle: const TextStyle(
           color: AppColors.textSecondary,
           fontSize: 14,
@@ -151,14 +214,14 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
           color: AppColors.textSecondary,
         ),
         suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 20),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-              )
-            : null,
+          ? IconButton(
+              icon: const Icon(Icons.clear, size: 20),
+              onPressed: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+            )
+          : null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -194,7 +257,7 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'All Duties',
+                  'Tất cả',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -220,36 +283,42 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
                   color: _selectedTabIndex == 1 ? AppColors.bannerBlue : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Pending',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: _selectedTabIndex == 1 ? FontWeight.w600 : FontWeight.w500,
-                        color: _selectedTabIndex == 1 ? Colors.white : AppColors.textSecondary,
-                      ),
-                    ),
-                    if (_pendingApprovals.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.errorRed,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${_pendingApprovals.length}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                child: StreamBuilder<List<Task>>(
+                  stream: DutyService.streamPendingApprovals(widget.classData.classId),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data?.length ?? 0;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Chờ duyệt',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: _selectedTabIndex == 1 ? FontWeight.w600 : FontWeight.w500,
+                            color: _selectedTabIndex == 1 ? Colors.white : AppColors.textSecondary,
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        if (count > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.errorRed,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$count',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  }
                 ),
               ),
             ),
@@ -259,108 +328,58 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
     );
   }
 
-  List<Widget> _buildDutiesList() {
-    final duties = _filteredDuties;
-    
+  List<Widget> _buildDutiesList(List<Duty> duties) {
     if (duties.isEmpty) {
       return [
         _buildEmptyState(
           icon: _searchQuery.isEmpty ? Icons.assignment_outlined : Icons.search_off,
-          title: _searchQuery.isEmpty ? 'No duties yet' : 'No duties found',
+          title: _searchQuery.isEmpty ? 'Chưa có nhiệm vụ' : 'Không tìm thấy',
           subtitle: _searchQuery.isEmpty 
-              ? 'Create your first duty to get started'
-              : 'Try a different search term',
+            ? 'Tạo nhiệm vụ đầu tiên để bắt đầu'
+            : 'Thử từ khóa khác',
         ),
       ];
     }
-    
-    return duties.asMap().entries.map((entry) {
-      final index = entry.key;
-      final duty = entry.value;
-      final extraInfo = MockData.parseNoteField(duty.note);
-      
-      return DutyCard(
-        title: duty.name,
-        dateLabel: _formatDateLabel(duty.startTime),
-        timeLabel: _formatTimeLabel(duty.startTime),
-        ruleName: duty.ruleName,
-        points: duty.points.toInt(),
-        isAssignedToMonitor: index % 2 == 0,
-        extraInfo: extraInfo,
-        onTap: () {
-          Navigator.of(context).push(
+
+    return duties.map((duty) => DutyCard(
+      title: duty.name,
+      dateLabel: _formatDateLabel(duty.startTime),
+      timeLabel: _formatTimeLabel(duty.startTime),
+      ruleName: duty.ruleName,
+      points: duty.points.toInt(),
+      isAssignedToMonitor: duty.assigneeIds.contains(widget.currentMember.uid),
+      extraInfo: DutyHelper.parseNoteField(duty),
+      onTap: () async {
+        final isAssignedToAdmin = duty.assigneeIds.contains(widget.currentMember.uid);
+        Task? adminTask;
+        if (isAssignedToAdmin) {
+          final tasksSnapshot = await FirebaseFirestore.instance
+            .collection('classes')
+            .doc(widget.classData.classId)
+            .collection('duties')
+            .doc(duty.id)
+            .collection('tasks')
+            .where('uid', isEqualTo: widget.currentMember.uid)
+            .get();
+
+          if (tasksSnapshot.docs.isNotEmpty)
+            adminTask = Task.fromMap(tasksSnapshot.docs.first.data());
+        }
+        if (mounted) {
+          Navigator.push(
+            context,
             MaterialPageRoute(
               builder: (context) => DutyDetailsScreen(
-                duty: {
-                  'title': duty.name,
-                  'description': duty.description ?? '',
-                  'dateLabel': _formatDateLabel(duty.startTime),
-                  'timeLabel': _formatTimeLabel(duty.startTime),
-                  'ruleName': duty.ruleName,
-                  'points': duty.points.toInt(),
-                },
-                isAdmin: widget.currentMember.role != MemberRole.thanhVien,
-                isAssignedToAdmin: index % 2 == 0,
+                duty: duty,
+                isAdmin: true,
+                isAssignedToAdmin: isAssignedToAdmin,
+                task: adminTask,
               ),
             ),
           );
-        },
-      );
-    }).toList();
-  }
-
-  List<Widget> _buildPendingApprovalsList() {
-    final approvals = _filteredPendingApprovals;
-    
-    if (approvals.isEmpty) {
-      return [
-        _buildEmptyState(
-          icon: _searchQuery.isEmpty ? Icons.check_circle_outline : Icons.search_off,
-          iconColor: _searchQuery.isEmpty ? AppColors.successGreen : null,
-          title: _searchQuery.isEmpty ? 'No pending approvals' : 'No matching approvals',
-          subtitle: _searchQuery.isEmpty 
-              ? 'All submissions have been reviewed'
-              : 'Try searching by duty or member name',
-        ),
-      ];
-    }
-
-    return approvals.asMap().entries.map((entry) {
-      final index = entry.key;
-      final approval = entry.value;
-      
-      return PendingApprovalCard(
-        memberName: approval['memberName'] as String,
-        memberAvatar: approval['memberAvatar'] as String,
-        dutyTitle: approval['dutyTitle'] as String,
-        submittedAt: approval['submittedAt'] as String,
-        proofImageUrl: approval['proofImageUrl'] as String?,
-        onApprove: () {
-          setState(() {
-            _pendingApprovals.removeAt(index);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Submission approved'),
-              backgroundColor: AppColors.successGreen,
-              duration: Duration(milliseconds: 1300),
-            ),
-          );
-        },
-        onReject: () {
-          setState(() {
-            _pendingApprovals.removeAt(index);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Submission rejected'),
-              backgroundColor: AppColors.errorRed,
-              duration: Duration(milliseconds: 1300),
-            ),
-          );
-        },
-      );
-    }).toList();
+        }
+      },
+    )).toList();
   }
 
   Widget _buildEmptyState({
@@ -396,5 +415,61 @@ class _DutiesScreenMonitorState extends State<DutiesScreenMonitor> {
         ],
       ),
     );
+  }
+}
+
+class _PendingApprovalItem extends StatelessWidget {
+  final Task task;
+  final String classId;
+  final String searchQuery;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  const _PendingApprovalItem({
+    required this.task,
+    required this.classId,
+    required this.searchQuery,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: Future.wait([
+        DutyService.getDuty(classId, task.dutyId),
+        AuthService.getMember(classId, task.uid),
+      ]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return const SizedBox.shrink();
+        
+        final duty = snapshot.data![0] as Duty?;
+        final member = snapshot.data![1] as Member?;
+
+        if (duty == null || member == null)
+          return const SizedBox.shrink();
+
+        if (searchQuery.isNotEmpty) {
+          final q = searchQuery.toLowerCase();
+          if (!duty.name.toLowerCase().contains(q) && !member.name.toLowerCase().contains(q)) {
+            return const SizedBox.shrink();
+          }
+        }
+
+        return PendingApprovalCard(
+          memberName: member.name,
+          memberAvatar: member.avatarUrl ?? '',
+          dutyTitle: duty.name,
+          submittedAt: _formatTime(task.updatedAt.millisecondsSinceEpoch > 0 ? task.updatedAt : task.createdAt),
+          onApprove: onApprove,
+          onReject: onReject,
+        );
+      },
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour}:${dt.minute.toString().padLeft(2, '0')} ${dt.day}/${dt.month}';
   }
 }

@@ -120,8 +120,9 @@ class ClassService {
         'joinedAt': now.millisecondsSinceEpoch,
         'updateAt': now.millisecondsSinceEpoch,
       });
-    } catch (e) {
-      throw Exception("${e}").toString().replaceAll('Exception:', "");
+    }
+    catch (e) {
+      throw Exception("$e").toString().replaceAll('Exception:', "");
     }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/rule.dart';
+import '../services/rule_service.dart';
 
 class CreateRuleScreen extends StatefulWidget {
   final Class classData;
@@ -23,6 +24,7 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
   final _pointsController = TextEditingController();
   
   RuleType _selectedType = RuleType.duty;
+  bool _isLoading = false;
 
   bool get isEditing => widget.existingRule != null;
 
@@ -151,7 +153,7 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
                     shape: RoundedRectangleBorder(
@@ -159,14 +161,23 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: Text(
-                    isEditing ? 'Lưu thay đổi' : 'Tạo quy tắc',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          isEditing ? 'Lưu thay đổi' : 'Tạo quy tắc',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -383,21 +394,53 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final points = int.tryParse(_pointsController.text) ?? 10;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isEditing 
-                ? 'Đã cập nhật quy tắc: ${_nameController.text}'
-                : 'Đã tạo quy tắc: ${_nameController.text} (+$points điểm)',
+      setState(() => _isLoading = true);
+      try {
+        final points = double.tryParse(_pointsController.text) ?? 10.0;
+        
+        if (isEditing) {
+          await RuleService.updateRule(
+            classId: widget.classData.classId,
+            ruleId: widget.existingRule!.id,
+            name: _nameController.text.trim(),
+            type: _selectedType,
+            points: points,
+          );
+        } else {
+          await RuleService.createRule(
+            classId: widget.classData.classId,
+            name: _nameController.text.trim(),
+            type: _selectedType,
+            points: points,
+          );
+        }
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isEditing 
+                  ? 'Đã cập nhật quy tắc: ${_nameController.text}'
+                  : 'Đã tạo quy tắc: ${_nameController.text} (+${points.toInt()} điểm)',
+            ),
+            backgroundColor: AppColors.successGreen,
           ),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
-      Navigator.pop(context);
+        );
+        Navigator.pop(context);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/core/helpers/duty_helper.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
-import 'package:mobile_classpal/core/constants/mock_data.dart';
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/task.dart';
+import 'package:mobile_classpal/features/class_view/workflow/services/duty_service.dart';
 import 'duty_details_screen.dart';
 
 class TasksScreenMember extends StatelessWidget {
@@ -38,55 +39,65 @@ class TasksScreenMember extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = MockData.memberTasks;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // Fixed header only
             CustomHeader(
               title: 'Nhiệm vụ của tôi',
               subtitle: classData.name,
             ),
             // Main content (scrollable)
             Expanded(
-              child: tasks.isEmpty
-                  ? _buildEmptyState()
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          // Status chips (part of scrollable content)
-                          Row(
-                            children: [
-                              _buildStatusChip(
-                                count: tasks.where((t) => t.status == TaskStatus.incomplete).length,
-                                label: 'Chưa hoàn thành',
-                                color: AppColors.errorRed,
-                              ),
-                              const SizedBox(width: 8),
-                              _buildStatusChip(
-                                count: tasks.where((t) => t.status == TaskStatus.pending).length,
-                                label: 'Chờ duyệt',
-                                color: Colors.orange,
-                              ),
-                              const SizedBox(width: 8),
-                              _buildStatusChip(
-                                count: tasks.where((t) => t.status == TaskStatus.completed).length,
-                                label: 'Hoàn thành',
-                                color: AppColors.successGreen,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Task cards
-                          ...tasks.map((task) => _buildTaskCard(context, task)),
-                        ],
-                      ),
+              child: StreamBuilder<List<DutyWithTask>>(
+                stream: DutyService.streamMemberDutiesWithTasks(classData.classId, currentMember.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    return const Center(child: CircularProgressIndicator());
+
+                  if (snapshot.hasError)
+                    return Center(child: Text('Lỗi: ${snapshot.error}'));
+
+                  final dutyTasks = snapshot.data ?? [];
+                  if (dutyTasks.isEmpty)
+                    return _buildEmptyState();
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        // Status chips
+                        Row(
+                          children: [
+                            _buildStatusChip(
+                              count: dutyTasks.where((dt) => dt.task.status == TaskStatus.incomplete).length,
+                              label: 'Chưa hoàn thành',
+                              color: AppColors.errorRed,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildStatusChip(
+                              count: dutyTasks.where((dt) => dt.task.status == TaskStatus.pending).length,
+                              label: 'Chờ duyệt',
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildStatusChip(
+                              count: dutyTasks.where((dt) => dt.task.status == TaskStatus.completed).length,
+                              label: 'Hoàn thành',
+                              color: AppColors.successGreen,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Task cards
+                        ...dutyTasks.map((dt) => _buildTaskItem(context, dt)),
+                      ],
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -155,8 +166,10 @@ class TasksScreenMember extends StatelessWidget {
     );
   }
 
-  Widget _buildTaskCard(BuildContext context, Task task) {
-    final extraInfo = MockData.parseNoteField(task.note);
+  Widget _buildTaskItem(BuildContext context, DutyWithTask dutyTask) {
+    final duty = dutyTask.duty;
+    final task = dutyTask.task;
+    final extraInfo = DutyHelper.parseNoteField(duty);
     
     return GestureDetector(
       onTap: () {
@@ -164,12 +177,7 @@ class TasksScreenMember extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => DutyDetailsScreen(
-              duty: {
-                'title': task.name,
-                'description': task.description ?? '',
-                'ruleName': task.ruleName,
-                'points': task.points.toInt(),
-              },
+              duty: duty,
               isAdmin: false,
               task: task,
             ),
@@ -214,7 +222,7 @@ class TasksScreenMember extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '+${task.points.toInt()}',
+                        '+${duty.points.toInt()}',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -229,7 +237,7 @@ class TasksScreenMember extends StatelessWidget {
             const SizedBox(height: 12),
             // Title
             Text(
-              task.name,
+              duty.name,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -247,7 +255,7 @@ class TasksScreenMember extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '${_formatDateLabel(task.startTime)} · ${_formatTimeLabel(task.startTime)}',
+                  '${_formatDateLabel(duty.startTime)} · ${_formatTimeLabel(duty.startTime)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -262,7 +270,7 @@ class TasksScreenMember extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    task.ruleName,
+                    duty.ruleName,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.primaryBlue.withOpacity(0.7),
