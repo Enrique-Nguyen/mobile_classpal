@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/class.dart';
+import '../../../../core/models/rule.dart';
 import 'events_screen.dart';
 
 class EventsAddingScreen extends StatefulWidget {
@@ -19,13 +20,19 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _maxCountController = TextEditingController();
-  final _rewardPointsController = TextEditingController();
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedStartTime;
   DateTime? _selectedRegistrationEndDate;
   TimeOfDay? _selectedRegistrationEndTime;
-  String? _selectedCategory;
+  Rule? _selectedRule;
+
+  // Rules for events from RuleType.event
+  final List<Rule> eventRules = [
+    Rule(id: 'r7', name: 'Cultural Events', type: RuleType.event, points: 20),
+    Rule(id: 'r8', name: 'Workshops', type: RuleType.event, points: 15),
+    Rule(id: 'r9', name: 'Sports Day', type: RuleType.event, points: 18),
+  ];
 
   @override
   void dispose() {
@@ -33,7 +40,6 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
     _descriptionController.dispose();
     _locationController.dispose();
     _maxCountController.dispose();
-    _rewardPointsController.dispose();
     super.dispose();
   }
 
@@ -175,10 +181,10 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
         );
         return;
       }
-      if (_selectedCategory == null) {
+      if (_selectedRule == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vui lòng chọn thể loại sự kiện'),
+            content: Text('Vui lòng chọn phân loại sự kiện'),
             backgroundColor: Colors.red,
           ),
         );
@@ -195,10 +201,10 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
         registeredCount: 0,
         maxCount: int.parse(_maxCountController.text),
         isJoinable: true,
-        category: _selectedCategory,
+        category: _selectedRule!.name,
         registrationEndDate: DateFormat('MMM d, yyyy').format(_selectedRegistrationEndDate!),
         registrationEndTime: _formatTime(_selectedRegistrationEndTime),
-        rewardPoints: int.parse(_rewardPointsController.text),
+        rewardPoints: _selectedRule!.points.toInt(),
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -528,13 +534,14 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Event Category Field
-                const Text(
-                  'Luật sự kiện',
+                // Event Category Field (using Rules)
+                Text(
+                  'PHÂN LOẠI',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
+                    letterSpacing: 1.2,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -544,10 +551,10 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: DropdownButton<String>(
-                    value: _selectedCategory,
+                  child: DropdownButton<Rule>(
+                    value: _selectedRule,
                     hint: const Text(
-                      'Chọn thể loại sự kiện',
+                      'Chọn phân loại sự kiện',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
@@ -555,35 +562,49 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                     ),
                     isExpanded: true,
                     underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Học tập',
-                        child: Text('Học tập'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Thể thao',
-                        child: Text('Thể thao'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Giải trí',
-                        child: Text('Giải trí'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Tình nguyện',
-                        child: Text('Tình nguyện'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Khác',
-                        child: Text('Khác'),
-                      ),
-                    ],
-                    onChanged: (String? value) {
+                    items: eventRules.map((Rule rule) {
+                      return DropdownMenuItem<Rule>(
+                        value: rule,
+                        child: Text(
+                          rule.name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (Rule? value) {
                       setState(() {
-                        _selectedCategory = value;
+                        _selectedRule = value;
                       });
                     },
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Points display (automatically from selected rule)
+                if (_selectedRule != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgGreenLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded, size: 18, color: AppColors.successGreen),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Điểm thưởng: +${_selectedRule!.points.toInt()}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.successGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 20),
 
                 // Registration End Date and Time
@@ -674,53 +695,6 @@ class _EventsAddingScreenState extends State<EventsAddingScreen> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 20),
-
-                // Reward Points Field
-                const Text(
-                  'Điểm thưởng',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _rewardPointsController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Nhập số điểm thưởng',
-                    hintStyle: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.star_outline,
-                      color: AppColors.primaryBlue,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập số điểm thưởng';
-                    }
-                    final points = int.tryParse(value);
-                    if (points == null || points < 0) {
-                      return 'Điểm thưởng phải là số không âm';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 32),
 
