@@ -55,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 barrierDismissible: false,
                 builder: (ctx) => AlertDialog(
                   title: const Text('Bạn đã bị mời ra khỏi lớp'),
-                  content: Text('${classData.name}'),
+                  content: Text(classData.name),
                   actions: [
                     TextButton(
                       onPressed: () {
@@ -86,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               barrierDismissible: false,
               builder: (ctx) => AlertDialog(
                 title: const Text('Lớp đã được giải tán'),
-                content: Text('${classData.name}'),
+                content: Text(classData.name),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(),
@@ -110,13 +110,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            CustomHeader(title: "Trang cá nhân", subtitle: classData.name),
+            CustomHeader(
+              title: "Trang cá nhân",
+              subtitle: classData.name,
+              classData: classData,
+              currentMember: currentMember,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),

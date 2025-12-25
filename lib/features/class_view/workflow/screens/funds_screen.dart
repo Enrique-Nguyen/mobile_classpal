@@ -185,6 +185,8 @@ class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
             CustomHeader(
               title: "Class Funds",
               subtitle: widget.classData.name,
+              classData: widget.classData,
+              currentMember: widget.currentMember,
             ),
             Expanded(
               child: StreamBuilder<List<FundTransaction>>(

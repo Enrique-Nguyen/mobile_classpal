@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
-import 'dart:math';
 
 class UserClassData {
   final Class classData;

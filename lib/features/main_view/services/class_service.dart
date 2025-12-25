@@ -72,6 +72,15 @@ class ClassService {
           .collection('members')
           .doc(currentUser.uid);
 
+      final leaderboardRef = classRef.collection('leaderboards').doc();
+      batch.set(leaderboardRef, {
+        "id": leaderboardRef.id,
+        "classId": classRef.id,
+        "name": "Bảng xếp hạng lớp $name",
+        "createdAt": now,
+        "updatedAt": now,
+      });
+
       batch.set(memberRef, {
         'uid': currentUser.uid,
         'name': currentUser.displayName,
@@ -85,7 +94,8 @@ class ClassService {
 
       // 5. Thực thi
       await batch.commit();
-    } catch (e) {
+    }
+    catch (e) {
       throw Exception("Lỗi tạo lớp: $e");
     }
   }

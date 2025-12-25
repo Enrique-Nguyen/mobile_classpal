@@ -80,6 +80,8 @@ class _EventsScreenContentState extends ConsumerState<EventsScreenContent> {
             CustomHeader(
               title: 'Events',
               subtitle: widget.classData.name,
+              classData: widget.classData,
+              currentMember: widget.currentMember,
             ),
             // Main content (scrollable)
             Expanded(
