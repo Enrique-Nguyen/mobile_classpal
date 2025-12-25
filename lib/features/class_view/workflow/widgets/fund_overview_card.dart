@@ -97,6 +97,6 @@ class FundOverviewCard extends StatelessWidget {
 
   String _formatCurrency(double value) {
     final format = NumberFormat('#,##0', 'vi_VN');
-    return 'đ${format.format(value)}';
+    return '${format.format(value)}đ';
   }
 }

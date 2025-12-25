@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/class.dart';
-import '../models/fund_transaction.dart';
+import '../../../../core/models/rule.dart';
+// import '../models/fund_transaction.dart';
+import '../../overview/services/rule_service.dart';
 
 class FundsTransactionScreen extends StatefulWidget {
 	final String transactionType; // expense | income | payment
@@ -22,6 +24,10 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 	final _nameController = TextEditingController();
 	final _amountController = TextEditingController();
 	final _descriptionController = TextEditingController();
+	Rule? _selectedRule;
+
+	Stream<List<Rule>> get _rulesStream => RuleService.getRules(widget.classData!.classId)
+		.map((rules) => rules.where((r) => r.type == RuleType.fund).toList());
 
 	@override
 	void dispose() {
@@ -73,15 +79,30 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 	void _submit() {
 		if (!_formKey.currentState!.validate()) return;
 
-		final amount = double.parse(_amountController.text.replaceAll(',', ''));
-		final tx = FundTransaction(
-			type: widget.transactionType,
-			title: _nameController.text,
-			amount: amount,
-			description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
-		);
+		// Nếu là payment, bắt buộc chọn rule
+		if (widget.transactionType == 'payment' && _selectedRule == null) {
+			ScaffoldMessenger.of(context).showSnackBar(
+				const SnackBar(
+					content: Text('Vui lòng chọn loại quỹ'),
+					backgroundColor: AppColors.errorRed,
+				),
+			);
+			return;
+		}
 
-		Navigator.pop(context, tx);
+		final amount = double.parse(_amountController.text.replaceAll(',', ''));
+		final txData = {
+			'type': widget.transactionType,
+			'title': _nameController.text,
+			'amount': amount,
+			'description': _descriptionController.text.isEmpty 
+				? null 
+				: _descriptionController.text,
+			if (widget.transactionType == 'payment' && _selectedRule != null)
+				'ruleName': _selectedRule!.name,
+		};
+
+		Navigator.pop(context, txData);
 	}
 
 	@override
@@ -223,6 +244,122 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 									],
 								),
 								const SizedBox(height: 16),
+
+								// Rule selection cho payment type
+								if (widget.transactionType == 'payment')
+									_buildSectionCard(
+										children: [
+											const Text(
+												'Loại quỹ',
+												style: TextStyle(
+													fontSize: 14,
+													fontWeight: FontWeight.w600,
+													color: AppColors.textPrimary,
+												),
+											),
+											const SizedBox(height: 8),
+											StreamBuilder<List<Rule>>(
+												stream: _rulesStream,
+												builder: (context, snapshot) {
+													if (snapshot.connectionState == ConnectionState.waiting) {
+														return const Center(child: CircularProgressIndicator());
+													}
+
+													final rules = snapshot.data ?? [];
+
+													if (rules.isEmpty) {
+														return Container(
+															padding: const EdgeInsets.all(12),
+															decoration: BoxDecoration(
+																color: Colors.orange.shade50,
+																borderRadius: BorderRadius.circular(14),
+																border: Border.all(color: Colors.orange.shade200),
+															),
+															child: const Text(
+																'Chưa có rule nào cho loại quỹ. Vui lòng tạo rule trước.',
+																style: TextStyle(
+																	fontSize: 13,
+																	color: Colors.orange,
+																),
+															),
+														);
+													}
+
+													return Column(
+														crossAxisAlignment: CrossAxisAlignment.start,
+														children: [
+															DropdownButtonFormField<Rule>(
+																value: _selectedRule,
+																decoration: InputDecoration(
+																	hintText: 'Chọn loại quỹ',
+                                  hintStyle: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+																	filled: true,
+																	fillColor: Colors.white,
+																	border: OutlineInputBorder(
+																		borderRadius: BorderRadius.circular(14),
+																		borderSide: BorderSide.none,
+																	),
+																	contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+																),
+																items: rules.map((rule) {
+																	return DropdownMenuItem<Rule>(
+																		value: rule,
+																		child: Text(rule.name, style: TextStyle(fontSize: 14,),),
+																	);
+																}).toList(),
+																onChanged: (value) {
+																	setState(() {
+																		_selectedRule = value;
+																	});
+																},
+																validator: (value) => value == null 
+																	? 'Vui lòng chọn loại quỹ' 
+																	: null,
+															),
+															if (_selectedRule != null) ...[
+																const SizedBox(height: 12),
+																Container(
+																	padding: const EdgeInsets.all(12),
+																	decoration: BoxDecoration(
+																		color: AppColors.primaryBlue.withOpacity(0.1),
+																		borderRadius: BorderRadius.circular(12),
+																		border: Border.all(
+																			color: AppColors.primaryBlue.withOpacity(0.3),
+																		),
+																	),
+																	child: Row(
+																		children: [
+																			const Icon(
+																				Icons.star,
+																				color: AppColors.primaryBlue,
+																				size: 18,
+																			),
+																			const SizedBox(width: 8),
+																			Expanded(
+																				child: Text(
+																					'Điểm thưởng: +${_selectedRule!.points.toInt()} điểm khi hoàn thành',
+																					style: const TextStyle(
+																						fontSize: 13,
+																						color: AppColors.primaryBlue,
+																						fontWeight: FontWeight.w600,
+																					),
+																				),
+																			),
+																		],
+																	),
+																),
+															],
+														],
+													);
+												},
+											),
+										],
+									),
+								if (widget.transactionType == 'payment')
+									const SizedBox(height: 16),
 
 								_buildSectionCard(
 									children: [

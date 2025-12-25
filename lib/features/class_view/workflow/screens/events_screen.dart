@@ -53,9 +53,12 @@ class _EventsScreenContentState extends ConsumerState<EventsScreenContent> {
 
   @override
   Widget build(BuildContext context) {
+    final canManage = widget.currentMember.role == MemberRole.quanLyLop || 
+                      widget.currentMember.role == MemberRole.canBoLop;
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: canManage ? FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
@@ -69,7 +72,7 @@ class _EventsScreenContentState extends ConsumerState<EventsScreenContent> {
         },
         backgroundColor: AppColors.primaryBlue,
         child: const Icon(Icons.add, color: Colors.white),
-      ),
+      ) : null,
       body: SafeArea(
         child: Column(
           children: [
