@@ -29,6 +29,8 @@ class DashboardScreen extends StatelessWidget {
             className: classData.name,
             role: currentMember.role.displayName,
             displayName: currentMember.name,
+            classData: classData,
+            currentMember: currentMember,
           )),
           // Content
           SliverToBoxAdapter(
@@ -48,7 +50,10 @@ class DashboardScreen extends StatelessWidget {
                   DashboardRules(isAdmin: currentMember.role != MemberRole.thanhVien, classData: classData),
                   const SizedBox(height: 32),
 
-                  DashboardLeaderboard(),
+                  DashboardLeaderboard(
+                    classData: classData,
+                    currentMember: currentMember,
+                  ),
                   const SizedBox(height: 32),
 
                   DashboardRecentActivities(),

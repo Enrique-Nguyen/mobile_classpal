@@ -2,13 +2,23 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'app_drawer.dart';
 import 'notifications_sheet.dart';
-import 'leaderboard_sheet.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/screens/leaderboards_screen.dart';
 
 class CustomHeader extends StatelessWidget {
   final String title;
   final String subtitle;
+  final Class? classData;
+  final Member? currentMember;
 
-  const CustomHeader({super.key, required this.title, required this.subtitle});
+  const CustomHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.classData,
+    this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +78,7 @@ class CustomHeader extends StatelessWidget {
                     const SizedBox(width: 8),
                     _buildIconBtn(
                       Icons.emoji_events_outlined,
-                      onTap: () => showLeaderboardSheet(context),
+                      onTap: () => _onLeaderboardTap(context),
                     ),
                   ],
                 ),
@@ -78,6 +88,20 @@ class CustomHeader extends StatelessWidget {
         ),
       ),
     );
+  }
+  
+  void _onLeaderboardTap(BuildContext context) {
+    if (classData != null && currentMember != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LeaderboardsScreen(
+            classData: classData!,
+            currentMember: currentMember!,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildIconBtn(IconData icon, {VoidCallback? onTap}) {

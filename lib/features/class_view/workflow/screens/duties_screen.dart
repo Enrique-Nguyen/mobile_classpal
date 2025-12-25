@@ -106,6 +106,8 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
             CustomHeader(
               title: 'Nhiệm vụ',
               subtitle: widget.classData.name,
+              classData: widget.classData,
+              currentMember: widget.currentMember,
             ),
             // Scrollable content (search, tabs, and items)
             Expanded(

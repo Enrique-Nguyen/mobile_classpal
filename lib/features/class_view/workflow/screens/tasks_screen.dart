@@ -47,6 +47,8 @@ class TasksScreenMember extends StatelessWidget {
             CustomHeader(
               title: 'Nhiệm vụ của tôi',
               subtitle: classData.name,
+              classData: classData,
+              currentMember: currentMember,
             ),
             // Main content (scrollable)
             Expanded(

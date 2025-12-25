@@ -3,6 +3,7 @@ import 'package:mobile_classpal/core/helpers/duty_helper.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/duty.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/services/leaderboard_service.dart';
 
 class DutyService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -168,6 +169,30 @@ class DutyService {
       .doc(dutyId)
       .collection('tasks')
       .doc(taskId);
+
+    // If approving (changing to completed), create an achievement
+    if (newStatus == TaskStatus.completed) {
+      final taskDoc = await taskRef.get();
+      if (taskDoc.exists) {
+        final task = Task.fromMap(taskDoc.data()!);
+        final dutyDoc = await _firestore
+            .collection('classes')
+            .doc(classId)
+            .collection('duties')
+            .doc(dutyId)
+            .get();
+
+        if (dutyDoc.exists) {
+          final duty = Duty.fromMap(dutyDoc.data()!);
+          await LeaderboardService.createAchievement(
+            classId: classId,
+            memberUid: task.uid,
+            title: duty.name,
+            points: duty.points,
+          );
+        }
+      }
+    }
 
     await taskRef.update({
       'status': newStatus.storageKey,
