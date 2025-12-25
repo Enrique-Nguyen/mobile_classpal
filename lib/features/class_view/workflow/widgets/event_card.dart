@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/models/event.dart';
 import '../screens/event_details_screen.dart';
-import '../screens/events_screen.dart';
+import '../services/event_service.dart';
 
-class EventCard extends StatefulWidget {
+class EventCard extends StatelessWidget {
   final String title;
   final String description;
   final String date;
@@ -16,6 +17,9 @@ class EventCard extends StatefulWidget {
   final String? registrationEndDate;
   final String? registrationEndTime;
   final int? rewardPoints;
+  final Event? event;
+  final String? classId;
+  final String? memberUid;
 
   const EventCard({
     super.key,
@@ -31,59 +35,28 @@ class EventCard extends StatefulWidget {
     this.registrationEndDate,
     this.registrationEndTime,
     this.rewardPoints,
+    this.event,
+    this.classId,
+    this.memberUid,
   });
-
-  @override
-  State<EventCard> createState() => _EventCardState();
-}
-
-class _EventCardState extends State<EventCard> {
-  late bool _isJoined;
-
-  @override
-  void initState() {
-    super.initState();
-    _isJoined = !widget.isJoinable;
-  }
-
-  void _handleJoin() {
-    setState(() {
-      _isJoined = true;
-    });
-  }
-
-  void _handleUnjoin() {
-    setState(() {
-      _isJoined = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EventDetailsScreen(
-              event: Event(
-                title: widget.title,
-                description: widget.description,
-                date: widget.date,
-                time: widget.time,
-                location: widget.location,
-                registeredCount: widget.registeredCount,
-                maxCount: widget.maxCount,
-                isJoinable: widget.isJoinable,
-                category: widget.category,
-                registrationEndDate: widget.registrationEndDate,
-                registrationEndTime: widget.registrationEndTime,
-                rewardPoints: widget.rewardPoints,
-              ),
-            ),
-          ),
-        );
-      },
+      onTap: (event != null && classId != null && memberUid != null)
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventDetailsScreen(
+                    event: event!,
+                    classId: classId!,
+                    memberUid: memberUid!,
+                  ),
+                ),
+              );
+            }
+          : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
         padding: const EdgeInsets.all(20),
@@ -103,7 +76,7 @@ class _EventCardState extends State<EventCard> {
           children: [
             // Title
             Text(
-              widget.title,
+              title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -113,7 +86,7 @@ class _EventCardState extends State<EventCard> {
             const SizedBox(height: 8),
             // Description
             Text(
-              widget.description,
+              description,
               style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -121,10 +94,10 @@ class _EventCardState extends State<EventCard> {
             ),
             const SizedBox(height: 16),
             // Category and Reward Points (if available)
-            if (widget.category != null || widget.rewardPoints != null)
+            if (category != null || rewardPoints != null)
               Row(
                 children: [
-                  if (widget.category != null) ...[
+                  if (category != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -144,7 +117,7 @@ class _EventCardState extends State<EventCard> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            widget.category!,
+                            category!,
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.primaryBlue,
@@ -155,9 +128,9 @@ class _EventCardState extends State<EventCard> {
                       ),
                     ),
                   ],
-                  if (widget.category != null && widget.rewardPoints != null)
+                  if (category != null && rewardPoints != null)
                     const SizedBox(width: 8),
-                  if (widget.rewardPoints != null) ...[
+                  if (rewardPoints != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -177,7 +150,7 @@ class _EventCardState extends State<EventCard> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${widget.rewardPoints} điểm',
+                            '$rewardPoints điểm',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.amber,
@@ -190,14 +163,14 @@ class _EventCardState extends State<EventCard> {
                   ],
                 ],
               ),
-            if (widget.category != null || widget.rewardPoints != null)
+            if (category != null || rewardPoints != null)
               const SizedBox(height: 16),
             // Info Row (Date & Location)
             Row(
               children: [
-                _buildIconText(Icons.calendar_today_outlined, "${widget.date}\n${widget.time}"),
+                _buildIconText(Icons.calendar_today_outlined, "$date\n$time"),
                 const SizedBox(width: 24),
-                _buildIconText(Icons.location_on_outlined, widget.location),
+                _buildIconText(Icons.location_on_outlined, location),
               ],
             ),
             const SizedBox(height: 16),
@@ -205,35 +178,41 @@ class _EventCardState extends State<EventCard> {
             SizedBox(
               width: double.infinity,
               height: 48,
-              child: _isJoined
-                  ? Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEFF2F7),
-                              disabledBackgroundColor: const Color(0xFFEFF2F7),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Text(
-                              "ĐÃ THAM GIA",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _handleUnjoin,
+              child: (event != null && classId != null && memberUid != null)
+                  ? StreamBuilder<bool>(
+                      stream: EventService.streamIsRegistered(classId!, event!.id, memberUid!),
+                      builder: (context, snapshot) {
+                        final isJoined = snapshot.data ?? false;
+                        
+                        if (isJoined) {
+                          return ElevatedButton(
+                            onPressed: () async {
+                              try {
+                                await EventService.unregisterFromEvent(
+                                  classId: classId!,
+                                  eventId: event!.id,
+                                  memberUid: memberUid!,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Bạn đã hủy tham gia sự kiện'),
+                                      backgroundColor: Colors.orange,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Lỗi: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFF6B6B),
                               elevation: 0,
@@ -241,23 +220,83 @@ class _EventCardState extends State<EventCard> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text(
-                              "HỦY THAM GIA",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                                color: Colors.white,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check, color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  "HỦY THAM GIA",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          return ElevatedButton(
+                            onPressed: () async {
+                              try {
+                                await EventService.registerForEvent(
+                                  classId: classId!,
+                                  eventId: event!.id,
+                                  memberUid: memberUid!,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Bạn đã tham gia sự kiện thành công!'),
+                                      backgroundColor: AppColors.successGreen,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Lỗi: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryBlue,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check, color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  "THAM GIA",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
                     )
                   : ElevatedButton(
-                      onPressed: _handleJoin,
+                      onPressed: null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
+                        backgroundColor: Colors.grey.shade300,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -266,15 +305,15 @@ class _EventCardState extends State<EventCard> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.check, color: Colors.white, size: 18),
+                          Icon(Icons.info_outline, color: Colors.grey, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            "THAM GIA",
+                            "XEM CHI TIẾT",
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1,
-                              color: Colors.white,
+                              color: Colors.grey,
                             ),
                           ),
                         ],
@@ -300,7 +339,7 @@ class _EventCardState extends State<EventCard> {
                     ),
                   ),
                   Text(
-                    "${widget.registeredCount}/${widget.maxCount}",
+                    "$registeredCount/$maxCount",
                     style: const TextStyle(
                       color: AppColors.successGreen,
                       fontWeight: FontWeight.bold,

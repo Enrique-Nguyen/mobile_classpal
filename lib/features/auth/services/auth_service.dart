@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/core/models/member.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Hàm Đăng ký
   Future<User?> signUp({
@@ -72,5 +73,19 @@ class AuthService {
     } catch (e) {
       print("Lỗi đăng xuất: $e");
     }
+  }
+
+  static Future<Member?> getMember(String classId, String uid) async {
+    final doc = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('members')
+      .doc(uid)
+      .get();
+
+    if (doc.exists)
+      return Member.fromMap(doc.data()!);
+
+    return null;
   }
 }
