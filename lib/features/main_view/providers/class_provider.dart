@@ -24,50 +24,55 @@ class ClassProvider {
     if (user == null) return Stream.value([]);
 
     return FirebaseFirestore.instance
-      .collectionGroup('members')
-      .where('uid', isEqualTo: user.uid)
-      .snapshots()
-      .asyncMap((snapshot) async {
-        List<UserClassData> loadedData = [];
-        await Future.wait(
-          snapshot.docs.map((memberDoc) async {
-            try {
-              Member member = Member.fromMap(memberDoc.data());
-              DocumentReference classRef = memberDoc.reference.parent.parent!;
-              DocumentSnapshot classSnap = await classRef.get();
+        .collectionGroup('members')
+        .where('uid', isEqualTo: user.uid)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          List<UserClassData> loadedData = [];
+          await Future.wait(
+            snapshot.docs.map((memberDoc) async {
+              try {
+                Member member = Member.fromMap(memberDoc.data());
+                DocumentReference classRef = memberDoc.reference.parent.parent!;
+                DocumentSnapshot classSnap = await classRef.get();
 
-              if (classSnap.exists) {
-                Class classObj = Class.fromMap(
-                  classSnap.data() as Map<String, dynamic>,
-                );
-                
-                final int hash = classObj.classId.hashCode;
-                final Random random = Random(hash);
-                Color randomColor = Color.fromARGB(
-                  255,
-                  random.nextInt(100) + 100,
-                  random.nextInt(100) + 100,
-                  random.nextInt(100) + 100,
-                );
+                if (classSnap.exists) {
+                  Class classObj = Class.fromMap(
+                    classSnap.data() as Map<String, dynamic>,
+                  );
 
-                loadedData.add(
-                  UserClassData(
-                    classData: classObj,
-                    member: member,
-                    borderColor: randomColor,
-                  ),
-                );
+                  // Map border color by role: owner=red, canBo=yellow, member=green
+                  Color borderColor;
+                  switch (member.role) {
+                    case MemberRole.quanLyLop:
+                      borderColor = Colors.red.shade400;
+                      break;
+                    case MemberRole.canBoLop:
+                      borderColor = Colors.amber.shade600;
+                      break;
+                    case MemberRole.thanhVien:
+                      borderColor = Colors.green.shade600;
+                      break;
+                  }
+
+                  loadedData.add(
+                    UserClassData(
+                      classData: classObj,
+                      member: member,
+                      borderColor: borderColor,
+                    ),
+                  );
+                }
+              } catch (e) {
+                debugPrint("Error parsing class data: $e");
               }
-            } catch (e) {
-              debugPrint("Error parsing class data: $e");
-            }
-          }),
-        );
+            }),
+          );
 
-        loadedData.sort(
-          (a, b) => b.classData.createdAt.compareTo(a.classData.createdAt),
-        );
-        return loadedData;
-      });
+          loadedData.sort(
+            (a, b) => b.classData.createdAt.compareTo(a.classData.createdAt),
+          );
+          return loadedData;
+        });
   });
 }
