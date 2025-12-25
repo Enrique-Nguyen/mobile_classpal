@@ -223,4 +223,175 @@ class ClassService {
           return MemberCounts(total: total, managers: managers, canBos: canBos);
         });
   }
+
+  static const String _roleOwner = 'Quản lý lớp';
+  static const String _roleCanBo = 'Cán bộ lớp';
+  static const String _roleMember = 'Thành viên';
+
+  Future<void> _ensureCurrentUserIsOwner(String classId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Bạn chưa đăng nhập!');
+    final doc = await _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(user.uid)
+        .get();
+    if (!doc.exists) throw Exception('Bạn không phải thành viên lớp này.');
+    final role = (doc.data()?['role'] as String?) ?? '';
+    if (!role.contains(_roleOwner))
+      throw Exception('Chỉ Quản lý lớp mới thực hiện được thao tác này.');
+  }
+
+  // Promote member -> Cán bộ
+  Future<void> promoteToCanBo({
+    required String classId,
+    required String memberId,
+  }) async {
+    await _ensureCurrentUserIsOwner(classId);
+    final memberRef = _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(memberRef);
+      if (!snap.exists) throw Exception('Thành viên không tồn tại.');
+      final role = (snap.data()?['role'] as String?) ?? '';
+      if (role.contains(_roleOwner))
+        throw Exception('Không thể thay đổi vai trò của Quản lý lớp.');
+      if (role.contains(_roleCanBo)) throw Exception('Đã là Cán bộ lớp.');
+      tx.update(memberRef, {
+        'role': _roleCanBo,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    });
+  }
+
+  // Demote Cán bộ -> Thành viên
+  Future<void> demoteCanBo({
+    required String classId,
+    required String memberId,
+  }) async {
+    await _ensureCurrentUserIsOwner(classId);
+    final memberRef = _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(memberRef);
+      if (!snap.exists) throw Exception('Thành viên không tồn tại.');
+      final role = (snap.data()?['role'] as String?) ?? '';
+      if (!role.contains(_roleCanBo))
+        throw Exception('Người này không phải Cán bộ lớp.');
+      tx.update(memberRef, {
+        'role': _roleMember,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    });
+  }
+
+  // Transfer ownership
+  Future<void> transferOwnership({
+    required String classId,
+    required String newOwnerId,
+  }) async {
+    final current = _auth.currentUser;
+    if (current == null) throw Exception('Bạn chưa đăng nhập!');
+    if (current.uid == newOwnerId) throw Exception('Bạn đã là Quản lý lớp.');
+    await _ensureCurrentUserIsOwner(classId);
+
+    final classRef = _firestore.collection('classes').doc(classId);
+    final currentOwnerRef = classRef.collection('members').doc(current.uid);
+    final newOwnerRef = classRef.collection('members').doc(newOwnerId);
+
+    await _firestore.runTransaction((tx) async {
+      final newSnap = await tx.get(newOwnerRef);
+      if (!newSnap.exists) throw Exception('Người nhận quyền không tồn tại.');
+      tx.update(currentOwnerRef, {
+        'role': _roleMember,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      tx.update(newOwnerRef, {
+        'role': _roleOwner,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      tx.update(classRef, {
+        'ownerId': newOwnerId,
+        'updatedAtMillis': DateTime.now().millisecondsSinceEpoch,
+      });
+    });
+  }
+
+  // Remove (kick) member
+  Future<void> removeMember({
+    required String classId,
+    required String memberId,
+  }) async {
+    final current = _auth.currentUser;
+    if (current == null) throw Exception('Bạn chưa đăng nhập!');
+    await _ensureCurrentUserIsOwner(classId);
+    if (current.uid == memberId)
+      throw Exception(
+        'Không thể mời chính mình ra khỏi lớp. Vui lòng chuyển quyền trước.',
+      );
+    final targetRef = _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
+    final snap = await targetRef.get();
+    if (!snap.exists) throw Exception('Thành viên không tồn tại.');
+    final role = (snap.data()?['role'] as String?) ?? '';
+    if (role.contains(_roleOwner))
+      throw Exception('Không thể mời Quản lý lớp ra khỏi lớp.');
+    await targetRef.delete();
+  }
+
+  // Leave class (self)
+  Future<void> leaveClass({required String classId}) async {
+    final current = _auth.currentUser;
+    if (current == null) throw Exception('Bạn chưa đăng nhập!');
+    final memberRef = _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(current.uid);
+    final snap = await memberRef.get();
+    if (!snap.exists) throw Exception('Bạn không phải thành viên lớp này.');
+    final role = (snap.data()?['role'] as String?) ?? '';
+    if (role.contains(_roleOwner))
+      throw Exception('Quản lý lớp phải chuyển quyền trước khi rời lớp.');
+    await memberRef.delete();
+  }
+
+  // Delete / dissolve class (only owner)
+  Future<void> deleteClass({required String classId}) async {
+    final current = _auth.currentUser;
+    if (current == null) throw Exception('Bạn chưa đăng nhập!');
+
+    await _ensureCurrentUserIsOwner(classId);
+
+    final classRef = _firestore.collection('classes').doc(classId);
+
+    // Delete the class document first so clients detect dissolution
+    await classRef.delete();
+
+    // Then delete members subcollection in batches (best-effort cleanup)
+    final membersCol = classRef.collection('members');
+    final membersSnap = await membersCol.get();
+    final batchSize = 500;
+    int processed = 0;
+
+    while (processed < membersSnap.docs.length) {
+      final batch = _firestore.batch();
+      final chunk = membersSnap.docs.skip(processed).take(batchSize);
+      for (final doc in chunk) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      processed += chunk.length;
+    }
+  }
 }

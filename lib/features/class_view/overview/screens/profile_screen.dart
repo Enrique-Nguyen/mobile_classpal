@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
@@ -5,8 +6,9 @@ import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_classpal/features/main_view/services/class_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final Class classData;
   final Member currentMember;
   static final ClassService _classService = ClassService();
@@ -16,7 +18,98 @@ class ProfileScreen extends StatelessWidget {
     required this.classData,
     required this.currentMember,
   });
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late final Member currentMember = widget.currentMember;
+  late final Class classData = widget.classData;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _memberSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _classSub;
+
   bool get _isManager => currentMember.role.displayName == "Quản lý lớp";
+
+  @override
+  void initState() {
+    super.initState();
+    _memberSub = FirebaseFirestore.instance
+        .collection('classes')
+        .doc(classData.classId)
+        .collection('members')
+        .doc(currentMember.uid)
+        .snapshots()
+        .listen((snap) async {
+          if (!snap.exists) {
+            // Member doc deleted. Determine whether class still exists.
+            final classSnap = await FirebaseFirestore.instance
+                .collection('classes')
+                .doc(classData.classId)
+                .get();
+            if (classSnap.exists) {
+              // Member was removed (kicked) while class still exists
+              if (!mounted) return;
+              await showDialog<void>(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Bạn đã bị mời ra khỏi lớp'),
+                  content: Text('${classData.name}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (!mounted) return;
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/home_page', (r) => false);
+            }
+          }
+        });
+    _classSub = FirebaseFirestore.instance
+        .collection('classes')
+        .doc(classData.classId)
+        .snapshots()
+        .listen((snap) async {
+          if (!snap.exists) {
+            if (!mounted) return;
+            await showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Lớp đã được giải tán'),
+                content: Text('${classData.name}'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+            if (!mounted) return;
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home_page', (r) => false);
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _memberSub?.cancel();
+    _classSub?.cancel();
+    super.dispose();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -96,12 +189,6 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // const SizedBox(height: 10),
-                    // _buildPersonalInformation(),
-                    // const SizedBox(height: 10),
-                    // _buildClassID(context),
-                    // const SizedBox(height: 10),
-                    // _buildAchievements(),
                     const SizedBox(height: 15),
                     _buildMembersAccessButton(context),
 
@@ -510,7 +597,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 15),
             StreamBuilder<MemberCounts>(
-              stream: _classService.getClassMemberCountsStream(
+              stream: ProfileScreen._classService.getClassMemberCountsStream(
                 classData.classId,
               ),
               builder: (context, snapshot) {
@@ -589,7 +676,9 @@ class ProfileScreen extends StatelessWidget {
             Expanded(
               child: StreamBuilder<List<Member>>(
                 // Giả định bạn đã viết hàm trả về Stream trong service
-                stream: _classService.getClassMembersStream(classData.classId),
+                stream: ProfileScreen._classService.getClassMembersStream(
+                  classData.classId,
+                ),
                 builder: (context, snapshot) {
                   // 1. Xử lý lỗi trước
                   if (snapshot.hasError) {
@@ -701,11 +790,143 @@ class ProfileScreen extends StatelessWidget {
                           trailing: _isManager && m.role != MemberRole.quanLyLop
                               ? PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert),
-                                  onSelected: (value) {
+                                  onSelected: (value) async {
                                     Navigator.pop(context);
-                                    print(
-                                      "Selected action: $value for user ${m.name}",
-                                    );
+                                    try {
+                                      switch (value) {
+                                        case 'promote':
+                                          await ProfileScreen._classService
+                                              .promoteToCanBo(
+                                                classId: classData.classId,
+                                                memberId: m.uid,
+                                              );
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Đã bổ nhiệm Cán bộ',
+                                              ),
+                                            ),
+                                          );
+                                          break;
+                                        case 'demote':
+                                          await ProfileScreen._classService
+                                              .demoteCanBo(
+                                                classId: classData.classId,
+                                                memberId: m.uid,
+                                              );
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Đã cắt chức Cán bộ',
+                                              ),
+                                            ),
+                                          );
+                                          break;
+                                        case 'transfer':
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              title: const Text(
+                                                'Chuyển quyền quản lý',
+                                              ),
+                                              content: Text(
+                                                'Bạn chắc chắn muốn chuyển quyền quản lý cho ${m.name}?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(
+                                                    ctx,
+                                                  ).pop(false),
+                                                  child: const Text('Huỷ'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(
+                                                    ctx,
+                                                  ).pop(true),
+                                                  child: const Text('Đồng ý'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            await ProfileScreen._classService
+                                                .transferOwnership(
+                                                  classId: classData.classId,
+                                                  newOwnerId: m.uid,
+                                                );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Đã chuyển quyền quản lý',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          break;
+                                        case 'kick':
+                                          final confirmKick =
+                                              await showDialog<bool>(
+                                                context: context,
+                                                builder: (ctx) => AlertDialog(
+                                                  title: const Text(
+                                                    'Mời ra khỏi lớp',
+                                                  ),
+                                                  content: Text(
+                                                    'Bạn chắc chắn muốn mời ${m.name} ra khỏi lớp?',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            ctx,
+                                                          ).pop(false),
+                                                      child: const Text('Huỷ'),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            ctx,
+                                                          ).pop(true),
+                                                      child: const Text(
+                                                        'Đồng ý',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                          if (confirmKick == true) {
+                                            await ProfileScreen._classService
+                                                .removeMember(
+                                                  classId: classData.classId,
+                                                  memberId: m.uid,
+                                                );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  '${m.name} đã bị mời ra khỏi lớp',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          break;
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Lỗi: ${e.toString()}'),
+                                        ),
+                                      );
+                                    }
                                   },
                                   itemBuilder: (context) => [
                                     const PopupMenuItem(
@@ -751,7 +972,46 @@ class ProfileScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Rời khỏi lớp học'),
+                    content: Text(
+                      'Bạn chắc chắn muốn rời lớp ${classData.name}?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Huỷ'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Đồng ý'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm != true) return;
+                try {
+                  await ProfileScreen._classService.leaveClass(
+                    classId: classData.classId,
+                  );
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bạn đã rời khỏi lớp')),
+                  );
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/home_page', (r) => false);
+                } catch (e) {
+                  final message = e.toString().replaceFirst('Exception: ', '');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(message)));
+                }
+              },
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 backgroundColor: Colors.white,
@@ -775,7 +1035,49 @@ class ProfileScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Giải tán lớp'),
+                      content: Text(
+                        'Bạn chắc chắn muốn giải tán lớp ${classData.name}?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Huỷ'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Đồng ý'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm != true) return;
+                  try {
+                    await ProfileScreen._classService.deleteClass(
+                      classId: classData.classId,
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Đã giải tán lớp')),
+                    );
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/home_page', (r) => false);
+                  } catch (e) {
+                    final message = e.toString().replaceFirst(
+                      'Exception: ',
+                      '',
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(message)));
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   backgroundColor: Colors.red.shade50,
