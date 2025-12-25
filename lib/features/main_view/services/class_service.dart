@@ -2,6 +2,21 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+
+class MemberCounts {
+  final int total;
+  final int managers;
+  final int canBos;
+
+  const MemberCounts({
+    required this.total,
+    required this.managers,
+    required this.canBos,
+  });
+
+  const MemberCounts.empty() : total = 0, managers = 0, canBos = 0;
+}
 
 class ClassService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -123,5 +138,89 @@ class ClassService {
     } catch (e) {
       throw Exception("${e}").toString().replaceAll('Exception:', "");
     }
+  }
+
+  /// Stream danh sách thành viên, ánh xạ và sắp xếp theo role.
+  Stream<List<Member>> getClassMembersStream(String classId) {
+    try {
+      return _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .snapshots()
+          .map((snapshot) {
+            final members = snapshot.docs.map((doc) {
+              final data = doc.data();
+
+              final uid = data['uid'] as String? ?? doc.id;
+              final name = data['name'] as String? ?? '';
+              final avatarUrl = data['avatarUrl'] as String?;
+              final roleRaw = data['role'] as String? ?? '';
+              final joinedAtMillis = data['joinedAt'] as int?;
+              final updatedAtMillis = data['updatedAt'] as int?;
+
+              final joinedAt = joinedAtMillis != null
+                  ? DateTime.fromMillisecondsSinceEpoch(joinedAtMillis)
+                  : DateTime.fromMillisecondsSinceEpoch(0);
+              final updatedAt = updatedAtMillis != null
+                  ? DateTime.fromMillisecondsSinceEpoch(updatedAtMillis)
+                  : DateTime.fromMillisecondsSinceEpoch(0);
+
+              MemberRole role = MemberRole.fromString(roleRaw);
+
+              return Member(
+                uid: uid,
+                name: name,
+                avatarUrl: avatarUrl,
+                classId: classId,
+                role: role,
+                joinedAt: joinedAt,
+                updatedAt: updatedAt,
+              );
+            }).toList();
+
+            final priority = {
+              MemberRole.quanLyLop: 0,
+              MemberRole.canBoLop: 1,
+              MemberRole.thanhVien: 2,
+            };
+
+            members.sort((a, b) {
+              final pa = priority[a.role] ?? 99;
+              final pb = priority[b.role] ?? 99;
+              if (pa != pb) return pa.compareTo(pb);
+              return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            });
+
+            return members;
+          });
+    } catch (e) {
+      // If mapping fails, emit empty stream with error
+      return Stream.error('Lỗi khi stream danh sách thành viên: $e');
+    }
+  }
+
+  Stream<MemberCounts> getClassMemberCountsStream(String classId) {
+    return _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .snapshots()
+        .map((snapshot) {
+          int total = snapshot.docs.length;
+          int managers = 0;
+          int canBos = 0;
+
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final roleRaw = (data['role'] as String?) ?? '';
+            if (roleRaw.contains("Quản lý lớp"))
+              managers++;
+            else if (roleRaw.contains('Cán bộ lớp')) {
+              canBos++;
+            }
+          }
+          return MemberCounts(total: total, managers: managers, canBos: canBos);
+        });
   }
 }

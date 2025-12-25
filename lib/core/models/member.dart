@@ -18,7 +18,7 @@ enum MemberRole {
     switch (role) {
       case 'quanLyLop' || "Quản lý lớp":
         return MemberRole.quanLyLop;
-      case 'canBoLop'  || "Cán bộ lớp":
+      case 'canBoLop' || "Cán bộ lớp":
         return MemberRole.canBoLop;
       default:
         return MemberRole.thanhVien;
@@ -67,7 +67,9 @@ class Member {
       classId: map['classId'] ?? '',
       role: MemberRole.fromString(map['role'] ?? ''),
       joinedAt: DateTime.fromMillisecondsSinceEpoch(
-        map['joinedAt'] ?? map['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
+        map['joinedAt'] ??
+            map['createdAt'] ??
+            DateTime.now().millisecondsSinceEpoch,
       ),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(
         map['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch,
@@ -76,11 +78,11 @@ class Member {
   }
 
   Member.empty()
-      : uid = '',
-        name = '',
-        avatarUrl = null,
-        classId = '',
-        role = MemberRole.thanhVien,
-        joinedAt = DateTime.fromMillisecondsSinceEpoch(0),
-        updatedAt = DateTime.fromMillisecondsSinceEpoch(0);
+    : uid = '',
+      name = '',
+      avatarUrl = null,
+      classId = '',
+      role = MemberRole.thanhVien,
+      joinedAt = DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt = DateTime.fromMillisecondsSinceEpoch(0);
 }
