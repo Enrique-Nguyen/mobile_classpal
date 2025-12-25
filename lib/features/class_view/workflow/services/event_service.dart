@@ -163,7 +163,6 @@ class EventService {
 
     batch.set(registrationRef, {
       'uid': memberUid,
-      'registeredAt': now,
     });
 
     // Tạo task tương ứng cho event này
