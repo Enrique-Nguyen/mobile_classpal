@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 
 class AuthService {
@@ -59,8 +60,19 @@ class AuthService {
   }
 
   // Hàm Đăng xuất
-  Future<void> signOut() async {
-    await _auth.signOut();
+  Future<void> signOut(BuildContext context) async {
+    try {
+      print(_auth.currentUser);
+      await _auth.signOut();
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/signin', (route) => false);
+        print(_auth.currentUser);
+      }
+    } catch (e) {
+      print("Lỗi đăng xuất: $e");
+    }
   }
 
   static Future<Member?> getMember(String classId, String uid) async {

@@ -59,12 +59,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                Image.asset(
-                  'assets/images/logo_rounded.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: Image.asset(
+                    'assets/images/logo_brand.jpg',
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 Text(
                   'ClassPal',

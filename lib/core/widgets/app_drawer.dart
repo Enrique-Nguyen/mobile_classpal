@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/auth/services/auth_service.dart';
 
 class AppDrawer extends StatelessWidget {
   final VoidCallback? onClose;
@@ -90,22 +91,17 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(20),
               child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/', (route) => false);
+                onTap: () async {
+                  await AuthService().signOut(context);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Logout',
-                          style: TextStyle(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Logout',
+                        style: TextStyle(
                           color: AppColors.errorRed,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
