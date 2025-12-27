@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
-import 'package:mobile_classpal/features/class_view/overview/widgets/dashboard_leaderboard.dart';
-import 'package:mobile_classpal/features/class_view/overview/widgets/dashboard_notifications.dart';
-import 'package:mobile_classpal/features/class_view/overview/widgets/dashboard_recent.dart';
-import '../../../../core/models/class.dart';
-import '../../../../core/models/member.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import '../widgets/dashboard_leaderboard.dart';
+import '../widgets/dashboard_notifications.dart';
+import '../widgets/dashboard_recent.dart';
+import '../widgets/dashboard_rules.dart';
 import '../widgets/dashboard_header.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -24,7 +25,13 @@ class DashboardScreen extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           // Header
-          SliverToBoxAdapter(child: DashboardHeader(className: classData.name, displayName: currentMember.name)),
+          SliverToBoxAdapter(child: DashboardHeader(
+            className: classData.name,
+            role: currentMember.role.displayName,
+            displayName: currentMember.name,
+            classData: classData,
+            currentMember: currentMember,
+          )),
           // Content
           SliverToBoxAdapter(
             child: Container(
@@ -40,7 +47,13 @@ class DashboardScreen extends StatelessWidget {
                   DashboardNotifications(),
                   const SizedBox(height: 32),
 
-                  DashboardLeaderboard(),
+                  DashboardRules(isAdmin: currentMember.role != MemberRole.thanhVien, classData: classData),
+                  const SizedBox(height: 32),
+
+                  DashboardLeaderboard(
+                    classData: classData,
+                    currentMember: currentMember,
+                  ),
                   const SizedBox(height: 32),
 
                   DashboardRecentActivities(),

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
 
 class PendingApprovalCard extends StatelessWidget {
   final String memberName;
   final String memberAvatar;
   final String dutyTitle;
   final String submittedAt;
-  final String? proofImageUrl;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
 
@@ -16,7 +15,6 @@ class PendingApprovalCard extends StatelessWidget {
     required this.memberAvatar,
     required this.dutyTitle,
     required this.submittedAt,
-    this.proofImageUrl,
     this.onApprove,
     this.onReject,
   });
@@ -48,19 +46,19 @@ class PendingApprovalCard extends StatelessWidget {
                 radius: 20,
                 backgroundColor: AppColors.bgBlueLight,
                 backgroundImage: memberAvatar.isNotEmpty
-                    ? NetworkImage(memberAvatar)
-                    : null,
+                  ? NetworkImage(memberAvatar)
+                  : null,
                 child: memberAvatar.isEmpty
-                    ? Text(
-                        memberName.isNotEmpty
-                            ? memberName[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          color: AppColors.primaryBlue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
+                  ? Text(
+                      memberName.isNotEmpty
+                        ? memberName[0].toUpperCase()
+                        : '?',
+                      style: const TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
               ),
               const SizedBox(width: 12),
               // Name and time
@@ -78,7 +76,7 @@ class PendingApprovalCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      submittedAt,
+                      "Hoàn thành lúc: $submittedAt",
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -98,7 +96,7 @@ class PendingApprovalCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
-                  'Pending',
+                  'Chờ duyệt',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -118,41 +116,6 @@ class PendingApprovalCard extends StatelessWidget {
               color: AppColors.textPrimary,
             ),
           ),
-          // Proof image (if available)
-          if (proofImageUrl != null && proofImageUrl!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                height: 120,
-                width: double.infinity,
-                color: AppColors.background,
-                child: Image.network(
-                  proofImageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Icon(
-                      Icons.image_outlined,
-                      size: 40,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ]
-          else ...[
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'No proof image available',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 16),
           // Action buttons
           Row(
@@ -170,7 +133,7 @@ class PendingApprovalCard extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    'Approve',
+                    'Duyệt',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -188,7 +151,7 @@ class PendingApprovalCard extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    'Reject',
+                    'Từ chối',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),

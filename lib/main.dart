@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/constants/fonts.dart';
 import 'package:mobile_classpal/features/auth/screens/signin_screen.dart';
 import 'package:mobile_classpal/features/auth/screens/signup_screen.dart';
 import 'package:mobile_classpal/features/main_view/screens/homepage_screen.dart';
 import 'package:mobile_classpal/features/main_view/screens/welcome_screen.dart';
-import 'core/widgets/class_view_navigation.dart';
-import 'core/models/class_view_arguments.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:mobile_classpal/features/auth/widgets/auth_wrapper.dart';
+import 'package:mobile_classpal/core/widgets/class_view_navigation.dart';
+import 'package:mobile_classpal/core/models/class_view_arguments.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(
+    const ProviderScope(
+      child: App(),
+    ),
   );
-
-  runApp(const App());
 }
 
 class App extends StatelessWidget {
@@ -59,7 +62,7 @@ class App extends StatelessWidget {
           ),
         ),
       ),
-      home: const WelcomeScreen(),
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
       routes: {
         '/welcome': (context) => const WelcomeScreen(),

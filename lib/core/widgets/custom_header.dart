@@ -2,57 +2,106 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'app_drawer.dart';
 import 'notifications_sheet.dart';
-import 'leaderboard_sheet.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/screens/leaderboards_screen.dart';
 
 class CustomHeader extends StatelessWidget {
   final String title;
   final String subtitle;
+  final Class? classData;
+  final Member? currentMember;
 
-  const CustomHeader({super.key, required this.title, required this.subtitle});
+  const CustomHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.classData,
+    this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        children: [
-          _buildIconBtn(Icons.grid_view, onTap: () => showAppDrawer(context)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.textGrey,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+      child: SizedBox(
+        height: 44, // Fixed height for header row
+        child: Stack(
+          children: [
+            // Left button
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _buildIconBtn(Icons.grid_view, onTap: () => showAppDrawer(context)),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          _buildIconBtn(
-            Icons.notifications_none,
-            onTap: () => showNotificationsSheet(context),
-          ),
-          const SizedBox(width: 8),
-          _buildIconBtn(
-            Icons.emoji_events_outlined,
-            onTap: () => showLeaderboardSheet(context),
-          ),
-        ],
+            // Centered title (absolute center)
+            Positioned.fill(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.textGrey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Right buttons
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildIconBtn(
+                      Icons.notifications_none,
+                      onTap: () => showNotificationsSheet(context),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildIconBtn(
+                      Icons.emoji_events_outlined,
+                      onTap: () => _onLeaderboardTap(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+  
+  void _onLeaderboardTap(BuildContext context) {
+    if (classData != null && currentMember != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LeaderboardsScreen(
+            classData: classData!,
+            currentMember: currentMember!,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildIconBtn(IconData icon, {VoidCallback? onTap}) {

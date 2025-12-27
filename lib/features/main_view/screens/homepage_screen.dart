@@ -1,77 +1,109 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_classpal/core/constants/app_colors.dart';
-import 'package:mobile_classpal/core/constants/mock_data.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/class_view_arguments.dart';
-import 'package:mobile_classpal/features/main_view/screens/create_class_screen.dart';
-import 'package:mobile_classpal/features/main_view/screens/join_class_screen.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/features/auth/providers/auth_provider.dart';
+import 'package:mobile_classpal/features/auth/services/auth_service.dart';
+import '../providers/class_provider.dart';
+import 'create_class_screen.dart';
+import 'join_class_screen.dart';
 
-class OptionCreateJoin {
-  final String routing;
-  final String title;
-
-  OptionCreateJoin({required this.routing, required this.title});
-}
-
-final List<OptionCreateJoin> availableOptions = [
-  OptionCreateJoin(routing: "/create_class", title: "Tạo lớp"),
-  OptionCreateJoin(routing: "/join_class", title: "Vào lớp"),
-];
-
-class HomepageScreen extends StatelessWidget {
+class HomepageScreen extends ConsumerWidget {
   const HomepageScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(AuthStateProvider.currentUserProvider)?.uid;
+    if (uid == null) {
+      return const Scaffold(
+        body: Center(child: Text("Vui lòng đăng nhập lại")),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _buildCreateJoinBotton(context),
-        backgroundColor: AppColors.primaryBlue,
+        backgroundColor: AppColors.bannerBlue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
+
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header section
+            // --- HEADER: LỜI CHÀO ---
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildHelloWelcomeClass(MockData.currentUserName),
-                  _buildLogoutButton(context),
+                  _buildHelloWelcomeClass(
+                    ref
+                            .watch(AuthStateProvider.currentUserProvider)
+                            ?.displayName ??
+                        "Bạn",
+                  ),
+                  _buildLogoutButton(context, ref),
                 ],
               ),
             ),
-            // Section title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                "Lớp của bạn (${MockData.userClasses.length})",
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Classes ListView
+
+            // --- DANH SÁCH LỚP HỌC ---
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: MockData.userClasses.length,
-                itemBuilder: (context, index) {
-                  final data = MockData.userClasses[index];
-                  return _buildClassCard(
-                    context: context,
-                    borderColor: data.borderColor,
-                    title: data.classData.name,
-                    subtitle: 'Vai trò: ${data.member.role.displayName}',
-                    classData: data.classData,
-                    member: data.member,
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final classesAsync = ref.watch(
+                    ClassProvider.userClassesProvider,
+                  );
+
+                  return classesAsync.when(
+                    data: (classes) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              "Lớp của bạn (${classes.length})",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: AppColors.textGrey,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: classes.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                    itemCount: classes.length,
+                                    itemBuilder: (context, index) {
+                                      final data = classes[index];
+                                      return _buildClassCard(
+                                        context: context,
+                                        ref: ref,
+                                        borderColor: data.borderColor,
+                                        title: data.classData.name,
+                                        subtitle:
+                                            'Vai trò: ${data.member.role.displayName}',
+                                        classData: data.classData,
+                                        member: data.member,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, stack) => Center(child: Text("Lỗi: $e")),
                   );
                 },
               ),
@@ -82,13 +114,29 @@ class HomepageScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.class_outlined, size: 60, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            "Bạn chưa tham gia lớp nào",
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   RichText _buildHelloWelcomeClass(String userName) {
     return RichText(
       text: TextSpan(
         children: [
           const TextSpan(
             text: 'Chào mừng trở lại\n',
-            style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 15, color: AppColors.textGrey),
           ),
           TextSpan(
             text: userName,
@@ -103,22 +151,18 @@ class HomepageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context) {
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.errorRed),
+        border: Border.all(color: Colors.red),
         borderRadius: BorderRadius.circular(12),
       ),
       child: IconButton(
-        icon: const Icon(
-          Icons.logout_outlined,
-          color: AppColors.errorRed,
-          size: 20,
-        ),
-        onPressed: () {
-          Navigator.pushNamed(context, '/welcome');
+        icon: const Icon(Icons.logout_outlined, color: Colors.red, size: 20),
+        onPressed: () async {
+          await AuthService().signOut(context);
         },
       ),
     );
@@ -126,6 +170,7 @@ class HomepageScreen extends StatelessWidget {
 
   Widget _buildClassCard({
     required BuildContext context,
+    required WidgetRef ref,
     required Color borderColor,
     required String title,
     required String subtitle,
@@ -139,10 +184,7 @@ class HomepageScreen extends StatelessWidget {
           Navigator.pushNamed(
             context,
             '/class',
-            arguments: ClassViewArguments(
-              classData: classData,
-              currentMember: member,
-            ),
+            arguments: ClassViewArguments(classData: classData, member: member),
           );
         },
         style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -192,73 +234,70 @@ class HomepageScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-void _buildCreateJoinBotton(BuildContext context) async {
-  // Lấy vị trí nút bấm (Cần GlobalKey gắn vào nút nếu muốn chính xác, ở đây lấy tương đối)
-  final RenderBox overlay =
-      Overlay.of(context).context.findRenderObject() as RenderBox;
+  void _buildCreateJoinBotton(BuildContext context) async {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
-  // Hiển thị Menu
-  final result = await showMenu<String>(
-    context: context,
-    // Căn chỉnh vị trí: Left, Top, Right, Bottom
-    // Bạn cần chỉnh số 'Top' và 'Left' sao cho vừa ý với vị trí nút của bạn
-    position: RelativeRect.fromRect(
-      Rect.fromLTWH(
-        overlay.size.width - 100,
-        overlay.size.height - 200,
-        100,
-        100,
-      ),
-      Offset.zero & overlay.size,
-    ),
-    items: [
-      PopupMenuItem(
-        value: 'create',
-        child: Row(
-          children: const [
-            Icon(Icons.group_add),
-            SizedBox(width: 8),
-            Text(
-              "Tạo lớp",
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(
+          overlay.size.width - 100,
+          overlay.size.height - 200,
+          100,
+          100,
         ),
+        Offset.zero & overlay.size,
       ),
-      PopupMenuItem(
-        value: 'join',
-        child: Row(
-          children: const [
-            Icon(Icons.qr_code_2),
-            SizedBox(width: 8),
-            Text(
-              "Vào lớp",
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+      items: [
+        PopupMenuItem(
+          value: 'create',
+          child: Row(
+            children: const [
+              Icon(Icons.group_add),
+              SizedBox(width: 8),
+              Text(
+                "Tạo lớp",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-  if (result == 'create') {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CreateClassScreen()),
+        PopupMenuItem(
+          value: 'join',
+          child: Row(
+            children: const [
+              Icon(Icons.qr_code_2),
+              SizedBox(width: 8),
+              Text(
+                "Vào lớp",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
-  } else if (result == 'join') {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => JoinClassScreen()),
-    );
+
+    if (result == 'create') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CreateClassScreen()),
+      );
+    } else if (result == 'join') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const JoinClassScreen()),
+      );
+    }
   }
 }

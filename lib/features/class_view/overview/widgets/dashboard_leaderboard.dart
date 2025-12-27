@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/leaderboard_entry.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/services/leaderboard_service.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/screens/leaderboards_screen.dart';
 
 class DashboardLeaderboard extends StatelessWidget {
-  const DashboardLeaderboard({super.key});
+  final Class classData;
+  final Member currentMember;
+
+  const DashboardLeaderboard({
+    super.key,
+    required this.classData,
+    required this.currentMember,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +27,7 @@ class DashboardLeaderboard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'LEADERBOARD',
+                'BẢNG XẾP HẠNG',
                 style: TextStyle(
                   color: Colors.grey.shade500,
                   fontSize: 12,
@@ -22,58 +35,147 @@ class DashboardLeaderboard extends StatelessWidget {
                   letterSpacing: 1.5,
                 ),
               ),
+              GestureDetector(
+                onTap: () => _navigateToLeaderboards(context),
+                child: Text(
+                  'Xem tất cả',
+                  style: TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildLeaderboardCard(
-            rank: '#1',
-            role: 'LEAD',
-            roleColor: const Color(0xFFE8F5E9),
-            borderColor: const Color(0xFF81C784),
-            name: 'Sarah L.',
-            subtitle: '8 duties cleared',
-            points: '450 pts',
-          ),
-          const SizedBox(height: 12),
-          _buildLeaderboardCard(
-            rank: '#2',
-            role: 'FOCUS',
-            roleColor: const Color(0xFFFFF3E0),
-            borderColor: const Color(0xFFFFB74D),
-            name: 'John S.',
-            subtitle: '5 audits logged',
-            points: '380 pts',
-          ),
-          const SizedBox(height: 12),
-          _buildLeaderboardCard(
-            rank: '#3',
-            role: 'ASSIST',
-            roleColor: const Color(0xFFE3F2FD),
-            borderColor: const Color(0xFF64B5F6),
-            name: 'You',
-            subtitle: '3 quick assists',
-            points: '320 pts',
+          StreamBuilder<List<LeaderboardEntry>>(
+            stream: LeaderboardService.streamTopEntries(
+              classData.classId,
+              currentMember.uid,
+              limit: 3,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              final entries = snapshot.data ?? [];
+
+              if (entries.isEmpty) {
+                return _buildEmptyState(context);
+              }
+
+              return Column(
+                children: entries.map((entry) {
+                  Color borderColor;
+                  Color bgColor;
+                  
+                  switch (entry.rank) {
+                    case 1:
+                      borderColor = const Color(0xFFFFD700);
+                      bgColor = const Color(0xFFFFF8E1);
+                      break;
+                    case 2:
+                      borderColor = const Color(0xFFC0C0C0);
+                      bgColor = const Color(0xFFF5F5F5);
+                      break;
+                    case 3:
+                      borderColor = const Color(0xFFCD7F32);
+                      bgColor = const Color(0xFFFBE9E7);
+                      break;
+                    default:
+                      borderColor = AppColors.primaryBlue;
+                      bgColor = AppColors.bgBlueLight;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildLeaderboardCard(
+                      rank: '#${entry.rank}',
+                      rankColor: borderColor,
+                      rankBgColor: bgColor,
+                      name: entry.isCurrentUser ? 'Bạn' : entry.memberName,
+                      subtitle: '${entry.achievementCount} thành tích',
+                      points: '${entry.totalPoints.toInt()} điểm',
+                      isCurrentUser: entry.isCurrentUser,
+                    ),
+                  );
+                }).toList(),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
+  Widget _buildEmptyState(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _navigateToLeaderboards(context),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.emoji_events_outlined,
+              size: 48,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Chưa có thành tích nào',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Hoàn thành nhiệm vụ để tích lũy điểm',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLeaderboardCard({
     required String rank,
-    required String role,
-    required Color roleColor,
-    required Color borderColor,
+    required Color rankColor,
+    required Color rankBgColor,
     required String name,
     required String subtitle,
     required String points,
+    bool isCurrentUser = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isCurrentUser ? AppColors.bgBlueLight : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: borderColor, width: 4)),
+        border: Border(left: BorderSide(color: rankColor, width: 4)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -84,19 +186,22 @@ class DashboardLeaderboard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Rank badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: roleColor,
-              borderRadius: BorderRadius.circular(4),
+              color: rankBgColor,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              role,
-              style: TextStyle(
-                color: borderColor,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+            child: Center(
+              child: Text(
+                rank,
+                style: TextStyle(
+                  color: rankColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -107,10 +212,10 @@ class DashboardLeaderboard extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E1E2D),
+                    fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.w600,
+                    color: const Color(0xFF1E1E2D),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -121,24 +226,27 @@ class DashboardLeaderboard extends StatelessWidget {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                points,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E1E2D),
-                ),
-              ),
-              Text(
-                rank,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-              ),
-            ],
+          Text(
+            points,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: rankColor,
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToLeaderboards(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LeaderboardsScreen(
+          classData: classData,
+          currentMember: currentMember,
+        ),
       ),
     );
   }

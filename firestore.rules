@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /classes/{classId} {
+      match /members/{memberId} {
+        allow read: if request.auth != null && request.auth.uid == memberId || isClassMember(classId);
+        allow delete, update: if isOwner(classId);
+      }
+      function isOwner(classId) {
+        return get(/databases/$(database)/documents/classes/$(classId)).data.ownerId == request.auth.uid;
+      }
+      function isClassMember(classId) {
+        return exists(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid));
+      }
+    }
+  }
+}

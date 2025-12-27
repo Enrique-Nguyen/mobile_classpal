@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/widgets/app_drawer.dart';
 import 'package:mobile_classpal/core/widgets/notifications_sheet.dart';
-import 'package:mobile_classpal/core/widgets/leaderboard_sheet.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/screens/leaderboards_screen.dart';
 
 class DashboardHeader extends StatelessWidget {
   final String className;
+  final String role;
   final String displayName;
+  final Class classData;
+  final Member currentMember;
 
   const DashboardHeader({
     super.key,
     required this.className,
+    required this.role,
     required this.displayName,
+    required this.classData,
+    required this.currentMember,
   });
 
   @override
@@ -65,7 +73,15 @@ class DashboardHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
-                    onTap: () => showLeaderboardSheet(context),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LeaderboardsScreen(
+                          classData: classData,
+                          currentMember: currentMember,
+                        ),
+                      ),
+                    ),
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -99,7 +115,7 @@ class DashboardHeader extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: Text(
-                  displayName,
+                  '$displayName ($role)',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 14,

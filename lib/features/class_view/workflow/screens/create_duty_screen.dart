@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/models/class.dart';
-import '../../../../core/models/member.dart';
-import '../../../../core/constants/mock_data.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/rule.dart';
+import 'package:mobile_classpal/features/class_view/overview/services/rule_service.dart';
+import '../services/duty_service.dart';
+import '../widgets/assignees_selection.dart';
 
-class CreateDutyScreen extends StatefulWidget {
+class CreateDutyScreen extends ConsumerStatefulWidget {
   final Class classData;
   final Member currentMember;
 
@@ -15,24 +20,35 @@ class CreateDutyScreen extends StatefulWidget {
   });
 
   @override
-  State<CreateDutyScreen> createState() => _CreateDutyScreenState();
+  ConsumerState<CreateDutyScreen> createState() => _CreateDutyScreenState();
 }
 
-class _CreateDutyScreenState extends State<CreateDutyScreen> {
+class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _memberSearchController = TextEditingController();
+  final _ruleNoteController = TextEditingController();
   
   DateTime _selectedDateTime = DateTime.now().add(const Duration(hours: 1));
-  String _selectedRule = MockData.ruleOptions.first;
+  Rule? _selectedRule;
   final List<Member> _selectedMembers = [];
+  bool _isLoading = false;
+
+  Stream<List<Member>> get _membersStream => FirebaseFirestore.instance
+    .collection('classes')
+    .doc(widget.classData.classId)
+    .collection('members')
+    .snapshots()
+    .map((snapshot) => snapshot.docs.map((doc) => Member.fromMap(doc.data())).toList());
+
+  Stream<List<Rule>> get _rulesStream => RuleService.getRules(widget.classData.classId)
+    .map((rules) => rules.where((r) => r.type == RuleType.duty).toList());
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _memberSearchController.dispose();
+    _ruleNoteController.dispose();
     super.dispose();
   }
 
@@ -93,70 +109,80 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildSectionTitle('TÊN NHIỆM VỤ'),
+              const SizedBox(height: 8),
               _buildInputField(
                 controller: _titleController,
-                label: 'Tên nhiệm vụ',
                 hint: 'Ví dụ: Lau bảng sau giờ học',
                 validator: (value) => value?.isEmpty ?? true
                     ? 'Vui lòng nhập tên nhiệm vụ'
                     : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _buildSectionTitle('MÔ TẢ'),
+              const SizedBox(height: 8),
               _buildInputField(
                 controller: _descriptionController,
-                label: 'Mô tả',
                 hint: 'Mô tả chi tiết về nhiệm vụ...',
                 maxLines: 3,
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('PHÂN CÔNG'),
-              const SizedBox(height: 12),
-              _buildMultiMemberSelector(),
-              const SizedBox(height: 24),
-              _buildSectionTitle('PHÂN LOẠI'),
-              const SizedBox(height: 12),
-              _buildDropdownField(
-                label: 'Quy tắc',
-                value: _selectedRule,
-                items: MockData.ruleOptions,
-                onChanged: (value) {
-                  setState(() => _selectedRule = value!);
+              _buildSectionTitle('NGƯỜI THỰC HIỆN'),
+              const SizedBox(height: 8),
+              StreamBuilder<List<Member>>(
+                stream: _membersStream,
+                builder: (context, snapshot) {
+                  final allMembers = snapshot.data ?? [];
+                  return MemberSelectionField(
+                    label: null,
+                    required: true,
+                    selectedMembers: _selectedMembers,
+                    onAddTap: () => showMemberSelectionSheet(
+                      context: context,
+                      allMembers: allMembers, // Pass real members
+                      selectedMembers: _selectedMembers,
+                      onMemberSelected: (member) {
+                        setState(() {
+                          if (!_selectedMembers.any((m) => m.uid == member.uid)) {
+                            _selectedMembers.add(member);
+                          }
+                        });
+                      },
+                    ),
+                    onRemoveMember: (member) {
+                      setState(() {
+                        _selectedMembers.removeWhere((m) => m.uid == member.uid);
+                      });
+                    },
+                  );
                 },
               ),
-              const SizedBox(height: 12),
-              // Points tag
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.bgGreenLight,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star_rounded, size: 18, color: AppColors.successGreen),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Điểm thưởng: +${MockData.rulePoints[_selectedRule] ?? 10}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.successGreen,
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 24),
+              _buildSectionTitle('QUY TẮC NHIỆM VỤ'),
+              const SizedBox(height: 8),
+              StreamBuilder<List<Rule>>(
+                stream: _rulesStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    return const Center(child: CircularProgressIndicator());
+
+                  final rules = snapshot.data ?? [];
+                  if (_selectedRule == null && rules.isNotEmpty)
+                    _selectedRule = rules.first;
+
+                  return _buildRuleSelector(rules);
+                },
               ),
               const SizedBox(height: 24),
               _buildSectionTitle('THỜI GIAN'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildDateTimePicker(),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
                     shape: RoundedRectangleBorder(
@@ -164,14 +190,23 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Tạo nhiệm vụ',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Tạo nhiệm vụ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -194,256 +229,9 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     );
   }
 
-  Widget _buildMultiMemberSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Giao cho thành viên *',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Selected members as chips
-        if (_selectedMembers.isNotEmpty) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _selectedMembers.map((member) {
-              return Chip(
-                backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                side: BorderSide.none,
-                avatar: CircleAvatar(
-                  backgroundColor: AppColors.primaryBlue,
-                  radius: 12,
-                  child: Text(
-                    member.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                label: Text(
-                  member.name,
-                  style: const TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                deleteIcon: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: AppColors.primaryBlue,
-                ),
-                onDeleted: () {
-                  setState(() => _selectedMembers.remove(member));
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-        ],
-        // Add member button / search field
-        GestureDetector(
-          onTap: _showMemberSelectionSheet,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.person_add_outlined,
-                  size: 20,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedMembers.isEmpty 
-                        ? 'Thêm thành viên...'
-                        : 'Thêm thành viên khác...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.add_circle_outline,
-                  size: 20,
-                  color: AppColors.primaryBlue,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showMemberSelectionSheet() {
-    String searchQuery = '';
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final filteredMembers = MockData.classMembers.where((member) {
-            final nameMatch = member.name.toLowerCase().contains(searchQuery.toLowerCase());
-            final notSelected = !_selectedMembers.any((m) => m.id == member.id);
-            return nameMatch && notSelected;
-          }).toList();
-
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Chọn thành viên',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Search field
-                      TextField(
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm kiếm theo tên...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400),
-                          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-                          filled: true,
-                          fillColor: AppColors.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onChanged: (value) {
-                          setSheetState(() => searchQuery = value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: filteredMembers.isEmpty
-                      ? Center(
-                          child: Text(
-                            searchQuery.isEmpty
-                                ? 'Tất cả thành viên đã được chọn'
-                                : 'Không tìm thấy thành viên',
-                            style: const TextStyle(color: AppColors.textSecondary),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: filteredMembers.length,
-                          itemBuilder: (context, index) {
-                            final member = filteredMembers[index];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() => _selectedMembers.add(member));
-                                Navigator.pop(context);
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                                      child: Text(
-                                        member.name.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(
-                                          color: AppColors.primaryBlue,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            member.name,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                          Text(
-                                            member.role.displayName,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.add_circle_outline,
-                                      color: AppColors.primaryBlue,
-                                      size: 22,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Widget _buildInputField({
     required TextEditingController controller,
-    required String label,
     String? hint,
     int maxLines = 1,
     TextInputType? keyboardType,
@@ -452,15 +240,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
@@ -500,46 +279,68 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     );
   }
 
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required void Function(String?) onChanged,
-  }) {
+  Widget _buildRuleSelector(List<Rule> rules) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
+            child: DropdownButton<Rule>(
+              value: _selectedRule,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down),
-              items: items.map((item) {
-                return DropdownMenuItem(
-                  value: item,
-                  child: Text(item, style: const TextStyle(fontSize: 14)),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+              onChanged: (Rule? newValue) {
+                if (newValue != null && _selectedRule != newValue) {
+                  setState(() => _selectedRule = newValue);
+                }
+              },
+              items: rules.map<DropdownMenuItem<Rule>>((Rule rule) {
+                return DropdownMenuItem<Rule>(
+                  value: rule,
+                  child: Text(
+                    rule.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 );
               }).toList(),
-              onChanged: onChanged,
             ),
           ),
         ),
+        if (_selectedRule != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.bgGreenLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.stars_rounded, size: 18, color: AppColors.successGreen),
+                const SizedBox(width: 8),
+                Text(
+                  'Điểm thưởng: +${_selectedRule!.points.toInt()} điểm',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.successGreen,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -548,15 +349,6 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Ngày và giờ',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
         GestureDetector(
           onTap: _pickDateTime,
           child: Container(
@@ -627,7 +419,7 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     return '$day/$month/$year lúc $hour:$minute';
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_selectedMembers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -639,14 +431,51 @@ class _CreateDutyScreenState extends State<CreateDutyScreen> {
     }
 
     if (_formKey.currentState?.validate() ?? false) {
-      final memberNames = _selectedMembers.map((m) => m.name).join(', ');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Đã giao nhiệm vụ cho $memberNames!'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
-      Navigator.pop(context);
+      if (_selectedRule == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng chọn hoặc tạo một quy tắc'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+        return;
+      }
+      setState(() => _isLoading = true);
+      try {
+        await DutyService.createDuty(
+          classId: widget.classData.classId,
+          name: _titleController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty 
+              ? null 
+              : _descriptionController.text.trim(),
+          startTime: _selectedDateTime,
+          ruleName: _selectedRule!.name,
+          points: _selectedRule!.points,
+          assignees: _selectedMembers,
+        );
+
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã tạo nhiệm vụ thành công!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        Navigator.pop(context);
+      }
+      catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+      finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 }

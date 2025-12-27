@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"classpal-633f7","appId":"1:654195767460:android:bbb8e69a1c3dab06654e31","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"classpal-633f7","configurations":{"android":"1:654195767460:android:bbb8e69a1c3dab06654e31","ios":"1:654195767460:ios:0c64c8749fa57258654e31","web":"1:654195767460:web:61329e159895496b654e31"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "classpal-633f7",
+          "appId": "1:654195767460:android:bbb8e69a1c3dab06654e31",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "classpal-633f7",
+          "configurations": {
+            "android": "1:654195767460:android:bbb8e69a1c3dab06654e31",
+            "ios": "1:654195767460:ios:0c64c8749fa57258654e31",
+            "web": "1:654195767460:web:61329e159895496b654e31"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "singleProjectMode": true,
+    "auth": {
+      "port": 9099
+    },
+    "ui": {
+      "enabled": true
+    },
+    "firestore": {
+      "port": 8080
+    }
+  }
+}

@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class FundOverviewCard extends StatelessWidget {
-  const FundOverviewCard({super.key});
+  final double totalBalance;
+  final double totalIncome;
+  final double totalExpense;
+
+  const FundOverviewCard({
+    super.key,
+    required this.totalBalance,
+    required this.totalIncome,
+    required this.totalExpense,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -9,14 +20,14 @@ class FundOverviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
+          colors: [AppColors.primaryBlue, Color(0xFF4C6FFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3949AB).withOpacity(0.3),
+            color: const Color(0xFF4C6FFF).withOpacity(0.28),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -28,7 +39,7 @@ class FundOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("TOTAL FUND", style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5)),
+              const Text("TỔNG QUỸ", style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -37,23 +48,26 @@ class FundOverviewCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.download, color: Colors.white, size: 14),
+                    Icon(Icons.visibility_outlined, color: Colors.white, size: 14),
                     SizedBox(width: 4),
-                    Text("Export", style: TextStyle(color: Colors.white, fontSize: 12)),
+                    Text("Xem chi tiết", style: TextStyle(color: Colors.white, fontSize: 12)),
                   ],
                 ),
               )
             ],
           ),
           const SizedBox(height: 8),
-          const Text("đ5.000.000", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-          const Text("Updated 3 mins ago", style: TextStyle(color: Colors.white54, fontSize: 12)),
+          Text(
+            _formatCurrency(totalBalance),
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          ),
+          const Text("Cập nhật tức thì", style: TextStyle(color: Colors.white70, fontSize: 12)),
           const SizedBox(height: 24),
           Row(
             children: [
-              _buildMiniStat("INCOME", "đ3.000.000", Colors.white),
+              _buildMiniStat("THU", _formatCurrency(totalIncome), Colors.white),
               const SizedBox(width: 16),
-              _buildMiniStat("EXPENSES", "đ1.250.000", Colors.white),
+              _buildMiniStat("CHI", _formatCurrency(totalExpense), Colors.white),
             ],
           )
         ],
@@ -79,5 +93,10 @@ class FundOverviewCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatCurrency(double value) {
+    final format = NumberFormat('#,##0', 'vi_VN');
+    return '${format.format(value)}đ';
   }
 }

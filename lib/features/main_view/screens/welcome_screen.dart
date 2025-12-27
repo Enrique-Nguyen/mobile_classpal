@@ -19,7 +19,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/images/download.jpg"),
+            image: AssetImage("assets/images/backgound_welcome.jpg"),
             fit: BoxFit.cover,
           ),
         ),
@@ -35,11 +35,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     child: _currentPage < 2
                         ? TextButton(
                             onPressed: () {
-                              _pageController.animateToPage(
-                                2,
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.easeInOut,
-                              );
+                              Navigator.pushNamed(context, '/signin');
                             },
 
                             style: TextButton.styleFrom(
@@ -58,17 +54,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               ),
                             ),
                           )
-                        : const SizedBox(height: 32),
+                        : const SizedBox(height: 48),
                   ),
                 ),
 
                 const SizedBox(height: 20),
-
-                Image.asset(
-                  'assets/images/logo_rounded.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: Image.asset(
+                    'assets/images/logo_brand.jpg',
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 Text(
                   'ClassPal',

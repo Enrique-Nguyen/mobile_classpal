@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/mock_data.dart';
+import '../../../../core/helpers/duty_helper.dart';
 
 class DutyCard extends StatelessWidget {
   final String title;
