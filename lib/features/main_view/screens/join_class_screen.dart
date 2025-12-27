@@ -141,7 +141,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
         onPressed: () async {
           if (_formKey.currentState!.validate())
             try {
-              await ClassService().joinClass(_codeController.text.trim());
+              await ClassService().joinClass(_codeController.text.trim().toUpperCase());
               if (context.mounted) {
                 Navigator.pop(context); // Tắt dialog
                 ScaffoldMessenger.of(context).showSnackBar(

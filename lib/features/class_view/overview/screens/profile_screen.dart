@@ -1,12 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
-import '../../../../core/models/class.dart';
-import '../../../../core/models/member.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_classpal/core/models/class.dart';
+import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/features/main_view/services/class_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Class classData;
@@ -26,89 +24,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late final Member currentMember = widget.currentMember;
   late final Class classData = widget.classData;
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _memberSub;
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _classSub;
 
   bool get _isManager => currentMember.role.displayName == "Quản lý lớp";
-
-  @override
-  void initState() {
-    super.initState();
-    _memberSub = FirebaseFirestore.instance
-        .collection('classes')
-        .doc(classData.classId)
-        .collection('members')
-        .doc(currentMember.uid)
-        .snapshots()
-        .listen((snap) async {
-          if (!snap.exists) {
-            // Member doc deleted. Determine whether class still exists.
-            final classSnap = await FirebaseFirestore.instance
-                .collection('classes')
-                .doc(classData.classId)
-                .get();
-            if (classSnap.exists) {
-              // Member was removed (kicked) while class still exists
-              if (!mounted) return;
-              await showDialog<void>(
-                context: context,
-                barrierDismissible: false,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Bạn đã bị mời ra khỏi lớp'),
-                  content: Text(classData.name),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (!mounted) return;
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil('/home_page', (r) => false);
-            }
-          }
-        });
-    _classSub = FirebaseFirestore.instance
-        .collection('classes')
-        .doc(classData.classId)
-        .snapshots()
-        .listen((snap) async {
-          if (!snap.exists) {
-            if (!mounted) return;
-            await showDialog<void>(
-              context: context,
-              barrierDismissible: false,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Lớp đã được giải tán'),
-                content: Text(classData.name),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
-            );
-            if (!mounted) return;
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil('/home_page', (r) => false);
-          }
-        });
-  }
-
-  @override
-  void dispose() {
-    _memberSub?.cancel();
-    _classSub?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -426,11 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.calendar_month,
             subtitle: "Ngày vào lớp",
             title:
-                currentMember.joinedAt.day.toString().padLeft(2, '0') +
-                '/' +
-                currentMember.joinedAt.month.toString().padLeft(2, '0') +
-                '/' +
-                currentMember.joinedAt.year.toString(),
+              '${currentMember.joinedAt.day.toString().padLeft(2, '0')}/${currentMember.joinedAt.month.toString().padLeft(2, '0')}/${currentMember.joinedAt.year}',
             iconColor: Colors.purple,
           ),
         ],
