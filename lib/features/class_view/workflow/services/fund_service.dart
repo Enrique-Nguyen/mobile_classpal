@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mobile_classpal/core/models/task.dart';
+import 'package:mobile_classpal/core/models/notification.dart' as notif_model;
+import 'package:mobile_classpal/features/class_view/overview/services/notification_service.dart';
 import '../models/fund_transaction.dart';
-import '../../../../core/models/task.dart';
 
 class FundService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,10 +22,10 @@ class FundService {
 
     // Tạo fund transaction
     final txRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .doc();
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .doc();
 
     batch.set(txRef, {
       'id': txRef.id,
@@ -51,31 +53,54 @@ class FundService {
     }
 
     await batch.commit();
+
+    // Tạo thông báo cho tất cả thành viên (chỉ với income và expense)
+    if (type == 'income' || type == 'expense') {
+      final membersSnapshot = await _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .get();
+
+      final memberUids = membersSnapshot.docs.map((doc) => doc.id).toList();
+
+      if (memberUids.isNotEmpty) {
+        final notifTitle = type == 'income' ? 'Thu nhập mới: $title' : 'Chi tiêu mới: $title';
+        final notifSubtitle = type == 'income' ? 'Đã nhận ${_formatCurrency(amount)}' : 'Đã chi ${_formatCurrency(amount)}';
+
+        await NotificationService.createNotificationsForMembers(
+          classId: classId,
+          memberUids: memberUids,
+          type: notif_model.NotificationType.fund,
+          title: notifTitle,
+          subtitle: notifSubtitle,
+          referenceId: txRef.id,
+        );
+      }
+    }
+
     return txRef.id;
   }
 
   /// Lấy danh sách giao dịch theo stream
   static Stream<List<FundTransaction>> streamTransactions(String classId) {
     return _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => FundTransaction.fromMap(doc.data()))
-            .toList());
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => FundTransaction.fromMap(doc.data())).toList());
   }
 
   /// Lấy một giao dịch cụ thể
-  static Future<FundTransaction?> getTransaction(
-      String classId, String transactionId) async {
+  static Future<FundTransaction?> getTransaction(String classId, String transactionId) async {
     final doc = await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .doc(transactionId)
-        .get();
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .doc(transactionId)
+      .get();
 
     if (doc.exists) {
       return FundTransaction.fromMap(doc.data()!);
@@ -100,11 +125,11 @@ class FundService {
     if (description != null) updates['description'] = description;
 
     await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .doc(transactionId)
-        .update(updates);
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .doc(transactionId)
+      .update(updates);
   }
 
   /// Xóa giao dịch
@@ -113,11 +138,11 @@ class FundService {
     required String transactionId,
   }) async {
     await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .doc(transactionId)
-        .delete();
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .doc(transactionId)
+      .delete();
   }
 
   /// Stream tổng thu nhập (income + payment)
@@ -128,7 +153,8 @@ class FundService {
       for (final tx in transactions) {
         if (tx.type == 'income') {
           total += tx.amount;
-        } else if (tx.type == 'payment') {
+        }
+        else if (tx.type == 'payment') {
           // Với payment, chỉ cộng số tiền đã thu được
           final collected = await streamPaymentCollected(classId, tx.id).first;
           total += collected;
@@ -142,9 +168,7 @@ class FundService {
   /// Stream tổng chi tiêu (expense)
   static Stream<double> streamTotalExpense(String classId) {
     return streamTransactions(classId).map((transactions) {
-      return transactions
-          .where((t) => t.type == 'expense')
-          .fold<double>(0, (sum, t) => sum + t.amount);
+      return transactions.where((t) => t.type == 'expense').fold<double>(0, (sum, t) => sum + t.amount);
     });
   }
 
@@ -157,11 +181,13 @@ class FundService {
       for (final tx in transactions) {
         if (tx.type == 'income') {
           income += tx.amount;
-        } else if (tx.type == 'payment') {
+        }
+        else if (tx.type == 'payment') {
           // Với payment, chỉ cộng số tiền đã thu được
           final collected = await streamPaymentCollected(classId, tx.id).first;
           income += collected;
-        } else if (tx.type == 'expense') {
+        }
+        else if (tx.type == 'expense') {
           expense += tx.amount;
         }
       }
@@ -171,18 +197,15 @@ class FundService {
   }
 
   /// Stream danh sách giao dịch theo loại
-  static Stream<List<FundTransaction>> streamTransactionsByType(
-      String classId, String type) {
+  static Stream<List<FundTransaction>> streamTransactionsByType(String classId, String type) {
     return _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .where('type', isEqualTo: type)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => FundTransaction.fromMap(doc.data()))
-            .toList());
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .where('type', isEqualTo: type)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => FundTransaction.fromMap(doc.data())).toList());
   }
 
   /// Helper: Tạo duty cho khoản đóng quỹ
@@ -198,17 +221,17 @@ class FundService {
   }) async {
     // Tạo duty document
     final dutyRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc();
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc();
 
     // Lấy danh sách tất cả members trong lớp
     final membersSnapshot = await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('members')
-        .get();
+      .collection('classes')
+      .doc(classId)
+      .collection('members')
+      .get();
 
     final memberUids = membersSnapshot.docs.map((doc) => doc.id).toList();
 
@@ -216,18 +239,19 @@ class FundService {
     double points = 0;
     try {
       final ruleSnapshot = await _firestore
-          .collection('classes')
-          .doc(classId)
-          .collection('rules')
-          .where('name', isEqualTo: ruleName)
-          .where('type', isEqualTo: 'fund')
-          .limit(1)
-          .get();
-      
+        .collection('classes')
+        .doc(classId)
+        .collection('rules')
+        .where('name', isEqualTo: ruleName)
+        .where('type', isEqualTo: 'fund')
+        .limit(1)
+        .get();
+
       if (ruleSnapshot.docs.isNotEmpty) {
         points = (ruleSnapshot.docs.first.data()['points'] ?? 0).toDouble();
       }
-    } catch (e) {
+    }
+    catch (e) {
       // Nếu không tìm thấy rule, sử dụng points mặc định
       points = 0;
     }
@@ -269,12 +293,12 @@ class FundService {
     required int createdAt,
   }) {
     final taskRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc(dutyId)
-        .collection('tasks')
-        .doc();
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .collection('tasks')
+      .doc();
 
     batch.set(taskRef, {
       'id': taskRef.id,
@@ -291,7 +315,8 @@ class FundService {
   static String _formatCurrency(double amount) {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(1)}tr';
-    } else if (amount >= 1000) {
+    }
+    else if (amount >= 1000) {
       return '${(amount / 1000).toStringAsFixed(0)}k';
     }
     return amount.toStringAsFixed(0);
@@ -300,21 +325,21 @@ class FundService {
   /// Stream số tiền đã thu được cho một payment transaction
   static Stream<double> streamPaymentCollected(String classId, String paymentId) {
     return _firestore
-        .collectionGroup('duties')
-        .where('classId', isEqualTo: classId)
-        .where('originId', isEqualTo: paymentId)
-        .where('originType', isEqualTo: 'payment')
-        .limit(1)
-        .snapshots()
-        .asyncMap((dutySnapshot) async {
-      if (dutySnapshot.docs.isEmpty) return 0.0;
-      
-      final dutyId = dutySnapshot.docs.first.id;
-      final dutyData = dutySnapshot.docs.first.data();
-      final perPersonAmount = -(dutyData['points'] as num? ?? 0).toDouble();
-      
-      // Đếm số tasks đã complete
-      final tasksSnapshot = await _firestore
+      .collectionGroup('duties')
+      .where('classId', isEqualTo: classId)
+      .where('originId', isEqualTo: paymentId)
+      .where('originType', isEqualTo: 'payment')
+      .limit(1)
+      .snapshots()
+      .asyncMap((dutySnapshot) async {
+        if (dutySnapshot.docs.isEmpty) return 0.0;
+        
+        final dutyId = dutySnapshot.docs.first.id;
+        final dutyData = dutySnapshot.docs.first.data();
+        final perPersonAmount = -(dutyData['points'] as num? ?? 0).toDouble();
+        
+        // Đếm số tasks đã complete
+        final tasksSnapshot = await _firestore
           .collection('classes')
           .doc(classId)
           .collection('duties')
@@ -322,9 +347,9 @@ class FundService {
           .collection('tasks')
           .where('status', isEqualTo: TaskStatus.completed.storageKey)
           .get();
-      
-      final completedCount = tasksSnapshot.docs.length;
-      return perPersonAmount * completedCount;
-    });
+        
+        final completedCount = tasksSnapshot.docs.length;
+        return perPersonAmount * completedCount;
+      });
   }
 }

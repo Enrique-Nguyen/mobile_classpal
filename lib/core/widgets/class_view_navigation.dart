@@ -26,27 +26,20 @@ class _ClassViewNavigationState extends ConsumerState<ClassViewNavigation> {
   MemberRole? _previousRole;
   bool _hasShownKickedDialog = false;
   bool _hasShownDissolutionDialog = false;
-  /// Tracks if member data was successfully loaded at least once.
-  /// We only show the kicked dialog if member was loaded then became null.
   bool _memberWasLoaded = false;
 
   Class get classData => widget.arguments.classData;
-  /// Initial member from navigation arguments (used as fallback during loading)
   Member get initialMember => widget.arguments.member;
 
   @override
   Widget build(BuildContext context) {
-    // Watch the member stream for real-time updates
     final memberAsync = ref.watch(
       MemberProvider.currentMemberStreamProvider((classId: classData.classId, uid: initialMember.uid)),
     );
     
-    // Watch class existence for dissolution detection
     final classExistsAsync = ref.watch(
       MemberProvider.classExistsStreamProvider(classData.classId),
     );
-
-    // Handle class dissolution
     classExistsAsync.whenData((exists) {
       if (!exists && !_hasShownDissolutionDialog) {
         _hasShownDissolutionDialog = true;
@@ -57,39 +50,27 @@ class _ClassViewNavigationState extends ConsumerState<ClassViewNavigation> {
     });
 
     return memberAsync.when(
-      loading: () => _buildContent(initialMember), // Use static data while loading
-      error: (error, stack) => _buildContent(initialMember), // Fallback on error
+      loading: () => _buildContent(initialMember),
+      error: (error, stack) => _buildContent(initialMember),
       data: (member) {
-        print("MEMBER: $member");
         if (member == null) {
-          print("MEMBER IS NULL, _memberWasLoaded: $_memberWasLoaded");
-          // Only show kicked dialog if member was previously loaded successfully
-          // This prevents false positives from race conditions after rejoining
           if (_memberWasLoaded && !_hasShownKickedDialog) {
             _hasShownKickedDialog = true;
-            print("SHOW KICKED DIALOG");
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showKickedDialog();
             });
           }
-          // Return empty scaffold while dialog is showing
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // Mark that we've successfully loaded member data
         _memberWasLoaded = true;
 
-        // Check for role change and show notification
         if (_previousRole != null && _previousRole != member.role) {
-          print("ROLE CHANGE: ${_previousRole} -> ${member.role}");
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showRoleChangeNotification(member.role);
           });
         }
 
-        print("NORMAL: ${member.role}");
         _previousRole = member.role;
         return _buildContent(member);
       },

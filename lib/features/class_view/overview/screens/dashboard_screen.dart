@@ -44,7 +44,10 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 24),
 
-                  DashboardNotifications(),
+                  DashboardNotifications(
+                    classId: classData.classId,
+                    uid: currentMember.uid,
+                  ),
                   const SizedBox(height: 32),
 
                   DashboardRules(isAdmin: currentMember.role != MemberRole.thanhVien, classData: classData),

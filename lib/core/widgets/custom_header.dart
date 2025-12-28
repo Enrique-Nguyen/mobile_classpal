@@ -73,7 +73,13 @@ class CustomHeader extends StatelessWidget {
                   children: [
                     _buildIconBtn(
                       Icons.notifications_none,
-                      onTap: () => showNotificationsSheet(context),
+                      onTap: classData != null && currentMember != null
+                          ? () => showNotificationsSheet(
+                                context,
+                                classId: classData!.classId,
+                                uid: currentMember!.uid,
+                              )
+                          : null,
                     ),
                     const SizedBox(width: 8),
                     _buildIconBtn(

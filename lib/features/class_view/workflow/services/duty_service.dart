@@ -3,7 +3,9 @@ import 'package:mobile_classpal/core/helpers/duty_helper.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/duty.dart';
+import 'package:mobile_classpal/core/models/notification.dart' as notif_model;
 import 'package:mobile_classpal/features/class_view/leaderboard/services/leaderboard_service.dart';
+import 'package:mobile_classpal/features/class_view/overview/services/notification_service.dart';
 
 class DutyService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -48,6 +50,16 @@ class DutyService {
           createdAt: now,
         );
       }
+
+      await NotificationService.createNotificationsForMembers(
+        classId: classId,
+        memberUids: assignees.map((m) => m.uid).toList(),
+        type: notif_model.NotificationType.duty,
+        title: 'Nhiệm vụ mới: $name',
+        subtitle: description ?? 'Bạn được giao một nhiệm vụ mới',
+        referenceId: dutyRef.id,
+        startTime: startTime,
+      );
     }
 
     await batch.commit();
@@ -252,6 +264,22 @@ class DutyService {
             'status': TaskStatus.incomplete.storageKey,
             'createdAt': DateTime.now().millisecondsSinceEpoch,
           });
+        }
+
+        // Tạo thông báo cho các assignee mới
+        if (toAdd.isNotEmpty) {
+          final dutyName = currentData['name'] ?? 'Nhiệm vụ';
+          final description = currentData['description'] as String?;
+          final startTimeMs = currentData['startTime'] as int?;
+          await NotificationService.createNotificationsForMembers(
+            classId: classId,
+            memberUids: toAdd.toList(),
+            type: notif_model.NotificationType.duty,
+            title: 'Nhiệm vụ mới: $dutyName',
+            subtitle: description ?? 'Bạn được giao một nhiệm vụ mới',
+            referenceId: dutyId,
+            startTime: startTimeMs != null ? DateTime.fromMillisecondsSinceEpoch(startTimeMs) : null,
+          );
         }
 
         // Remove old tasks
