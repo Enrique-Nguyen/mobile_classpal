@@ -20,6 +20,7 @@ class EventCard extends StatelessWidget {
   final Event? event;
   final String? classId;
   final String? memberUid;
+  final bool isAdmin;
 
   const EventCard({
     super.key,
@@ -38,6 +39,7 @@ class EventCard extends StatelessWidget {
     this.event,
     this.classId,
     this.memberUid,
+    this.isAdmin = false,
   });
 
   @override
@@ -52,6 +54,7 @@ class EventCard extends StatelessWidget {
                     event: event!,
                     classId: classId!,
                     memberUid: memberUid!,
+                    isAdmin: isAdmin,
                   ),
                 ),
               );

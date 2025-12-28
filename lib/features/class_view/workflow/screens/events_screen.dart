@@ -185,6 +185,7 @@ class _EventsScreenContentState extends ConsumerState<EventsScreenContent> {
                                 event: event,
                                 classId: widget.classData.classId,
                                 memberUid: widget.currentMember.uid,
+                                isAdmin: canManage,
                               );
                             },
                           );

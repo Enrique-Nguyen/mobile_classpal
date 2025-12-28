@@ -49,7 +49,7 @@ class EventService {
         .collection('classes')
         .doc(classId)
         .collection('events')
-        .orderBy('startTime', descending: false)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Event.fromMap(doc.data()))
