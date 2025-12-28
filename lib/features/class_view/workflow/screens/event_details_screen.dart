@@ -3,18 +3,22 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/event.dart';
 import '../../../../core/models/member.dart';
+import '../../../../core/models/rule.dart';
+import '../../overview/services/rule_service.dart';
 import '../services/event_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
   final String classId;
   final String memberUid;
+  final bool isAdmin;
 
   const EventDetailsScreen({
     super.key,
     required this.event,
     required this.classId,
     required this.memberUid,
+    this.isAdmin = false,
   });
 
   @override
@@ -23,6 +27,47 @@ class EventDetailsScreen extends StatefulWidget {
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   bool _isLoading = false;
+  bool _isSaving = false;
+
+  // Controllers for editing
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _locationController;
+  late TextEditingController _maxQuantityController;
+
+  // Editable state
+  late String _selectedRule;
+  late double _selectedPoints;
+  late DateTime _startDateTime;
+  late DateTime _signupEndDateTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.event.name);
+    _descriptionController = TextEditingController(
+      text: widget.event.description ?? '',
+    );
+    _locationController = TextEditingController(
+      text: widget.event.location ?? '',
+    );
+    _maxQuantityController = TextEditingController(
+      text: widget.event.maxQuantity.toInt().toString(),
+    );
+    _selectedRule = widget.event.ruleName;
+    _selectedPoints = widget.event.points;
+    _startDateTime = widget.event.startTime;
+    _signupEndDateTime = widget.event.signupEndTime;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _locationController.dispose();
+    _maxQuantityController.dispose();
+    super.dispose();
+  }
 
   String _formatDate(DateTime dateTime) {
     return DateFormat('dd/MM/yyyy').format(dateTime);
@@ -109,9 +154,18 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
+            actions: widget.isAdmin
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.white),
+                      onPressed: _editName,
+                      tooltip: 'Sửa tên sự kiện',
+                    ),
+                  ]
+                : null,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                widget.event.name,
+                _nameController.text,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -195,7 +249,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     : AppColors.primaryBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+                  color: isJoined
+                      ? AppColors.successGreen
+                      : AppColors.primaryBlue,
                   width: 1.5,
                 ),
               ),
@@ -205,7 +261,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   Icon(
                     isJoined ? Icons.check_circle : Icons.access_time,
                     size: 16,
-                    color: isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+                    color: isJoined
+                        ? AppColors.successGreen
+                        : AppColors.primaryBlue,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -213,7 +271,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isJoined ? AppColors.successGreen : AppColors.primaryBlue,
+                      color: isJoined
+                          ? AppColors.successGreen
+                          : AppColors.primaryBlue,
                     ),
                   ),
                 ],
@@ -241,55 +301,76 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       ),
       child: Column(
         children: [
-          _buildInfoRow(
-            Icons.calendar_today_outlined,
-            'Ngày & Thời gian',
-            '${_formatDate(widget.event.startTime)} - ${_formatTime(widget.event.startTime)}',
-          ),
-          if (widget.event.location != null) ...[
-            const Divider(height: 24),
-            _buildInfoRow(
-              Icons.location_on_outlined,
-              'Địa điểm',
-              widget.event.location!,
-            ),
-          ],
-          const Divider(height: 24),
-          _buildInfoRow(
-            Icons.label_outline,
-            'Thể loại',
-            widget.event.ruleName,
+          _buildInfoRowWithEdit(
+            icon: Icons.calendar_today_outlined,
+            label: 'Ngày & Thời gian',
+            value:
+                '${_formatDate(_startDateTime)} - ${_formatTime(_startDateTime)}',
+            onEdit: widget.isAdmin ? () => _editStartDateTime() : null,
           ),
           const Divider(height: 24),
-          _buildInfoRow(
-            Icons.star_outline,
-            'Điểm thưởng',
-            '${widget.event.points.toInt()} điểm',
+          _buildInfoRowWithEdit(
+            icon: Icons.location_on_outlined,
+            label: 'Địa điểm',
+            value: _locationController.text.isNotEmpty
+                ? _locationController.text
+                : 'Chưa có',
+            onEdit: widget.isAdmin ? () => _editLocation() : null,
           ),
           const Divider(height: 24),
-          _buildInfoRow(
-            Icons.access_time_outlined,
-            'Hạn đăng kí',
-            '${_formatDate(widget.event.signupEndTime)} - ${_formatTime(widget.event.signupEndTime)}',
+          _buildInfoRowWithEdit(
+            icon: Icons.label_outline,
+            label: 'Thể loại',
+            value: _selectedRule,
+            onEdit: widget.isAdmin ? () => _editRule() : null,
+          ),
+          const Divider(height: 24),
+          _buildInfoRowWithEdit(
+            icon: Icons.star_outline,
+            label: 'Điểm thưởng',
+            value: '${_selectedPoints.toInt()} điểm',
+            iconColor: Colors.orange,
+            onEdit: null,
+          ),
+          const Divider(height: 24),
+          _buildInfoRowWithEdit(
+            icon: Icons.access_time_outlined,
+            label: 'Hạn đăng kí',
+            value:
+                '${_formatDate(_signupEndDateTime)} - ${_formatTime(_signupEndDateTime)}',
+            onEdit: widget.isAdmin ? () => _editSignupEndDateTime() : null,
+          ),
+          const Divider(height: 24),
+          _buildInfoRowWithEdit(
+            icon: Icons.group_outlined,
+            label: 'Số lượng tối đa',
+            value: '${_maxQuantityController.text} người',
+            onEdit: widget.isAdmin ? () => _editMaxQuantity() : null,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRowWithEdit({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? iconColor,
+    VoidCallback? onEdit,
+  }) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withOpacity(0.1),
+            color: (iconColor ?? AppColors.primaryBlue).withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
             size: 20,
-            color: AppColors.primaryBlue,
+            color: iconColor ?? AppColors.primaryBlue,
           ),
         ),
         const SizedBox(width: 16),
@@ -316,6 +397,22 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             ],
           ),
         ),
+        if (onEdit != null)
+          GestureDetector(
+            onTap: onEdit,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -345,19 +442,39 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 color: AppColors.primaryBlue,
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Mô tả sự kiện',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Mô tả sự kiện',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              if (widget.isAdmin)
+                GestureDetector(
+                  onTap: _editDescription,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            widget.event.description ?? 'Không có mô tả',
+            _descriptionController.text.isNotEmpty
+                ? _descriptionController.text
+                : 'Không có mô tả',
             style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -371,7 +488,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Widget _buildRegistrationStats() {
     return StreamBuilder<int>(
-      stream: EventService.streamRegisteredCount(widget.classId, widget.event.id),
+      stream: EventService.streamRegisteredCount(
+        widget.classId,
+        widget.event.id,
+      ),
       builder: (context, snapshot) {
         final registeredCount = snapshot.data ?? 0;
         final maxCount = widget.event.maxQuantity.toInt();
@@ -426,8 +546,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     progress >= 0.9
                         ? Colors.orange
                         : progress >= 0.7
-                            ? AppColors.primaryBlue
-                            : AppColors.successGreen,
+                        ? AppColors.primaryBlue
+                        : AppColors.successGreen,
                   ),
                 ),
               ),
@@ -448,7 +568,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Widget _buildParticipantsSection() {
     return StreamBuilder<List<Member>>(
-      stream: EventService.streamRegisteredMembers(widget.classId, widget.event.id),
+      stream: EventService.streamRegisteredMembers(
+        widget.classId,
+        widget.event.id,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
@@ -551,8 +674,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              participant.name.isNotEmpty 
-                                  ? participant.name[0].toUpperCase() 
+                              participant.name.isNotEmpty
+                                  ? participant.name[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
                                 fontSize: 18,
@@ -602,6 +725,61 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Widget _buildBottomActionBar() {
+    // Nếu là admin, hiển thị nút lưu thay đổi
+    if (widget.isAdmin) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _saveChanges,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.successGreen,
+                disabledBackgroundColor: AppColors.successGreen.withOpacity(
+                  0.5,
+                ),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'LƯU THAY ĐỔI',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Nếu không phải admin, hiển thị nút tham gia/hủy
     return StreamBuilder<bool>(
       stream: EventService.streamIsRegistered(
         widget.classId,
@@ -610,7 +788,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       ),
       builder: (context, snapshot) {
         final isJoined = snapshot.data ?? false;
-        final isJoinable = DateTime.now().isBefore(widget.event.signupEndTime);
+        final isJoinable = DateTime.now().isBefore(_signupEndDateTime);
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -690,7 +868,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 : SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: (_isLoading || !isJoinable) ? null : _handleJoin,
+                      onPressed: (_isLoading || !isJoinable)
+                          ? null
+                          : _handleJoin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryBlue,
                         disabledBackgroundColor: Colors.grey.shade300,
@@ -711,9 +891,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             )
                           : const Icon(Icons.check_circle, color: Colors.white),
                       label: Text(
-                        !isJoinable
-                            ? 'HẾT HẠN ĐĂNG KÝ'
-                            : 'THAM GIA SỰ KIỆN',
+                        !isJoinable ? 'HẾT HẠN ĐĂNG KÝ' : 'THAM GIA SỰ KIỆN',
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -727,5 +905,478 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         );
       },
     );
+  }
+
+  // ============ EDIT FUNCTIONS ============
+
+  void _editName() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chỉnh sửa tên sự kiện',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Nhập tên sự kiện...',
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {});
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Xong',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _editDescription() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chỉnh sửa mô tả',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 4,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Nhập mô tả...',
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {});
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Xong',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _editLocation() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chỉnh sửa địa điểm',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _locationController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Nhập địa điểm...',
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {});
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Xong',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _editMaxQuantity() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chỉnh sửa số lượng tối đa',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _maxQuantityController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Nhập số lượng...',
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {});
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Xong',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editStartDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _startDateTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_startDateTime),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _startDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  Future<void> _editSignupEndDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _signupEndDateTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_signupEndDateTime),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _signupEndDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  void _editRule() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'Chọn thể loại',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            StreamBuilder<List<Rule>>(
+              stream: RuleService.getRules(widget.classId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final rules =
+                    snapshot.data
+                        ?.where((r) => r.type == RuleType.event)
+                        .toList() ??
+                    [];
+                if (rules.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text("Không có quy tắc nào"),
+                  );
+                }
+
+                return Column(
+                  children: rules
+                      .map(
+                        (rule) => ListTile(
+                          title: Text(rule.name),
+                          subtitle: Text('+${rule.points.toInt()} điểm'),
+                          trailing: _selectedRule == rule.name
+                              ? const Icon(
+                                  Icons.check,
+                                  color: AppColors.primaryBlue,
+                                )
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _selectedRule = rule.name;
+                              _selectedPoints = rule.points;
+                            });
+                            Navigator.pop(context);
+                          },
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============ SAVE FUNCTION ============
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+
+    try {
+      await EventService.updateEvent(
+        classId: widget.classId,
+        eventId: widget.event.id,
+        name: _nameController.text != widget.event.name
+            ? _nameController.text
+            : null,
+        description:
+            _descriptionController.text != (widget.event.description ?? '')
+            ? _descriptionController.text
+            : null,
+        location: _locationController.text != (widget.event.location ?? '')
+            ? _locationController.text
+            : null,
+        maxQuantity:
+            int.tryParse(_maxQuantityController.text)?.toDouble() !=
+                widget.event.maxQuantity
+            ? int.tryParse(_maxQuantityController.text)?.toDouble()
+            : null,
+        startTime: _startDateTime != widget.event.startTime
+            ? _startDateTime
+            : null,
+        signupEndTime: _signupEndDateTime != widget.event.signupEndTime
+            ? _signupEndDateTime
+            : null,
+        ruleName: _selectedRule != widget.event.ruleName ? _selectedRule : null,
+        points: _selectedPoints != widget.event.points ? _selectedPoints : null,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã lưu thay đổi!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }

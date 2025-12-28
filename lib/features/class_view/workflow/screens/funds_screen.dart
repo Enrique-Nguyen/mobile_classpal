@@ -231,7 +231,7 @@ class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
                           },
                         ),
                         const SizedBox(height: 20),
-                        const UnpaidMembersCard(),
+                        UnpaidMembersCard(classId: widget.classData.classId),
                         const SizedBox(height: 20),
                         TransactionHistoryCard(
                           transactions: transactions,
