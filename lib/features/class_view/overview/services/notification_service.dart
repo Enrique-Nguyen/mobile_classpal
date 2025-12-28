@@ -87,7 +87,7 @@ class NotificationService {
       .doc(classId)
       .collection('notifications')
       .where('uid', isEqualTo: uid)
-      .orderBy('createdAt', descending: true)
+      // .orderBy('createdAt', descending: true)
       .snapshots()
       .map((snapshot) {
         final notifications = snapshot.docs
@@ -130,9 +130,15 @@ class NotificationService {
       .doc(classId)
       .collection('notifications')
       .where('uid', isEqualTo: uid)
-      .where('seenAt', isNull: true)
+      // .where('seenAt', isNull: true)
       .snapshots()
-      .map((snapshot) => snapshot.docs.length);
+      .map((snapshot) {
+        final notifications = snapshot.docs
+          .map((doc) => Notification.fromMap(doc.data()))
+          .toList();
+
+        return notifications.where((notif) => !notif.isSeen).length;
+      });
   }
 
   /// Đánh dấu tất cả thông báo là đã đọc
@@ -163,7 +169,7 @@ class NotificationService {
       .doc(classId)
       .collection('notifications')
       .where('uid', isEqualTo: uid)
-      .orderBy('createdAt', descending: true)
+      // .orderBy('createdAt', descending: true)
       .limit(limit)
       .snapshots()
       .map((snapshot) => snapshot.docs.map((doc) => Notification.fromMap(doc.data())).toList());
