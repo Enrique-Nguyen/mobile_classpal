@@ -1,14 +1,12 @@
-/// Represents a leaderboard period (e.g., semester, month, or custom period)
-/// The most recently created leaderboard is considered "current"
 class Leaderboard {
-  final String id;
+  final String leaderboardId;
   final String classId;
   final String name;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   Leaderboard({
-    required this.id,
+    required this.leaderboardId,
     required this.classId,
     required this.name,
     required this.createdAt,
@@ -17,7 +15,7 @@ class Leaderboard {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'leaderboardId': leaderboardId,
       'classId': classId,
       'name': name,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -27,7 +25,7 @@ class Leaderboard {
 
   factory Leaderboard.fromMap(Map<String, dynamic> map) {
     return Leaderboard(
-      id: map['id'] ?? '',
+      leaderboardId: map['leaderboardId'] ?? '',
       classId: map['classId'] ?? '',
       name: map['name'] ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),

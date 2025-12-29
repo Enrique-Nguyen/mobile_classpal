@@ -156,9 +156,9 @@ class _CreateLeaderboardDialogState extends State<CreateLeaderboardDialog> {
     try {
       if (isEditing) {
         await LeaderboardService.updateLeaderboardName(
-          widget.classId,
-          widget.existingLeaderboard!.id,
-          name,
+          classId: widget.classId,
+          leaderboardId: widget.existingLeaderboard!.leaderboardId,
+          newName: name,
         );
       } else {
         await LeaderboardService.createLeaderboard(widget.classId, name);

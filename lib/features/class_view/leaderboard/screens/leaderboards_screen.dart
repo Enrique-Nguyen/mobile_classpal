@@ -40,13 +40,13 @@ class LeaderboardsScreen extends StatelessWidget {
         ),
         centerTitle: true,
         actions: isAdmin
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.add, color: AppColors.primaryBlue),
-                  onPressed: () => _showCreateDialog(context),
-                ),
-              ]
-            : null,
+          ? [
+              IconButton(
+                icon: const Icon(Icons.add, color: AppColors.primaryBlue),
+                onPressed: () => _showCreateDialog(context),
+              ),
+            ]
+          : null,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
@@ -58,12 +58,12 @@ class LeaderboardsScreen extends StatelessWidget {
       body: StreamBuilder<List<Leaderboard>>(
         stream: LeaderboardService.streamLeaderboards(classData.classId),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting)
             return const Center(child: CircularProgressIndicator());
-          }
+          if (snapshot.hasError)
+            return Center(child: Text('Error: ${snapshot.error}'));
 
           final leaderboards = snapshot.data ?? [];
-
           if (leaderboards.isEmpty) {
             return _buildEmptyState(context);
           }

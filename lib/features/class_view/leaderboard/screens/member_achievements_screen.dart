@@ -157,9 +157,9 @@ class MemberAchievementsScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: StreamBuilder<List<Achievement>>(
               stream: LeaderboardService.streamMemberAchievements(
-                classData.classId,
-                leaderboard.id,
-                memberUid,
+                classId: classData.classId,
+                leaderboardId: leaderboard.leaderboardId,
+                memberUid: memberUid,
               ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
