@@ -30,6 +30,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
   final _ruleNoteController = TextEditingController();
   
   DateTime _selectedDateTime = DateTime.now().add(const Duration(hours: 1));
+  DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 1)); // Default: 1 day from now
   Rule? _selectedRule;
   final List<Member> _selectedMembers = [];
   bool _isLoading = false;
@@ -174,9 +175,19 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('THỜI GIAN'),
+              _buildSectionTitle('THỜI GIAN BẮT ĐẦU'),
               const SizedBox(height: 8),
-              _buildDateTimePicker(),
+              _buildDateTimePicker(
+                value: _selectedDateTime,
+                onPick: () => _pickDateTime(isDeadline: false),
+              ),
+              const SizedBox(height: 24),
+              _buildSectionTitle('THỜI HẠN (DEADLINE)'),
+              const SizedBox(height: 8),
+              _buildDateTimePicker(
+                value: _selectedDeadline,
+                onPick: () => _pickDateTime(isDeadline: true),
+              ),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
@@ -345,12 +356,15 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
     );
   }
 
-  Widget _buildDateTimePicker() {
+  Widget _buildDateTimePicker({
+    required DateTime value,
+    required VoidCallback onPick,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: _pickDateTime,
+          onTap: onPick,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
@@ -367,7 +381,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  _formatDateTime(_selectedDateTime),
+                  _formatDateTime(value),
                   style: const TextStyle(fontSize: 14),
                 ),
                 const Spacer(),
@@ -384,10 +398,11 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
     );
   }
 
-  Future<void> _pickDateTime() async {
+  Future<void> _pickDateTime({required bool isDeadline}) async {
+    final currentValue = isDeadline ? _selectedDeadline : _selectedDateTime;
     final date = await showDatePicker(
       context: context,
-      initialDate: _selectedDateTime,
+      initialDate: currentValue,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -395,18 +410,24 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
 
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      initialTime: TimeOfDay.fromDateTime(currentValue),
     );
     if (time == null) return;
 
+    final newDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
     setState(() {
-      _selectedDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
+      if (isDeadline) {
+        _selectedDeadline = newDateTime;
+      } else {
+        _selectedDateTime = newDateTime;
+      }
     });
   }
 
@@ -449,6 +470,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
               ? null 
               : _descriptionController.text.trim(),
           startTime: _selectedDateTime,
+          endTime: _selectedDeadline,
           ruleName: _selectedRule!.name,
           points: _selectedRule!.points,
           assignees: _selectedMembers,

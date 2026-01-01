@@ -81,6 +81,33 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
     }).toList();
   }
 
+  /// Filters duties based on their ended status and completion state
+  Future<List<Duty>> _filterVisibleDuties(List<Duty> duties) async {
+    final List<Duty> visibleDuties = [];
+    
+    for (final duty in duties) {
+      // Quick check: if manually ended, skip
+      if (duty.isEnded) continue;
+      
+      // Get tasks for this duty to check completion status
+      final tasksSnapshot = await FirebaseFirestore.instance
+        .collection('classes')
+        .doc(widget.classData.classId)
+        .collection('duties')
+        .doc(duty.id)
+        .collection('tasks')
+        .get();
+      
+      final tasks = tasksSnapshot.docs.map((doc) => Task.fromMap(doc.data())).toList();
+      
+      if (DutyHelper.shouldShowDuty(duty, tasks)) {
+        visibleDuties.add(duty);
+      }
+    }
+    
+    return visibleDuties;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,8 +158,19 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
                         if (snapshot.hasError)
                           return Center(child: Text('Lỗi: ${snapshot.error}'));
 
-                        final duties = _filterDuties(snapshot.data ?? []);
-                        return Column(children: _buildDutiesList(duties));
+                        final allDuties = snapshot.data ?? [];
+                        
+                        // Filter duties asynchronously (need to fetch tasks for each)
+                        return FutureBuilder<List<Duty>>(
+                          future: _filterVisibleDuties(allDuties),
+                          builder: (context, filteredSnapshot) {
+                            if (!filteredSnapshot.hasData) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            final duties = _filterDuties(filteredSnapshot.data!);
+                            return Column(children: _buildDutiesList(duties));
+                          },
+                        );
                       },
                     )
                   else
