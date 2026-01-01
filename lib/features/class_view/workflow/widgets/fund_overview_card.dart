@@ -6,12 +6,14 @@ class FundOverviewCard extends StatelessWidget {
   final double totalBalance;
   final double totalIncome;
   final double totalExpense;
+  final VoidCallback? onExport;
 
   const FundOverviewCard({
     super.key,
     required this.totalBalance,
     required this.totalIncome,
     required this.totalExpense,
+    this.onExport,
   });
 
   @override
@@ -39,37 +41,68 @@ class FundOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("TỔNG QUỸ", style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white30),
-                  borderRadius: BorderRadius.circular(20),
+              const Text(
+                "TỔNG QUỸ",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  letterSpacing: 1.5,
                 ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.visibility_outlined, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
-                    Text("Xem chi tiết", style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ],
+              ),
+              GestureDetector(
+                onTap: onExport,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white30),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.file_download_outlined,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        "Xuất thông tin",
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             _formatCurrency(totalBalance),
-            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const Text("Cập nhật tức thì", style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const Text(
+            "Cập nhật tức thì",
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
               _buildMiniStat("THU", _formatCurrency(totalIncome), Colors.white),
               const SizedBox(width: 16),
-              _buildMiniStat("CHI", _formatCurrency(totalExpense), Colors.white),
+              _buildMiniStat(
+                "CHI",
+                _formatCurrency(totalExpense),
+                Colors.white,
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -86,9 +119,23 @@ class FundOverviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 1.2)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+                letterSpacing: 1.2,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),

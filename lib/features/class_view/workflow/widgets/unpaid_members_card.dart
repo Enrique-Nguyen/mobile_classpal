@@ -154,11 +154,78 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
           );
         }
 
+        // Xử lý lỗi từ Stream
+        if (snapshot.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.errorRed, size: 32),
+                const SizedBox(height: 8),
+                Text(
+                  'Không thể tải dữ liệu quỹ',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+
         final unpaidMembers = snapshot.data ?? [];
         
-        // Nếu không có ai chưa đóng, không hiển thị card
+        // Hiển thị thông báo khi không có ai chưa đóng quỹ
         if (unpaidMembers.isEmpty) {
-          return const SizedBox.shrink();
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.successGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.successGreen,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tất cả đã đóng quỹ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Không có khoản nợ nào',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         return Container(
@@ -219,7 +286,7 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                       info.dutyName,
                       _getStatusText(info.daysOverdue),
                       _formatCurrency(info.amount),
-                      isWarning: info.daysOverdue <= 0, // Còn hạn thì hiện màu cam
+                      isOverdue: info.daysOverdue > 0, // Quá hạn thì hiện màu đỏ
                     )),
                     const SizedBox(height: 8),
                   ],
@@ -242,15 +309,21 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
     String dutyName,
     String status,
     String amount, {
-    bool isWarning = false,
+    bool isOverdue = false,
   }) {
+    // Màu nền và viền thay đổi theo trạng thái
+    final bgColor = isOverdue ? AppColors.bgRedLight : const Color(0xFFFFF8E1);
+    final borderColor = isOverdue ? const Color(0xFFFFCDD2) : const Color(0xFFFFE082);
+    final statusColor = isOverdue ? Colors.red : Colors.orange[800];
+    final amountColor = isOverdue ? Colors.red : Colors.orange[800];
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgRedLight,
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFCDD2)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -276,7 +349,7 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                 Text(
                   status,
                   style: TextStyle(
-                    color: isWarning ? Colors.orange[800] : Colors.red,
+                    color: statusColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -287,8 +360,8 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
           const SizedBox(width: 12),
           Text(
             amount,
-            style: const TextStyle(
-              color: Colors.red,
+            style: TextStyle(
+              color: amountColor,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),

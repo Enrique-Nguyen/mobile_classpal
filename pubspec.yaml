@@ -44,6 +44,9 @@ dependencies:
   shared_preferences: ^2.3.5
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.1.4
+  excel: ^4.0.6
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:
