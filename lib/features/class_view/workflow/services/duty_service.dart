@@ -188,11 +188,11 @@ class DutyService {
       if (taskDoc.exists) {
         final task = Task.fromMap(taskDoc.data()!);
         final dutyDoc = await _firestore
-            .collection('classes')
-            .doc(classId)
-            .collection('duties')
-            .doc(dutyId)
-            .get();
+          .collection('classes')
+          .doc(classId)
+          .collection('duties')
+          .doc(dutyId)
+          .get();
 
         if (dutyDoc.exists) {
           final duty = Duty.fromMap(dutyDoc.data()!);
@@ -232,11 +232,12 @@ class DutyService {
       final snapshot = await transaction.get(dutyRef);
       if (!snapshot.exists) return;
 
+      final now = DateTime.now().millisecondsSinceEpoch;
       final currentData = snapshot.data()!;
       final List<String> currentAssigneeIds = List<String>.from(currentData['assigneeIds'] ?? []);
 
       final updates = <String, dynamic>{
-        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'updatedAt': now,
       };
 
       if (name != null) updates['name'] = name;
@@ -262,7 +263,7 @@ class DutyService {
             'dutyId': dutyId,
             'uid': uid,
             'status': TaskStatus.incomplete.storageKey,
-            'createdAt': DateTime.now().millisecondsSinceEpoch,
+            'createdAt': now,
           });
         }
 

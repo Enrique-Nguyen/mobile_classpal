@@ -71,7 +71,7 @@ class AppDrawer extends StatelessWidget {
             // Navigation items
             _buildNavItem(
               icon: Icons.arrow_forward_rounded,
-              label: 'Return to main view',
+              label: 'Quay lại trang chính',
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(
@@ -79,13 +79,12 @@ class AppDrawer extends StatelessWidget {
                 ).pushNamedAndRemoveUntil('/', (route) => false);
               },
             ),
-            _buildNavItem(
-              icon: Icons.help_outline_rounded,
-              label: 'Help center',
-              onTap: () {
-                // TODO: Navigate to help
-              },
-            ),
+            // _buildNavItem(
+            //   icon: Icons.help_outline_rounded,
+            //   label: 'Help center',
+            //   onTap: () {
+            //   },
+            // ),
             const Spacer(),
             // Logout button
             Padding(
@@ -100,7 +99,7 @@ class AppDrawer extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Logout',
+                        'Đăng xuất',
                         style: TextStyle(
                           color: AppColors.errorRed,
                           fontSize: 15,
@@ -179,9 +178,9 @@ void showAppDrawer(BuildContext context) {
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       return SlideTransition(
         position: Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero)
-            .animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            ),
+          .animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          ),
         child: child,
       );
     },

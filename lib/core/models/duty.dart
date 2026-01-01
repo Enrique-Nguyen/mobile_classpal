@@ -7,6 +7,7 @@ class Duty {
   final String? note;
   final String? description;
   final DateTime startTime;
+  final DateTime endTime;
   final String ruleName;
   final double points;
   final List<String> assigneeIds;
@@ -21,6 +22,7 @@ class Duty {
     this.originType,
     this.description,
     required this.startTime,
+    required this.endTime,
     required this.ruleName,
     required this.points,
     this.note,
@@ -38,6 +40,7 @@ class Duty {
       'originType': originType,
       'description': description,
       'startTime': startTime.millisecondsSinceEpoch,
+      'endTime': endTime.millisecondsSinceEpoch,
       'ruleName': ruleName,
       'points': points,
       'note': note,
@@ -56,6 +59,7 @@ class Duty {
       originType: map['originType'],
       description: map['description'],
       startTime: DateTime.fromMillisecondsSinceEpoch(map['startTime'] ?? 0),
+      endTime: DateTime.fromMillisecondsSinceEpoch(map['endTime'] ?? 0),
       ruleName: map['ruleName'] ?? '',
       points: (map['points'] ?? 0).toDouble(),
       note: map['note'],
