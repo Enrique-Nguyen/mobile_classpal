@@ -46,6 +46,8 @@ class DashboardScreen extends StatelessWidget {
                   DashboardNotifications(
                     classId: classData.classId,
                     uid: currentMember.uid,
+                    classData: classData,
+                    currentMember: currentMember,
                   ),
                   const SizedBox(height: 32),
 

@@ -160,7 +160,6 @@ class AppDrawer extends StatelessWidget {
   }
 }
 
-/// Show the app drawer as an overlay
 void showAppDrawer(BuildContext context) {
   showGeneralDialog(
     context: context,

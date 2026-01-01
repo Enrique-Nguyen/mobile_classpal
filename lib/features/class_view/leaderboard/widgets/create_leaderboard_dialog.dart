@@ -122,21 +122,21 @@ class _CreateLeaderboardDialogState extends State<CreateLeaderboardDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           ),
           child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : Text(
-                  isEditing ? 'Lưu' : 'Tạo',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
                 ),
+              )
+            : Text(
+                isEditing ? 'Lưu' : 'Tạo',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
         ),
       ],
     );
@@ -154,26 +154,26 @@ class _CreateLeaderboardDialogState extends State<CreateLeaderboardDialog> {
     setState(() => _isLoading = true);
 
     try {
-      if (isEditing) {
+      if (isEditing)
         await LeaderboardService.updateLeaderboardName(
           classId: widget.classId,
           leaderboardId: widget.existingLeaderboard!.leaderboardId,
           newName: name,
         );
-      } else {
+      else
         await LeaderboardService.createLeaderboard(widget.classId, name);
-      }
 
       widget.onCreated();
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted)
+        Navigator.pop(context);
+    }
+    catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+    }
+    finally {
+      if (mounted)
+        setState(() => _isLoading = false);
     }
   }
 }

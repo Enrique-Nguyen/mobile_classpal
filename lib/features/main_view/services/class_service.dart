@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/rule.dart';
 
 class MemberCounts {
   final int total;
@@ -35,8 +36,8 @@ class ClassService {
     if (currentUser == null) throw Exception("Bạn chưa đăng nhập!");
     String joinCode = _generateJoinCode();
     try {
-      DocumentReference classRef = _firestore.collection('classes').doc();
       final now = DateTime.now().millisecondsSinceEpoch;
+      DocumentReference classRef = _firestore.collection('classes').doc();
 
       DocumentSnapshot userDoc = await _firestore
         .collection('users')
@@ -78,6 +79,38 @@ class ClassService {
         'updateAt': now,
       });
 
+      final dutyRuleRef = classRef.collection('rules').doc();
+      batch.set(dutyRuleRef, {
+        "ruleId": dutyRuleRef.id,
+        "classId": classRef.id,
+        "name": "Trực nhật",
+        "type": RuleType.duty.storageKey,
+        "points": 5,
+        "createdAt": now,
+        "updatedAt": now,
+      });
+
+      final fundRuleRef = classRef.collection('rules').doc();
+      batch.set(fundRuleRef, {
+        "ruleId": fundRuleRef.id,
+        "classId": classRef.id,
+        "name": "Quỹ lớp hàng tháng",
+        "type": RuleType.fund.storageKey,
+        "points": 5,
+        "createdAt": now,
+        "updatedAt": now,
+      });
+
+      final eventRuleRef = classRef.collection('rules').doc();
+      batch.set(eventRuleRef, {
+        "ruleId": eventRuleRef.id,
+        "classId": classRef.id,
+        "name": "Sinh hoạt lớp",
+        "type": RuleType.event.storageKey,
+        "points": 5,
+        "createdAt": now,
+        "updatedAt": now,
+      });
       await batch.commit();
     }
     catch (e) {

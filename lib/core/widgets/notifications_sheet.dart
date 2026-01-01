@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_classpal/features/class_view/overview/services/notification_service.dart';
 import '../constants/app_colors.dart';
-import '../models/notification.dart' as notif_model;
+import '../models/class.dart';
+import '../models/member.dart';
 import '../providers/notification_provider.dart';
+import 'notification_tile.dart';
 
 /// Show notifications as an expandable bottom sheet
 void showNotificationsSheet(
   BuildContext context, {
   required String classId,
   required String uid,
+  Class? classData,
+  Member? currentMember,
 }) {
   // Mark all notifications as seen when opening the sheet
   NotificationService.markAllAsSeen(classId, uid);
@@ -18,17 +22,26 @@ void showNotificationsSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => _NotificationsSheet(classId: classId, uid: uid),
+    builder: (context) => _NotificationsSheet(
+      classId: classId,
+      uid: uid,
+      classData: classData,
+      currentMember: currentMember,
+    ),
   );
 }
 
 class _NotificationsSheet extends ConsumerWidget {
   final String classId;
   final String uid;
+  final Class? classData;
+  final Member? currentMember;
 
   const _NotificationsSheet({
     required this.classId,
     required this.uid,
+    this.classData,
+    this.currentMember,
   });
 
   @override
@@ -141,7 +154,20 @@ class _NotificationsSheet extends ConsumerWidget {
                           const Divider(height: 1, indent: 72),
                       itemBuilder: (context, index) {
                         final notif = notifications[index];
-                        return _buildNotificationTile(notif);
+                        return NotificationTile(
+                          notification: notif,
+                          onTap: (classData != null && currentMember != null)
+                            ? () {
+                                Navigator.pop(context); // Close sheet first
+                                navigateToNotificationDetail(
+                                  context,
+                                  notif,
+                                  classData!,
+                                  currentMember!,
+                                );
+                              }
+                            : null,
+                        );
                       },
                     );
                   },
@@ -159,105 +185,4 @@ class _NotificationsSheet extends ConsumerWidget {
       },
     );
   }
-
-  Widget _buildNotificationTile(notif_model.Notification notif) {
-    final config = _getNotificationConfig(notif.type);
-    final timeAgo = _formatTimeAgo(notif.createdAt);
-
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: config.color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(config.icon, color: config.color, size: 20),
-      ),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: config.color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              notif.type.displayName,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: config.color,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              notif.title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: notif.isSeen ? FontWeight.w500 : FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(
-        notif.subtitle,
-        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-      ),
-      trailing: Text(
-        timeAgo,
-        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-      ),
-    );
-  }
-
-  _NotificationConfig _getNotificationConfig(notif_model.NotificationType type) {
-    switch (type) {
-      case notif_model.NotificationType.duty:
-        return _NotificationConfig(
-          icon: Icons.assignment_outlined,
-          color: AppColors.warningOrange,
-        );
-      case notif_model.NotificationType.event:
-        return _NotificationConfig(
-          icon: Icons.event_outlined,
-          color: AppColors.primaryBlue,
-        );
-      case notif_model.NotificationType.fund:
-        return _NotificationConfig(
-          icon: Icons.account_balance_wallet_outlined,
-          color: AppColors.successGreen,
-        );
-    }
-  }
-
-  String _formatTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return 'Vừa xong';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}p trước';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h trước';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d trước';
-    } else {
-      return '${dateTime.day}/${dateTime.month}';
-    }
-  }
-}
-
-class _NotificationConfig {
-  final IconData icon;
-  final Color color;
-
-  _NotificationConfig({required this.icon, required this.color});
 }

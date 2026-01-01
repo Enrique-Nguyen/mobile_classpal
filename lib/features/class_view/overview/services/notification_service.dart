@@ -51,6 +51,8 @@ class NotificationService {
     DateTime? startTime,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    final signupEndTimeMs = signupEndTime?.millisecondsSinceEpoch;
+    final startTimeMs = startTime?.millisecondsSinceEpoch;
     final batch = _firestore.batch();
 
     for (final uid in memberUids) {
@@ -61,15 +63,15 @@ class NotificationService {
         .doc();
 
       batch.set(notifRef, {
-        'id': notifRef.id,
+        'notificationId': notifRef.id,
         'classId': classId,
         'uid': uid,
         'type': type.name,
         'title': title,
         'subtitle': subtitle,
         'referenceId': referenceId,
-        'signupEndTime': signupEndTime?.millisecondsSinceEpoch,
-        'startTime': startTime?.millisecondsSinceEpoch,
+        'signupEndTime': signupEndTimeMs,
+        'startTime': startTimeMs,
         'createdAt': now,
         'seenAt': null,
       });
