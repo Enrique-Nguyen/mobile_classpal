@@ -10,12 +10,11 @@ import '../../../../core/widgets/custom_header.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/member.dart';
 import '../../../../core/models/rule.dart';
-import '../../../../core/models/fund_transaction.dart';
 // Import Widgets con từ module Funds
 import '../widgets/fund_overview_card.dart';
 import '../widgets/unpaid_members_card.dart';
+import '../widgets/transaction_history_card.dart';
 import 'funds_transaction_screen.dart';
-import 'transaction_detail_screen.dart';
 import '../services/fund_service.dart';
 import '../../overview/services/rule_service.dart';
 
@@ -43,9 +42,6 @@ class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
 
   Stream<double> get _totalExpenseStream =>
       FundService.streamTotalExpense(widget.classData.classId);
-
-  Stream<List<FundTransaction>> get _transactionsStream =>
-      FundService.streamTransactions(widget.classData.classId);
 
   String _formatCurrency(double value) {
     final format = NumberFormat('#,##0', 'vi_VN');
@@ -299,6 +295,7 @@ class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
           amount: txData['amount'] as double,
           description: txData['description'] as String?,
           ruleName: txData['ruleName'] as String?,
+          deadline: txData['deadline'] as DateTime?,
         );
 
         if (mounted) {
@@ -378,190 +375,11 @@ class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
                     UnpaidMembersCard(classId: widget.classData.classId),
                     const SizedBox(height: 20),
                     // Lịch sử giao dịch
-                    _buildTransactionHistory(),
+                    TransactionHistoryCard(classId: widget.classData.classId),
                     const SizedBox(height: 20),
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransactionHistory() {
-    return StreamBuilder<List<FundTransaction>>(
-      stream: _transactionsStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Center(
-              child: Text(
-                'Lỗi: ${snapshot.error}',
-                style: const TextStyle(color: AppColors.errorRed),
-              ),
-            ),
-          );
-        }
-
-        final transactions = snapshot.data ?? [];
-
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "LỊCH SỬ GIAO DỊCH",
-                style: TextStyle(
-                  color: AppColors.textGrey,
-                  fontSize: 10,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "${transactions.length} giao dịch",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (transactions.isEmpty)
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        size: 48,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Chưa có giao dịch nào',
-                        style: TextStyle(color: AppColors.textGrey, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ...transactions.take(10).map((tx) => _buildTransactionItem(tx)),
-              if (transactions.length > 10)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Center(
-                    child: Text(
-                      'Và ${transactions.length - 10} giao dịch khác...',
-                      style: const TextStyle(
-                        color: AppColors.textGrey,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTransactionItem(FundTransaction tx) {
-    final isIncome = tx.isIncome;
-    final themeColor = isIncome ? AppColors.successGreen : AppColors.errorRed;
-    final bgColor = isIncome
-        ? const Color(0xFFE8F5E9)
-        : const Color(0xFFFFEBEE);
-    final amountText = '${isIncome ? '+' : '-'}${_formatCurrency(tx.amount)}';
-
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TransactionDetailScreen(
-              transaction: tx,
-              classId: widget.classData.classId,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-              child: Icon(tx.icon, color: themeColor, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tx.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_formatTypeLabel(tx.type)} • ${DateFormat('dd/MM/yyyy').format(tx.createdAt)}',
-                    style: const TextStyle(
-                      color: AppColors.textGrey,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              amountText,
-              style: TextStyle(
-                color: themeColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textGrey,
-              size: 18,
             ),
           ],
         ),

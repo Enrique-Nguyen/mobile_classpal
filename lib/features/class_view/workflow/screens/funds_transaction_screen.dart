@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/class.dart';
 import '../../../../core/models/rule.dart';
@@ -25,6 +26,7 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 	final _amountController = TextEditingController();
 	final _descriptionController = TextEditingController();
 	Rule? _selectedRule;
+	DateTime? _deadline; // Hạn nộp tiền cho payment
 
 	Stream<List<Rule>> get _rulesStream => RuleService.getRules(widget.classData!.classId)
 		.map((rules) => rules.where((r) => r.type == RuleType.fund).toList());
@@ -79,15 +81,26 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 	void _submit() {
 		if (!_formKey.currentState!.validate()) return;
 
-		// Nếu là payment, bắt buộc chọn rule
-		if (widget.transactionType == 'payment' && _selectedRule == null) {
-			ScaffoldMessenger.of(context).showSnackBar(
-				const SnackBar(
-					content: Text('Vui lòng chọn loại quỹ'),
-					backgroundColor: AppColors.errorRed,
-				),
-			);
-			return;
+		// Nếu là payment, bắt buộc chọn rule và deadline
+		if (widget.transactionType == 'payment') {
+			if (_selectedRule == null) {
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(
+						content: Text('Vui lòng chọn loại quỹ'),
+						backgroundColor: AppColors.errorRed,
+					),
+				);
+				return;
+			}
+			if (_deadline == null) {
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(
+						content: Text('Vui lòng chọn hạn nộp tiền'),
+						backgroundColor: AppColors.errorRed,
+					),
+				);
+				return;
+			}
 		}
 
 		final amount = double.parse(_amountController.text.replaceAll(',', ''));
@@ -100,6 +113,8 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 				: _descriptionController.text,
 			if (widget.transactionType == 'payment' && _selectedRule != null)
 				'ruleName': _selectedRule!.name,
+			if (widget.transactionType == 'payment' && _deadline != null)
+				'deadline': _deadline,
 		};
 
 		Navigator.pop(context, txData);
@@ -355,6 +370,133 @@ class _FundsTransactionScreenState extends State<FundsTransactionScreen> {
 														],
 													);
 												},
+											),
+										],
+									),
+								if (widget.transactionType == 'payment')
+									const SizedBox(height: 16),
+
+								// Deadline picker cho payment type
+								if (widget.transactionType == 'payment')
+									_buildSectionCard(
+										children: [
+											const Text(
+												'Hạn nộp tiền',
+												style: TextStyle(
+													fontSize: 14,
+													fontWeight: FontWeight.w600,
+													color: AppColors.textPrimary,
+												),
+											),
+											const SizedBox(height: 8),
+											InkWell(
+												onTap: () async {
+													final now = DateTime.now();
+													final pickedDate = await showDatePicker(
+														context: context,
+														initialDate: _deadline ?? now.add(const Duration(days: 7)),
+														firstDate: now,
+														lastDate: now.add(const Duration(days: 365)),
+														builder: (context, child) {
+															return Theme(
+																data: Theme.of(context).copyWith(
+																	colorScheme: const ColorScheme.light(
+																		primary: AppColors.primaryBlue,
+																	),
+																),
+																child: child!,
+															);
+														},
+													);
+													if (pickedDate != null) {
+														final pickedTime = await showTimePicker(
+															context: context,
+															initialTime: TimeOfDay.fromDateTime(_deadline ?? DateTime(now.year, now.month, now.day, 23, 59)),
+															builder: (context, child) {
+																return Theme(
+																	data: Theme.of(context).copyWith(
+																		colorScheme: const ColorScheme.light(
+																			primary: AppColors.primaryBlue,
+																		),
+																	),
+																	child: child!,
+																);
+															},
+														);
+														if (pickedTime != null) {
+															setState(() {
+																_deadline = DateTime(
+																	pickedDate.year,
+																	pickedDate.month,
+																	pickedDate.day,
+																	pickedTime.hour,
+																	pickedTime.minute,
+																);
+															});
+														} else {
+															// Nếu không chọn giờ, mặc định là 23:59
+															setState(() {
+																_deadline = DateTime(
+																	pickedDate.year,
+																	pickedDate.month,
+																	pickedDate.day,
+																	23,
+																	59,
+																);
+															});
+														}
+													}
+												},
+												child: Container(
+													padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+													decoration: BoxDecoration(
+														color: Colors.white,
+														borderRadius: BorderRadius.circular(14),
+														border: Border.all(
+															color: _deadline != null 
+																? AppColors.primaryBlue.withOpacity(0.3)
+																: Colors.grey.shade200,
+														),
+													),
+													child: Row(
+														children: [
+															Icon(
+																Icons.calendar_today,
+																color: _deadline != null 
+																	? AppColors.primaryBlue 
+																	: AppColors.textSecondary,
+																size: 20,
+															),
+															const SizedBox(width: 12),
+															Expanded(
+																child: Text(
+																	_deadline != null
+																		? DateFormat('HH:mm - dd/MM/yyyy').format(_deadline!)
+																		: 'Chọn hạn nộp tiền',
+																	style: TextStyle(
+																		color: _deadline != null 
+																			? AppColors.textPrimary 
+																			: AppColors.textSecondary,
+																		fontSize: 14,
+																	),
+																),
+															),
+															if (_deadline != null)
+																GestureDetector(
+																	onTap: () => setState(() => _deadline = null),
+																	child: const Icon(
+																		Icons.close,
+																		color: AppColors.textSecondary,
+																		size: 18,
+																	),
+																),
+															const Icon(
+																Icons.arrow_drop_down,
+																color: AppColors.textSecondary,
+															),
+														],
+													),
+												),
 											),
 										],
 									),
