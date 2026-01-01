@@ -237,15 +237,15 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
         children: [
           _buildInfoRow(
             icon: Icons.calendar_today_outlined,
-            label: 'Ngày bắt đầu',
-            value: _formatDate(widget.duty.startTime),
+            label: 'Thời điểm bắt đầu',
+            value: '${_formatTime(widget.duty.startTime)} ngày ${_formatDate(widget.duty.startTime)}',
             onEdit: widget.isAdmin ? () => _editDateTime() : null,
           ),
           const Divider(height: 24),
           _buildInfoRow(
             icon: Icons.timer_off_outlined,
             label: 'Thời hạn (Deadline)',
-            value: '${_formatDate(widget.duty.endTime)} lúc ${_formatTime(widget.duty.endTime)}',
+            value: '${_formatTime(widget.duty.endTime)} ngày ${_formatDate(widget.duty.endTime)}',
             iconColor: widget.duty.isExpired ? AppColors.errorRed : AppColors.primaryBlue,
             onEdit: null,
           ),
@@ -274,8 +274,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 label: extraInfo.label,
                 value: extraInfo.value,
                 iconColor: extraInfo.type == DutyExtraType.location 
-                    ? Colors.teal 
-                    : Colors.green,
+                  ? Colors.teal 
+                  : Colors.green,
                 onEdit: null,
               );
             }),
@@ -686,6 +686,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Widget _buildActionSection() {
+    final hasStarted = DateTime.now().isAfter(widget.duty.startTime);
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -722,15 +724,20 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Xác nhận hoàn thành nhiệm vụ này?',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          Text(
+            hasStarted 
+              ? 'Xác nhận hoàn thành nhiệm vụ này?'
+              : 'Chưa đến thời gian bắt đầu (${_formatTime(widget.duty.startTime)} ngày ${_formatDate(widget.duty.startTime)})',
+            style: TextStyle(
+              fontSize: 13, 
+              color: hasStarted ? AppColors.textSecondary : AppColors.warningOrange,
+            ),
           ),
           const SizedBox(height: 16),
            SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _isSubmitting ? null : () async {
+              onPressed: (_isSubmitting || !hasStarted) ? null : () async {
                 setState(() => _isSubmitting = true);
                 try {
                   if (widget.task == null) return;
@@ -750,7 +757,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
+                backgroundColor: hasStarted ? AppColors.primaryBlue : Colors.grey,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -758,7 +765,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.check, color: Colors.white),
               label: Text(
-                _isSubmitting ? 'ĐANG GỬI...' : 'ĐÁNH DẤU LÀ XONG',
+                _isSubmitting ? 'ĐANG GỬI...' : (hasStarted ? 'ĐÁNH DẤU LÀ XONG' : 'CHƯA BẮT ĐẦU'),
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
@@ -883,7 +890,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           );
           Navigator.pop(context);
         }
-      } catch (e) {
+      }
+      catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -904,7 +912,6 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  // Edit actions
   void _editDateTime() async {
     final date = await showDatePicker(
       context: context,
@@ -912,13 +919,15 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null) return;
+    if (date == null)
+      return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
     );
-    if (time == null) return;
+    if (time == null)
+      return;
 
     setState(() {
       _selectedDateTime = DateTime(

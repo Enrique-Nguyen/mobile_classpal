@@ -228,6 +228,13 @@ class MemberAchievementsScreen extends StatelessWidget {
   }
 
   Widget _buildAchievementCard(Achievement achievement) {
+    final isPenalty = achievement.points < 0;
+    final displayPoints = achievement.points.abs().toInt();
+    final pointColor = isPenalty ? AppColors.errorRed : AppColors.successGreen;
+    final iconBgColor = isPenalty ? const Color(0xFFFFEBEE) : const Color(0xFFFFF8E1);
+    final icon = isPenalty ? Icons.trending_down : Icons.star;
+    final iconColor = isPenalty ? AppColors.errorRed : const Color(0xFFFFD700);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -249,12 +256,12 @@ class MemberAchievementsScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E1),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.star,
-              color: Color(0xFFFFD700),
+            child: Icon(
+              icon,
+              color: iconColor,
               size: 24,
             ),
           ),
@@ -287,15 +294,15 @@ class MemberAchievementsScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.successGreen.withOpacity(0.1),
+              color: pointColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              '+${achievement.points.toInt()}',
-              style: const TextStyle(
+              isPenalty ? '-$displayPoints' : '+$displayPoints',
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppColors.successGreen,
+                color: pointColor,
               ),
             ),
           ),
