@@ -16,6 +16,7 @@ class FundService {
     required double amount,
     String? description,
     String? ruleName,
+    DateTime? deadline, // Hạn nộp tiền cho payment
   }) async {
     final now = DateTime.now();
     final batch = _firestore.batch();
@@ -49,6 +50,7 @@ class FundService {
         ruleName: ruleName ?? 'Đóng quỹ',
         originId: txRef.id,
         createdAt: now.millisecondsSinceEpoch,
+        deadline: deadline,
       );
     }
 
@@ -235,6 +237,7 @@ class FundService {
     required String ruleName,
     required String originId,
     required int createdAt,
+    DateTime? deadline,
   }) async {
     // Tạo duty document
     final dutyRef = _firestore
@@ -272,6 +275,10 @@ class FundService {
       points = 0;
     }
 
+    // Tính endTime: nếu có deadline thì dùng, không thì mặc định 7 ngày sau
+    final endTimeMillis = deadline?.millisecondsSinceEpoch ?? 
+        (createdAt + const Duration(days: 7).inMilliseconds);
+
     // Tạo duty với points từ rule
     batch.set(dutyRef, {
       'id': dutyRef.id,
@@ -282,6 +289,7 @@ class FundService {
       'description':
           description ?? 'Khoản đóng quỹ: ${_formatCurrency(amount)}',
       'startTime': createdAt,
+      'endTime': endTimeMillis,
       'ruleName': ruleName,
       'points': points,
       'assigneeIds': memberUids,
@@ -343,9 +351,11 @@ class FundService {
     String classId,
     String paymentId,
   ) {
+    // Query trực tiếp từ collection duties thay vì collectionGroup
     return _firestore
-        .collectionGroup('duties')
-        .where('classId', isEqualTo: classId)
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
         .where('originId', isEqualTo: paymentId)
         .where('originType', isEqualTo: 'payment')
         .limit(1)
@@ -354,8 +364,18 @@ class FundService {
           if (dutySnapshot.docs.isEmpty) return 0.0;
 
           final dutyId = dutySnapshot.docs.first.id;
-          final dutyData = dutySnapshot.docs.first.data();
-          final perPersonAmount = -(dutyData['points'] as num? ?? 0).toDouble();
+          
+          // Lấy số tiền mỗi người phải đóng từ fund transaction
+          final fundDoc = await _firestore
+              .collection('classes')
+              .doc(classId)
+              .collection('funds')
+              .doc(paymentId)
+              .get();
+          
+          if (!fundDoc.exists) return 0.0;
+          
+          final perPersonAmount = (fundDoc.data()?['amount'] as num? ?? 0).toDouble();
 
           // Đếm số tasks đã complete
           final tasksSnapshot = await _firestore
@@ -377,9 +397,11 @@ class FundService {
     String classId,
     String paymentId,
   ) {
+    // Query trực tiếp từ collection duties thay vì collectionGroup
     return _firestore
-        .collectionGroup('duties')
-        .where('classId', isEqualTo: classId)
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
         .where('originId', isEqualTo: paymentId)
         .where('originType', isEqualTo: 'payment')
         .limit(1)

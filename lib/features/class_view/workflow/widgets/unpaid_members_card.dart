@@ -80,9 +80,9 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
           }
         }
         
-        // Tính số ngày quá hạn
+        // Tính số ngày quá hạn dựa trên endTime (deadline)
         final now = DateTime.now();
-        final dueDate = duty.startTime;
+        final dueDate = duty.endTime; // Dùng endTime thay vì startTime
         final difference = now.difference(dueDate).inDays;
         
         // Lấy thông tin member cho mỗi task chưa hoàn thành
@@ -113,7 +113,10 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
       // Sắp xếp: quá hạn nhiều nhất lên đầu
       unpaidList.sort((a, b) => b.daysOverdue.compareTo(a.daysOverdue));
       
-      return unpaidList;
+      // Chỉ lấy những người quá hạn (daysOverdue > 0)
+      final overdueList = unpaidList.where((info) => info.daysOverdue > 0).toList();
+      
+      return overdueList;
     });
   }
 
@@ -205,7 +208,7 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tất cả đã đóng quỹ',
+                        'Không có ai quá hạn',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -214,7 +217,7 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Không có khoản nợ nào',
+                        'Tất cả đang đóng quỹ đúng hạn',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,
@@ -244,7 +247,7 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "NHỮNG NGƯỜI CHƯA ĐÓNG QUỸ",
+                        "NGƯỜI QUÁ HẠN ĐÓNG QUỸ",
                         style: TextStyle(
                           color: AppColors.errorRed,
                           fontSize: 10,
@@ -253,7 +256,7 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${unpaidMembers.length} người đang nợ",
+                        "${unpaidMembers.length} người quá hạn",
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -286,7 +289,6 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                       info.dutyName,
                       _getStatusText(info.daysOverdue),
                       _formatCurrency(info.amount),
-                      isOverdue: info.daysOverdue > 0, // Quá hạn thì hiện màu đỏ
                     )),
                     const SizedBox(height: 8),
                   ],
@@ -308,22 +310,15 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
     String name,
     String dutyName,
     String status,
-    String amount, {
-    bool isOverdue = false,
-  }) {
-    // Màu nền và viền thay đổi theo trạng thái
-    final bgColor = isOverdue ? AppColors.bgRedLight : const Color(0xFFFFF8E1);
-    final borderColor = isOverdue ? const Color(0xFFFFCDD2) : const Color(0xFFFFE082);
-    final statusColor = isOverdue ? Colors.red : Colors.orange[800];
-    final amountColor = isOverdue ? Colors.red : Colors.orange[800];
-
+    String amount,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: AppColors.bgRedLight,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: const Color(0xFFFFCDD2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -348,8 +343,8 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
                 const SizedBox(height: 4),
                 Text(
                   status,
-                  style: TextStyle(
-                    color: statusColor,
+                  style: const TextStyle(
+                    color: Colors.red,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -360,8 +355,8 @@ class _UnpaidMembersCardState extends State<UnpaidMembersCard> {
           const SizedBox(width: 12),
           Text(
             amount,
-            style: TextStyle(
-              color: amountColor,
+            style: const TextStyle(
+              color: Colors.red,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
