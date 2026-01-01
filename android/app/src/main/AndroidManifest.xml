@@ -4,6 +4,10 @@
         android:label="ClassPal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Google Sign-In default client id -->
+        <meta-data
+            android:name="com.google.android.gms.client.CLIENT_ID"
+            android:value="@string/default_web_client_id" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
