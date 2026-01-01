@@ -17,7 +17,7 @@ class DutyService {
     String? originType,
     String? description,
     required DateTime startTime,
-    required DateTime endTime, // Deadline
+    required DateTime endTime,
     required String ruleName,
     required double points,
     List<Member>? assignees,
@@ -58,7 +58,7 @@ class DutyService {
         memberUids: assignees.map((m) => m.uid).toList(),
         type: notif_model.NotificationType.duty,
         title: 'Nhiệm vụ mới: $name',
-        subtitle: description ?? 'Bạn được giao một nhiệm vụ mới',
+        subtitle: 'Thời hạn: ${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')}/${endTime.year} lúc ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
         referenceId: dutyRef.id,
         startTime: startTime,
       );
@@ -129,8 +129,6 @@ class DutyService {
 
         final futures = taskSnapshot.docs.map((taskDoc) async {
           final task = Task.fromMap(taskDoc.data());
-          
-          // Fetch the parent duty for each task
           final dutyDoc = await _firestore
             .collection('classes')
             .doc(classId)
@@ -190,10 +188,8 @@ class DutyService {
       'updatedAt': now,
     };
 
-    // If user is submitting (changing to pending), record the submission time
-    if (newStatus == TaskStatus.pending) {
+    if (newStatus == TaskStatus.pending)
       updateData['submittedAt'] = now;
-    }
 
     // If approving (changing to completed), check if submission was late
     if (newStatus == TaskStatus.completed) {
@@ -209,25 +205,22 @@ class DutyService {
 
         if (dutyDoc.exists) {
           final duty = Duty.fromMap(dutyDoc.data()!);
-          
-          // Penalty if: duty ended by admin OR task was submitted after deadline
           final isLateSubmission = task.wasSubmittedAfterDeadline(duty.endTime);
-          if (duty.isEnded || isLateSubmission) {
+
+          if (duty.isEnded || isLateSubmission)
             await LeaderboardService.createPenalty(
               classId: classId,
               memberUid: task.uid,
               dutyName: duty.name,
               points: duty.points,
             );
-          } else {
-            // Normal case: award points
+          else
             await LeaderboardService.createAchievement(
               classId: classId,
               memberUid: task.uid,
               title: duty.name,
               points: duty.points,
             );
-          }
         }
       }
     }
@@ -290,7 +283,6 @@ class DutyService {
           });
         }
 
-        // Tạo thông báo cho các assignee mới
         if (toAdd.isNotEmpty) {
           final dutyName = currentData['name'] ?? 'Nhiệm vụ';
           final description = currentData['description'] as String?;
@@ -306,7 +298,6 @@ class DutyService {
           );
         }
 
-        // Remove old tasks
         for (final uid in toRemove) {
           final taskRef = await dutyRef.collection('tasks').where('uid', isEqualTo: uid).get();
           if (taskRef.docs.isNotEmpty) transaction.delete(taskRef.docs.first.reference);
@@ -331,7 +322,6 @@ class DutyService {
     return null;
   }
 
-  /// Ends a duty manually (admin action). Deducts points from all incomplete/pending tasks.
   static Future<void> endDuty({
     required String classId,
     required String dutyId,

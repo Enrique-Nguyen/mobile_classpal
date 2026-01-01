@@ -117,8 +117,8 @@ class LeaderboardService {
       'classId': classId,
       'leaderboardId': currentLeaderboard.leaderboardId,
       'memberUid': memberUid,
-      'title': '[Phạt] $dutyName',
-      'points': -points.abs(), // Ensure negative
+      'title': dutyName,
+      'points': -points.abs(),
       'awardedAt': now,
     });
   }
