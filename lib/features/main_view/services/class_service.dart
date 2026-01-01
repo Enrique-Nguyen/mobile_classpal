@@ -40,9 +40,9 @@ class ClassService {
       DocumentReference classRef = _firestore.collection('classes').doc();
 
       DocumentSnapshot userDoc = await _firestore
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
       if (!userDoc.exists)
         throw Exception("Không tìm thấy thông tin người dùng!");
 
@@ -59,8 +59,8 @@ class ClassService {
 
       // Thao tác B: Ghi người tạo vào sub-collection 'members' với vai trò OWNER
       DocumentReference memberRef = classRef
-        .collection('members')
-        .doc(currentUser.uid);
+          .collection('members')
+          .doc(currentUser.uid);
 
       final leaderboardRef = classRef.collection('leaderboards').doc();
       batch.set(leaderboardRef, {
@@ -112,8 +112,7 @@ class ClassService {
         "updatedAt": now,
       });
       await batch.commit();
-    }
-    catch (e) {
+    } catch (e) {
       throw Exception("Lỗi tạo lớp: $e");
     }
   }
@@ -125,9 +124,9 @@ class ClassService {
     try {
       // 1. Tìm lớp học dựa trên joinCode
       QuerySnapshot classQuery = await _firestore
-        .collection('classes')
-        .where('joinCode', isEqualTo: codeInput)
-        .get();
+          .collection('classes')
+          .where('joinCode', isEqualTo: codeInput)
+          .get();
 
       if (classQuery.docs.isEmpty) {
         throw Exception("Mã lớp không tồn tại!");
@@ -139,10 +138,10 @@ class ClassService {
 
       // 2. Tạo tham chiếu đến vị trí thành viên trong Sub-collection
       DocumentReference memberRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('members')
-        .doc(currentUser.uid);
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .doc(currentUser.uid);
 
       // 3. Kiểm tra xem đã tham gia chưa (để tránh ghi đè ngày gia nhập cũ)
       DocumentSnapshot memberSnapshot = await memberRef.get();
@@ -162,8 +161,7 @@ class ClassService {
         'joinedAt': now,
         'updateAt': now,
       });
-    }
-    catch (e) {
+    } catch (e) {
       throw Exception("$e").toString().replaceAll('Exception:', "");
     }
   }
@@ -172,56 +170,56 @@ class ClassService {
   Stream<List<Member>> getClassMembersStream(String classId) {
     try {
       return _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('members')
-        .snapshots()
-        .map((snapshot) {
-          final members = snapshot.docs.map((doc) {
-            final data = doc.data();
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .snapshots()
+          .map((snapshot) {
+            final members = snapshot.docs.map((doc) {
+              final data = doc.data();
 
-            final uid = data['uid'] as String? ?? doc.id;
-            final name = data['name'] as String? ?? '';
-            final avatarUrl = data['avatarUrl'] as String?;
-            final roleRaw = data['role'] as String? ?? '';
-            final joinedAtMillis = data['joinedAt'] as int?;
-            final updatedAtMillis = data['updatedAt'] as int?;
+              final uid = data['uid'] as String? ?? doc.id;
+              final name = data['name'] as String? ?? '';
+              final avatarUrl = data['avatarUrl'] as String?;
+              final roleRaw = data['role'] as String? ?? '';
+              final joinedAtMillis = data['joinedAt'] as int?;
+              final updatedAtMillis = data['updatedAt'] as int?;
 
-            final joinedAt = joinedAtMillis != null
-              ? DateTime.fromMillisecondsSinceEpoch(joinedAtMillis)
-              : DateTime.fromMillisecondsSinceEpoch(0);
-            final updatedAt = updatedAtMillis != null
-              ? DateTime.fromMillisecondsSinceEpoch(updatedAtMillis)
-              : DateTime.fromMillisecondsSinceEpoch(0);
+              final joinedAt = joinedAtMillis != null
+                  ? DateTime.fromMillisecondsSinceEpoch(joinedAtMillis)
+                  : DateTime.fromMillisecondsSinceEpoch(0);
+              final updatedAt = updatedAtMillis != null
+                  ? DateTime.fromMillisecondsSinceEpoch(updatedAtMillis)
+                  : DateTime.fromMillisecondsSinceEpoch(0);
 
-            MemberRole role = MemberRole.fromString(roleRaw);
+              MemberRole role = MemberRole.fromString(roleRaw);
 
-            return Member(
-              uid: uid,
-              name: name,
-              avatarUrl: avatarUrl,
-              classId: classId,
-              role: role,
-              joinedAt: joinedAt,
-              updatedAt: updatedAt,
-            );
-          }).toList();
+              return Member(
+                uid: uid,
+                name: name,
+                avatarUrl: avatarUrl,
+                classId: classId,
+                role: role,
+                joinedAt: joinedAt,
+                updatedAt: updatedAt,
+              );
+            }).toList();
 
-          final priority = {
-            MemberRole.quanLyLop: 0,
-            MemberRole.canBoLop: 1,
-            MemberRole.thanhVien: 2,
-          };
+            final priority = {
+              MemberRole.quanLyLop: 0,
+              MemberRole.canBoLop: 1,
+              MemberRole.thanhVien: 2,
+            };
 
-          members.sort((a, b) {
-            final pa = priority[a.role] ?? 99;
-            final pb = priority[b.role] ?? 99;
-            if (pa != pb) return pa.compareTo(pb);
-            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            members.sort((a, b) {
+              final pa = priority[a.role] ?? 99;
+              final pb = priority[b.role] ?? 99;
+              if (pa != pb) return pa.compareTo(pb);
+              return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            });
+
+            return members;
           });
-
-          return members;
-        });
     } catch (e) {
       // If mapping fails, emit empty stream with error
       return Stream.error('Lỗi khi stream danh sách thành viên: $e');
@@ -230,26 +228,26 @@ class ClassService {
 
   Stream<MemberCounts> getClassMemberCountsStream(String classId) {
     return _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('members')
-      .snapshots()
-      .map((snapshot) {
-        int total = snapshot.docs.length;
-        int managers = 0;
-        int canBos = 0;
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .snapshots()
+        .map((snapshot) {
+          int total = snapshot.docs.length;
+          int managers = 0;
+          int canBos = 0;
 
-        for (final doc in snapshot.docs) {
-          final data = doc.data();
-          final roleRaw = (data['role'] as String?) ?? '';
-          if (roleRaw.contains("Quản lý lớp"))
-            managers++;
-          else if (roleRaw.contains('Cán bộ lớp')) {
-            canBos++;
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final roleRaw = (data['role'] as String?) ?? '';
+            if (roleRaw.contains("Quản lý lớp"))
+              managers++;
+            else if (roleRaw.contains('Cán bộ lớp')) {
+              canBos++;
+            }
           }
-        }
-        return MemberCounts(total: total, managers: managers, canBos: canBos);
-      });
+          return MemberCounts(total: total, managers: managers, canBos: canBos);
+        });
   }
 
   static const String _roleOwner = 'Quản lý lớp';
@@ -260,11 +258,11 @@ class ClassService {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Bạn chưa đăng nhập!');
     final doc = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('members')
-      .doc(user.uid)
-      .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(user.uid)
+        .get();
     if (!doc.exists) throw Exception('Bạn không phải thành viên lớp này.');
     final role = (doc.data()?['role'] as String?) ?? '';
     if (!role.contains(_roleOwner))
@@ -278,10 +276,10 @@ class ClassService {
   }) async {
     await _ensureCurrentUserIsOwner(classId);
     final memberRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('members')
-      .doc(memberId);
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(memberRef);
       if (!snap.exists) throw Exception('Thành viên không tồn tại.');
@@ -303,10 +301,10 @@ class ClassService {
   }) async {
     await _ensureCurrentUserIsOwner(classId);
     final memberRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('members')
-      .doc(memberId);
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(memberRef);
       if (!snap.exists) throw Exception('Thành viên không tồn tại.');
@@ -365,10 +363,10 @@ class ClassService {
         'Không thể mời chính mình ra khỏi lớp. Vui lòng chuyển quyền trước.',
       );
     final targetRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('members')
-      .doc(memberId);
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
     final snap = await targetRef.get();
     if (!snap.exists) throw Exception('Thành viên không tồn tại.');
     final role = (snap.data()?['role'] as String?) ?? '';
@@ -382,10 +380,10 @@ class ClassService {
     final current = _auth.currentUser;
     if (current == null) throw Exception('Bạn chưa đăng nhập!');
     final memberRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('members')
-      .doc(current.uid);
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(current.uid);
     final snap = await memberRef.get();
     if (!snap.exists) throw Exception('Bạn không phải thành viên lớp này.');
     final role = (snap.data()?['role'] as String?) ?? '';
@@ -420,6 +418,48 @@ class ClassService {
       }
       await batch.commit();
       processed += chunk.length;
+    }
+  }
+
+  Future<void> updateAvatar({
+    required String classId,
+    required String memberId,
+    required String url,
+  }) async {
+    try {
+      final memberRef = _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .doc(memberId);
+      await memberRef.update({
+        'avatarUrl': url,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    } catch (e) {
+      print("Lỗi update avatar: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> updateMemberName({
+    required String classId,
+    required String memberId,
+    required String fullName,
+  }) async {
+    try {
+      final memberRef = _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .doc(memberId);
+      await memberRef.update({
+        'name': fullName,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    } catch (e) {
+      print("Lỗi cập nhật tên: $e");
+      rethrow;
     }
   }
 }
