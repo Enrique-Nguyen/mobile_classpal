@@ -4,7 +4,6 @@ import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import '../widgets/dashboard_leaderboard.dart';
 import '../widgets/dashboard_notifications.dart';
-import '../widgets/dashboard_recent.dart';
 import '../widgets/dashboard_rules.dart';
 import '../widgets/dashboard_header.dart';
 
@@ -47,6 +46,8 @@ class DashboardScreen extends StatelessWidget {
                   DashboardNotifications(
                     classId: classData.classId,
                     uid: currentMember.uid,
+                    classData: classData,
+                    currentMember: currentMember,
                   ),
                   const SizedBox(height: 32),
 
@@ -57,9 +58,6 @@ class DashboardScreen extends StatelessWidget {
                     classData: classData,
                     currentMember: currentMember,
                   ),
-                  const SizedBox(height: 32),
-
-                  DashboardRecentActivities(),
                   const SizedBox(height: 24),
                 ],
               ),

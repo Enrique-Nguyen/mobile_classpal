@@ -27,7 +27,7 @@ extension RuleTypeToString on RuleType {
 }
 
 class Rule {
-  final String id;
+  final String ruleId;
   final String name;
   final RuleType type;
   final double points;
@@ -35,10 +35,10 @@ class Rule {
   final DateTime createdAt;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => ruleId.hashCode;
 
   Rule({
-    required this.id,
+    required this.ruleId,
     required this.name,
     required this.type,
     required this.points,
@@ -51,12 +51,12 @@ class Rule {
     if (identical(this, other))
       return true;
 
-    return other is Rule && other.id == id;
+    return other is Rule && other.ruleId == ruleId;
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'ruleId': ruleId,
       'name': name,
       'type': type.storageKey,
       'points': points,
@@ -75,7 +75,7 @@ class Rule {
     };
 
     return Rule(
-      id: map['id'] ?? '',
+      ruleId: map['ruleId'] ?? '',
       name: map['name'] ?? '',
       type: type,
       points: (map['points'] ?? 0).toDouble(),

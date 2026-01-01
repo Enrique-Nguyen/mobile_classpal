@@ -51,8 +51,8 @@ class DashboardLeaderboard extends StatelessWidget {
           const SizedBox(height: 16),
           StreamBuilder<List<LeaderboardEntry>>(
             stream: LeaderboardService.streamTopEntries(
-              classData.classId,
-              currentMember.uid,
+              classId: classData.classId,
+              currentUserUid: currentMember.uid,
               limit: 3,
             ),
             builder: (context, snapshot) {
