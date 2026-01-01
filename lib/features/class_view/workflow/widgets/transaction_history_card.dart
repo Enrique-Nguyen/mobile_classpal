@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../models/fund_transaction.dart';
+import '../../../../core/models/fund_transaction.dart';
 import '../services/fund_service.dart';
 
 class TransactionHistoryCard extends StatelessWidget {

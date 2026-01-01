@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/notification.dart' as notif_model;
 import 'package:mobile_classpal/features/class_view/overview/services/notification_service.dart';
-import '../models/fund_transaction.dart';
+import '../../../../core/models/fund_transaction.dart';
 
 class FundService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
