@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/helpers/duty_helper.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/helpers/duty_helper.dart';
 
 class DutyCard extends StatelessWidget {
   final String title;
@@ -170,7 +170,7 @@ class DutyCard extends StatelessWidget {
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'You',
+                          'Được phân công',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -190,8 +190,8 @@ class DutyCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: extraInfo!.type == DutyExtraType.location
-                      ? AppColors.bgBlueLight
-                      : AppColors.bgGreenLight.withOpacity(0.5),
+                    ? AppColors.bgBlueLight
+                    : AppColors.bgGreenLight.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -201,8 +201,8 @@ class DutyCard extends StatelessWidget {
                       extraInfo!.icon,
                       size: 14,
                       color: extraInfo!.type == DutyExtraType.location
-                          ? AppColors.primaryBlue
-                          : AppColors.successGreen,
+                        ? AppColors.primaryBlue
+                        : AppColors.successGreen,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -211,8 +211,8 @@ class DutyCard extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: extraInfo!.type == DutyExtraType.location
-                            ? AppColors.primaryBlue
-                            : AppColors.successGreen,
+                          ? AppColors.primaryBlue
+                          : AppColors.successGreen,
                       ),
                     ),
                   ],

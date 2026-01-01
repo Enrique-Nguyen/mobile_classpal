@@ -75,7 +75,7 @@ class DutyService {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
-    
+
     _addTaskToBatch(
       batch: batch,
       classId: classId,

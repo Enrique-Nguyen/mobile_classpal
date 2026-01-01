@@ -91,11 +91,19 @@ class NotificationService {
           .map((doc) => Notification.fromMap(doc.data()))
           .toList();
 
-        // Filter out completed/ended duty notifications
+        final now = DateTime.now();
         final filteredNotifications = <Notification>[];
         for (final notif in notifications) {
+          if (notif.type == NotificationType.event && notif.signupEndTime != null && notif.signupEndTime!.isBefore(now))
+            continue;
+          
+          if (notif.type == NotificationType.fund) {
+            final hoursSinceCreated = now.difference(notif.createdAt).inHours;
+            if (hoursSinceCreated >= 24)
+              continue;
+          }
+
           if (notif.type == NotificationType.duty && notif.referenceId != null) {
-            // Check if duty is ended or task is completed
             final shouldHide = await _shouldHideDutyNotification(
               classId: classId,
               dutyId: notif.referenceId!,
@@ -188,8 +196,28 @@ class NotificationService {
         final notifications = snapshot.docs
           .map((doc) => Notification.fromMap(doc.data()))
           .toList();
-
-        return notifications.where((notif) => !notif.isSeen).length;
+        
+        final now = DateTime.now();
+        return notifications.where((notif) {
+          if (notif.isSeen) return false;
+          
+          // Exclude event notifications past signup time
+          if (notif.type == NotificationType.event) {
+            if (notif.signupEndTime != null && notif.signupEndTime!.isBefore(now)) {
+              return false;
+            }
+          }
+          
+          // Exclude fund notifications older than 24 hours
+          if (notif.type == NotificationType.fund) {
+            final hoursSinceCreated = now.difference(notif.createdAt).inHours;
+            if (hoursSinceCreated >= 24) {
+              return false;
+            }
+          }
+          
+          return true;
+        }).length;
       });
   }
 
