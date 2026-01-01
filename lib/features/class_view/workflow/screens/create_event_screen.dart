@@ -51,9 +51,9 @@ class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime(2026),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -103,9 +103,9 @@ class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
   Future<void> _selectRegistrationEndDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedRegistrationEndDate ?? DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime(2026),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -367,7 +367,7 @@ class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
                   controller: _descriptionController,
                   maxLines: 4,
                   decoration: InputDecoration(
-                    hintText: 'Nhập mô tả sự kiện',
+                    hintText: 'Nhập mô tả sự kiện (không bắt buộc)',
                     hintStyle: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -383,12 +383,6 @@ class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
                       vertical: 14,
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập mô tả sự kiện';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
 
@@ -495,7 +489,7 @@ class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
                 TextFormField(
                   controller: _locationController,
                   decoration: InputDecoration(
-                    hintText: 'Nhập địa điểm tổ chức',
+                    hintText: 'Nhập địa điểm tổ chức (không bắt buộc)',
                     hintStyle: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -515,12 +509,6 @@ class _EventsAddingScreenState extends ConsumerState<EventsAddingScreen> {
                       vertical: 14,
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập địa điểm';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
 
