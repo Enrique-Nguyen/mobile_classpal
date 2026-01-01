@@ -10,7 +10,7 @@ import '../widgets/fund_overview_card.dart';
 import '../widgets/unpaid_members_card.dart';
 import '../widgets/transaction_history_card.dart';
 import 'funds_transaction_screen.dart';
-import '../models/fund_transaction.dart';
+import '../../../../core/models/fund_transaction.dart';
 import '../services/fund_service.dart';
 import '../../overview/services/rule_service.dart';
 
@@ -99,28 +99,41 @@ class _ClassFundsScreenContentState extends State<ClassFundsScreenContent> {
             ],
           ),
         ),
-        if (hasFundRules)
-          PopupMenuItem(
-            value: 'payment',
-            child: Row(
-              children: const [
-                Icon(Icons.payments_outlined, color: AppColors.primaryBlue),
-                SizedBox(width: 12),
-                Text(
-                  "Tạo khoản đóng quỹ",
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+        PopupMenuItem(
+          value: 'payment',
+          child: Row(
+            children: const [
+              Icon(Icons.payments_outlined, color: AppColors.primaryBlue),
+              SizedBox(width: 12),
+              Text(
+                "Tạo khoản đóng quỹ",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
       ],
     );
 
     if (result == null) return;
+
+    // Kiểm tra nếu chọn 'payment' nhưng chưa có fund rules
+    if (result == 'payment' && !hasFundRules) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn cần phải tạo luật trước'),
+            backgroundColor: AppColors.errorRed,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
 
     // Điều hướng đến màn hình tạo giao dịch
     final txData = await Navigator.push<Map<String, dynamic>>(
