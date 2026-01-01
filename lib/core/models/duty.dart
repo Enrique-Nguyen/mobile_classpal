@@ -7,12 +7,19 @@ class Duty {
   final String? note;
   final String? description;
   final DateTime startTime;
-  final DateTime endTime;
+  final DateTime endTime; // Deadline
   final String ruleName;
   final double points;
   final List<String> assigneeIds;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? endedAt; // When admin manually ends the duty
+
+  /// Whether the duty has been manually ended by admin
+  bool get isEnded => endedAt != null;
+
+  /// Whether the deadline has passed
+  bool get isExpired => DateTime.now().isAfter(endTime);
 
   Duty({
     required this.id,
@@ -29,6 +36,7 @@ class Duty {
     required this.assigneeIds,
     required this.createdAt,
     required this.updatedAt,
+    this.endedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -47,6 +55,7 @@ class Duty {
       'assigneeIds': assigneeIds,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'endedAt': endedAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -66,6 +75,9 @@ class Duty {
       assigneeIds: List<String>.from(map['assigneeIds'] ?? []),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      endedAt: map['endedAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(map['endedAt']) 
+          : null,
     );
   }
 }

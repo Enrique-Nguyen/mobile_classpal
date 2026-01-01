@@ -75,6 +75,7 @@ class Task {
   final TaskStatus status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? submittedAt; // When user marked task as done (pending approval)
 
   Task({
     required this.id,
@@ -84,7 +85,14 @@ class Task {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.submittedAt,
   });
+
+  /// Whether this task was submitted after the given deadline
+  bool wasSubmittedAfterDeadline(DateTime deadline) {
+    if (submittedAt == null) return false;
+    return submittedAt!.isAfter(deadline);
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -95,6 +103,7 @@ class Task {
       'status': status.displayName,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'submittedAt': submittedAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -107,6 +116,9 @@ class Task {
       status: TaskStatus.fromTaskString(map['status']),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      submittedAt: map['submittedAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(map['submittedAt']) 
+          : null,
     );
   }
 }

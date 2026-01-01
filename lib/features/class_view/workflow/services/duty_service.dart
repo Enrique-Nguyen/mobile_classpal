@@ -17,6 +17,7 @@ class DutyService {
     String? originType,
     String? description,
     required DateTime startTime,
+    required DateTime endTime, // Deadline
     required String ruleName,
     required double points,
     List<Member>? assignees,
@@ -33,6 +34,7 @@ class DutyService {
       'originType': originType,
       'description': description,
       'startTime': startTime.millisecondsSinceEpoch,
+      'endTime': endTime.millisecondsSinceEpoch,
       'ruleName': ruleName,
       'points': points,
       'assigneeIds': assignees?.map((m) => m.uid).toList() ?? [],
@@ -174,6 +176,7 @@ class DutyService {
     required String taskId,
     required TaskStatus newStatus,
   }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
     final taskRef = _firestore
       .collection('classes')
       .doc(classId)
@@ -182,7 +185,17 @@ class DutyService {
       .collection('tasks')
       .doc(taskId);
 
-    // If approving (changing to completed), create an achievement
+    final updateData = <String, dynamic>{
+      'status': newStatus.storageKey,
+      'updatedAt': now,
+    };
+
+    // If user is submitting (changing to pending), record the submission time
+    if (newStatus == TaskStatus.pending) {
+      updateData['submittedAt'] = now;
+    }
+
+    // If approving (changing to completed), check if submission was late
     if (newStatus == TaskStatus.completed) {
       final taskDoc = await taskRef.get();
       if (taskDoc.exists) {
@@ -196,20 +209,30 @@ class DutyService {
 
         if (dutyDoc.exists) {
           final duty = Duty.fromMap(dutyDoc.data()!);
-          await LeaderboardService.createAchievement(
-            classId: classId,
-            memberUid: task.uid,
-            title: duty.name,
-            points: duty.points,
-          );
+          
+          // Penalty if: duty ended by admin OR task was submitted after deadline
+          final isLateSubmission = task.wasSubmittedAfterDeadline(duty.endTime);
+          if (duty.isEnded || isLateSubmission) {
+            await LeaderboardService.createPenalty(
+              classId: classId,
+              memberUid: task.uid,
+              dutyName: duty.name,
+              points: duty.points,
+            );
+          } else {
+            // Normal case: award points
+            await LeaderboardService.createAchievement(
+              classId: classId,
+              memberUid: task.uid,
+              title: duty.name,
+              points: duty.points,
+            );
+          }
         }
       }
     }
 
-    await taskRef.update({
-      'status': newStatus.storageKey,
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
-    });
+    await taskRef.update(updateData);
   }
 
   static Future<void> updateDuty({
@@ -306,5 +329,54 @@ class DutyService {
       return Duty.fromMap(doc.data()!);
 
     return null;
+  }
+
+  /// Ends a duty manually (admin action). Deducts points from all incomplete/pending tasks.
+  static Future<void> endDuty({
+    required String classId,
+    required String dutyId,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final dutyDoc = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .get();
+
+    if (!dutyDoc.exists) return;
+    final duty = Duty.fromMap(dutyDoc.data()!);
+
+    // Get all tasks for this duty
+    final tasksSnapshot = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .collection('tasks')
+      .get();
+
+    final futures = <Future<void>>[_firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .update({
+        'endedAt': now,
+        'updatedAt': now,
+      })];
+    for (final taskDoc in tasksSnapshot.docs) {
+      final task = Task.fromMap(taskDoc.data());
+      if (task.status != TaskStatus.completed) {
+        futures.add(LeaderboardService.createPenalty(
+          classId: classId,
+          memberUid: task.uid,
+          dutyName: duty.name,
+          points: duty.points,
+        ));
+      }
+    }
+    
+    await Future.wait(futures);
   }
 }
