@@ -93,6 +93,70 @@ class DutyService {
     await batch.commit();
   }
 
+  /// Xóa task của một member từ duty
+  static Future<void> deleteTask({
+    required String classId,
+    required String dutyId,
+    required String memberUid,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    
+    // Tìm task của member trong duty
+    final tasksSnapshot = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .collection('tasks')
+      .where('uid', isEqualTo: memberUid)
+      .get();
+
+    if (tasksSnapshot.docs.isEmpty) return;
+
+    final batch = _firestore.batch();
+
+    // Xóa tất cả tasks của member trong duty này
+    for (final doc in tasksSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Cập nhật assigneeIds của duty
+    final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId);
+    batch.update(dutyRef, {
+      'assigneeIds': FieldValue.arrayRemove([memberUid]),
+      'updatedAt': now,
+    });
+
+    await batch.commit();
+  }
+
+  /// Xóa duty và tất cả tasks liên quan
+  static Future<void> deleteDuty({
+    required String classId,
+    required String dutyId,
+  }) async {
+    // Xóa tất cả tasks trong duty
+    final tasksSnapshot = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId)
+      .collection('tasks')
+      .get();
+
+    final batch = _firestore.batch();
+
+    for (final doc in tasksSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Xóa duty
+    final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId);
+    batch.delete(dutyRef);
+
+    await batch.commit();
+  }
+
   static void _addTaskToBatch({
     required WriteBatch batch,
     required String classId,
