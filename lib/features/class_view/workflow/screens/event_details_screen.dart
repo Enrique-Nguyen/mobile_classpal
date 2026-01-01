@@ -139,6 +139,66 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
+  Future<void> _handleEndEvent() async {
+    // Hiển thị dialog xác nhận
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Kết thúc sự kiện?'),
+        content: const Text(
+          'Sự kiện sẽ được kết thúc và xóa khỏi danh sách. '
+          'Những người đã tham gia sẽ được tính điểm tương ứng. '
+          'Hành động này không thể hoàn tác.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRed,
+            ),
+            child: const Text('Kết thúc', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await EventService.endEvent(
+        classId: widget.classId,
+        eventId: widget.event.id,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã kết thúc sự kiện thành công'),
+            backgroundColor: AppColors.successGreen,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context); // Quay lại màn hình trước
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -725,8 +785,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Widget _buildBottomActionBar() {
-    // Nếu là admin, hiển thị nút lưu thay đổi
+    // Nếu là admin, hiển thị nút lưu thay đổi và kết thúc sự kiện
     if (widget.isAdmin) {
+      final canEnd = DateTime.now().isAfter(_startDateTime);
+      
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -740,40 +802,76 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ],
         ),
         child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.successGreen,
-                disabledBackgroundColor: AppColors.successGreen.withOpacity(
-                  0.5,
-                ),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+          child: Row(
+            children: [
+              // Nút Kết thúc sự kiện (chỉ hiện khi đã qua thời gian bắt đầu)
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: (_isLoading || !canEnd) ? null : _handleEndEvent,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canEnd ? AppColors.errorRed : Colors.grey.shade300,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          canEnd ? 'KẾT THÚC' : 'CHƯA ĐẾN GIỜ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: canEnd ? Colors.white : AppColors.textSecondary,
+                          ),
+                        ),
                 ),
               ),
-              child: _isSaving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text(
-                      'LƯU THAY ĐỔI',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                        color: Colors.white,
-                      ),
+              const SizedBox(width: 12),
+              // Nút Lưu thay đổi
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.successGreen,
+                    disabledBackgroundColor: AppColors.successGreen.withOpacity(0.5),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-            ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'LƯU',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       );

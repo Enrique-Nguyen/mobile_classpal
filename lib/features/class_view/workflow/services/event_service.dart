@@ -2,13 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_classpal/core/models/event.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/duty.dart';
 import 'package:mobile_classpal/core/models/notification.dart' as notif_model;
 import 'package:mobile_classpal/features/class_view/overview/services/notification_service.dart';
+import 'duty_service.dart';
 
 class EventService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Tạo sự kiện mới
+  /// Tạo sự kiện mới và duty tương ứng
   static Future<String> createEvent({
     required String classId,
     required String name,
@@ -42,6 +44,21 @@ class EventService {
       'updatedAt': now.millisecondsSinceEpoch,
     });
 
+    // Tạo duty tương ứng với event (không chỉ định assignees)
+    await DutyService.createDuty(
+      classId: classId,
+      name: name,
+      originId: eventRef.id,
+      originType: 'event',
+      description: description,
+      startTime: signupEndTime, // Hạn đăng ký là startTime của duty
+      endTime: startTime, // Ngày tổ chức event là deadline của duty
+      ruleName: ruleName,
+      points: points,
+      assignees: null, // Không chỉ định ai
+    );
+
+    // Gửi thông báo cho tất cả thành viên
     final membersSnapshot = await _firestore
       .collection('classes')
       .doc(classId)
@@ -91,7 +108,7 @@ class EventService {
     return null;
   }
 
-  /// Cập nhật sự kiện
+  /// Cập nhật sự kiện và đồng bộ với duty liên quan
   static Future<void> updateEvent({
     required String classId,
     required String eventId,
@@ -123,13 +140,109 @@ class EventService {
         .collection('events')
         .doc(eventId)
         .update(updates);
+
+    // Đồng bộ thay đổi với duty liên quan
+    final duty = await getDutyByEventId(classId, eventId);
+    if (duty != null) {
+      await DutyService.updateDuty(
+        classId: classId,
+        dutyId: duty.id,
+        name: name,
+        description: description,
+        startTime: signupEndTime, // startTime của duty = signupEndTime của event
+        ruleName: ruleName,
+        points: points,
+      );
+      
+      // Cập nhật endTime (deadline) của duty nếu startTime của event thay đổi
+      if (startTime != null) {
+        await _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('duties')
+          .doc(duty.id)
+          .update({
+            'endTime': startTime.millisecondsSinceEpoch,
+            'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          });
+      }
+    }
   }
 
-  /// Xóa sự kiện
+  /// Xóa sự kiện và duty liên quan
   static Future<void> deleteEvent({
     required String classId,
     required String eventId,
   }) async {
+    // Xóa duty liên quan trước
+    final duty = await getDutyByEventId(classId, eventId);
+    if (duty != null) {
+      await DutyService.deleteDuty(classId: classId, dutyId: duty.id);
+    }
+
+    // Xóa tất cả registrations
+    final registrationsSnapshot = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('events')
+      .doc(eventId)
+      .collection('registrations')
+      .get();
+
+    final batch = _firestore.batch();
+    for (final doc in registrationsSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+
+    // Xóa event
+    await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('events')
+      .doc(eventId)
+      .delete();
+  }
+
+  /// Kết thúc sự kiện (chỉ có thể dùng khi đã qua thời gian bắt đầu)
+  /// Xóa event và duty liên quan, tính điểm cho người tham gia
+  static Future<void> endEvent({
+    required String classId,
+    required String eventId,
+  }) async {
+    // Lấy thông tin event
+    final event = await getEvent(classId, eventId);
+    if (event == null) return;
+
+    // Kiểm tra xem đã qua thời gian bắt đầu chưa
+    if (DateTime.now().isBefore(event.startTime)) {
+      throw Exception('Chưa đến thời gian sự kiện, không thể kết thúc');
+    }
+
+    // Lấy duty liên quan và kết thúc nó (tính điểm cho người hoàn thành)
+    final duty = await getDutyByEventId(classId, eventId);
+    if (duty != null) {
+      await DutyService.endDuty(classId: classId, dutyId: duty.id);
+      // Sau khi kết thúc, xóa duty
+      await DutyService.deleteDuty(classId: classId, dutyId: duty.id);
+    }
+
+    // Xóa tất cả registrations
+    final registrationsSnapshot = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('events')
+      .doc(eventId)
+      .collection('registrations')
+      .get();
+
+    final batch = _firestore.batch();
+    for (final doc in registrationsSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+
+    // Xóa event
     await _firestore
       .collection('classes')
       .doc(classId)
@@ -163,13 +276,43 @@ class EventService {
       .map((snapshot) => snapshot.exists);
   }
 
-  /// Đăng ký tham gia sự kiện
+  /// Lấy duty tương ứng với event
+  static Future<Duty?> getDutyByEventId(String classId, String eventId) async {
+    final querySnapshot = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .where('originId', isEqualTo: eventId)
+      .where('originType', isEqualTo: 'event')
+      .limit(1)
+      .get();
+
+    if (querySnapshot.docs.isEmpty) return null;
+    return Duty.fromMap(querySnapshot.docs.first.data());
+  }
+
+  /// Stream duty tương ứng với event
+  static Stream<Duty?> streamEventDuty(String classId, String eventId) {
+    return _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .where('originId', isEqualTo: eventId)
+      .where('originType', isEqualTo: 'event')
+      .limit(1)
+      .snapshots()
+      .map((snapshot) {
+        if (snapshot.docs.isEmpty) return null;
+        return Duty.fromMap(snapshot.docs.first.data());
+      });
+  }
+
+  /// Đăng ký tham gia sự kiện - tạo task trong duty tương ứng
   static Future<void> registerForEvent({
     required String classId,
     required String eventId,
     required String memberUid,
   }) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
 
     // Tạo registration document
@@ -183,21 +326,23 @@ class EventService {
 
     batch.set(registrationRef, {
       'uid': memberUid,
+      'registeredAt': DateTime.now().millisecondsSinceEpoch,
     });
 
-    // Tạo task tương ứng cho event này
-    _addEventTaskToBatch(
-      batch: batch,
-      classId: classId,
-      eventId: eventId,
-      memberUid: memberUid,
-      createdAt: now,
-    );
-
     await batch.commit();
+
+    // Lấy duty tương ứng và tạo task
+    final duty = await getDutyByEventId(classId, eventId);
+    if (duty != null) {
+      await DutyService.createTask(
+        classId: classId,
+        dutyId: duty.id,
+        assigneeUid: memberUid,
+      );
+    }
   }
 
-  /// Hủy đăng ký sự kiện
+  /// Hủy đăng ký sự kiện - xóa task từ duty tương ứng
   static Future<void> unregisterFromEvent({
     required String classId,
     required String eventId,
@@ -216,125 +361,17 @@ class EventService {
 
     batch.delete(registrationRef);
 
-    // Xóa task tương ứng
-    final tasksSnapshot = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('events')
-      .doc(eventId)
-      .collection('tasks')
-      .where('uid', isEqualTo: memberUid)
-      .get();
+    await batch.commit();
 
-    for (final doc in tasksSnapshot.docs) {
-      batch.delete(doc.reference);
+    // Lấy duty tương ứng và xóa task
+    final duty = await getDutyByEventId(classId, eventId);
+    if (duty != null) {
+      await DutyService.deleteTask(
+        classId: classId,
+        dutyId: duty.id,
+        memberUid: memberUid,
+      );
     }
-
-    await batch.commit();
-  }
-
-  /// Helper function để thêm task vào batch (tương tự duty_service)
-  static void _addEventTaskToBatch({
-    required WriteBatch batch,
-    required String classId,
-    required String eventId,
-    required String memberUid,
-    required int createdAt,
-  }) {
-    final taskRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('events')
-      .doc(eventId)
-      .collection('tasks')
-      .doc();
-
-    batch.set(taskRef, {
-      'id': taskRef.id,
-      'classId': classId,
-      'dutyId': eventId, // Sử dụng eventId cho dutyId để tương thích với Task model
-      'uid': memberUid,
-      'status': TaskStatus.incomplete.storageKey,
-      'createdAt': createdAt,
-      'updatedAt': createdAt,
-    });
-  }
-
-  /// Tạo task cho event (tương tự createTask trong duty_service)
-  static Future<void> createEventTask({
-    required String classId,
-    required String eventId,
-    required String memberUid,
-  }) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final batch = _firestore.batch();
-
-    _addEventTaskToBatch(
-      batch: batch,
-      classId: classId,
-      eventId: eventId,
-      memberUid: memberUid,
-      createdAt: now,
-    );
-
-    await batch.commit();
-  }
-
-  /// Stream để lấy danh sách tasks của event
-  static Stream<List<Task>> streamEventTasks(String classId, String eventId) {
-    return _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('events')
-      .doc(eventId)
-      .collection('tasks')
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList());
-  }
-
-  /// Stream để lấy danh sách tasks của một member trong event
-  static Stream<List<Task>> streamMemberEventTasks(String classId, String memberUid) {
-    return _firestore
-      .collectionGroup('tasks')
-      .where('classId', isEqualTo: classId)
-      .where('uid', isEqualTo: memberUid)
-      .snapshots()
-      .asyncMap((taskSnapshot) async {
-        if (taskSnapshot.docs.isEmpty) return <Task>[];
-
-        final tasks = <Task>[];
-        for (final taskDoc in taskSnapshot.docs) {
-          final task = Task.fromMap(taskDoc.data());
-          
-          // Kiểm tra xem task này có phải của event không (bằng cách check parent collection)
-          final parentPath = taskDoc.reference.parent.parent?.path;
-          if (parentPath != null && parentPath.contains('/events/')) {
-            tasks.add(task);
-          }
-        }
-        return tasks;
-      });
-  }
-
-  /// Cập nhật trạng thái task của event
-  static Future<void> updateEventTaskStatus({
-    required String classId,
-    required String eventId,
-    required String taskId,
-    required TaskStatus newStatus,
-  }) async {
-    final taskRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('events')
-      .doc(eventId)
-      .collection('tasks')
-      .doc(taskId);
-
-    await taskRef.update({
-      'status': newStatus.storageKey,
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
-    });
   }
 
   /// Stream danh sách người đã đăng ký sự kiện với thông tin đầy đủ
@@ -368,5 +405,22 @@ class EventService {
 
         return members;
       });
+  }
+
+  /// Stream tasks của event thông qua duty liên quan
+  static Stream<List<Task>> streamEventTasks(String classId, String eventId) {
+    return streamEventDuty(classId, eventId).asyncMap((duty) async {
+      if (duty == null) return <Task>[];
+      
+      final tasksSnapshot = await _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(duty.id)
+        .collection('tasks')
+        .get();
+      
+      return tasksSnapshot.docs.map((doc) => Task.fromMap(doc.data())).toList();
+    });
   }
 }
