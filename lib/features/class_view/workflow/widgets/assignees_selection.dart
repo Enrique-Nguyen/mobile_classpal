@@ -112,13 +112,18 @@ void showMemberSelectionSheet({
                                   CircleAvatar(
                                     radius: 20,
                                     backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-                                    child: Text(
-                                      member.name.substring(0, 1).toUpperCase(),
-                                      style: const TextStyle(
-                                        color: AppColors.primaryBlue,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                    backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+                                      ? NetworkImage(member.avatarUrl!)
+                                      : null,
+                                    child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+                                      ? Text(
+                                          member.name.substring(0, 1).toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppColors.primaryBlue,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        )
+                                      : null,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -208,14 +213,19 @@ class MemberSelectionField extends StatelessWidget {
                 avatar: CircleAvatar(
                   backgroundColor: AppColors.primaryBlue,
                   radius: 12,
-                  child: Text(
-                    member.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+                    ? NetworkImage(member.avatarUrl!)
+                    : null,
+                  child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+                    ? Text(
+                        member.name.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    : null,
                 ),
                 label: Text(
                   member.name,

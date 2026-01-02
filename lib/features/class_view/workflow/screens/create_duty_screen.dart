@@ -116,8 +116,8 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 controller: _titleController,
                 hint: 'Ví dụ: Lau bảng sau giờ học',
                 validator: (value) => value?.isEmpty ?? true
-                    ? 'Vui lòng nhập tên nhiệm vụ'
-                    : null,
+                  ? 'Vui lòng nhập tên nhiệm vụ'
+                  : null,
               ),
               const SizedBox(height: 12),
               _buildSectionTitle('MÔ TẢ'),
@@ -159,7 +159,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('QUY TẮC NHIỆM VỤ'),
+              _buildRuleSectionTitle(),
               const SizedBox(height: 8),
               StreamBuilder<List<Rule>>(
                 stream: _rulesStream,
@@ -356,6 +356,67 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
     );
   }
 
+  Widget _buildRuleSectionTitle() {
+    return Row(
+      children: [
+        _buildSectionTitle('QUY TẮC TÍNH ĐIỂM'),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: _showRulesHelpDialog,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.help_outline_rounded,
+              size: 14,
+              color: AppColors.primaryBlue,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showRulesHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.rule_folder_rounded, color: AppColors.primaryBlue),
+            const SizedBox(width: 10),
+            const Text('Quy tắc tính điểm'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quy tắc tính điểm xác định số điểm thành viên nhận được khi hoàn thành nhiệm vụ này.',
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '• Điểm được cộng vào bảng xếp hạng lớp\n• Mỗi quy tắc có mức điểm khác nhau\n• Quản trị viên có thể tạo quy tắc mới từ Tổng quan',
+              style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDateTimePicker({
     required DateTime value,
     required VoidCallback onPick,
@@ -423,11 +484,10 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
     );
 
     setState(() {
-      if (isDeadline) {
+      if (isDeadline)
         _selectedDeadline = newDateTime;
-      } else {
+      else
         _selectedDateTime = newDateTime;
-      }
     });
   }
 

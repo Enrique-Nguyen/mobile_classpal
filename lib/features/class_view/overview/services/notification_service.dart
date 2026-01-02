@@ -51,8 +51,16 @@ class NotificationService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final signupEndTimeMs = signupEndTime?.millisecondsSinceEpoch;
     final startTimeMs = startTime?.millisecondsSinceEpoch;
-    final batch = _firestore.batch();
 
+    // Remove existing notifications for the same referenceId and members to prevent duplicates
+    if (referenceId != null)
+      await _deleteExistingNotifications(
+        classId: classId,
+        memberUids: memberUids,
+        referenceId: referenceId,
+      );
+
+    final batch = _firestore.batch();
     for (final uid in memberUids) {
       final notifRef = _firestore
         .collection('classes')
@@ -74,6 +82,54 @@ class NotificationService {
         'seenAt': null,
       });
     }
+
+    await batch.commit();
+  }
+
+  /// Delete existing notifications for a specific referenceId and members
+  static Future<void> _deleteExistingNotifications({
+    required String classId,
+    required List<String> memberUids,
+    required String referenceId,
+  }) async {
+    final futures = <Future<QuerySnapshot<Map<String, dynamic>>>>[];
+    for (final uid in memberUids) {
+      final existingNotifs = _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('notifications')
+        .where('uid', isEqualTo: uid)
+        .where('referenceId', isEqualTo: referenceId)
+        .get();
+      futures.add(existingNotifs);
+    }
+
+    final results = await Future.wait(futures);
+    final batch = _firestore.batch();
+    for (final result in results)
+      for (final doc in result.docs)
+        batch.delete(doc.reference);
+
+    await batch.commit();
+  }
+
+  /// Delete notification for a member when they are removed from a duty/event
+  static Future<void> deleteNotificationForMember({
+    required String classId,
+    required String memberUid,
+    required String referenceId,
+  }) async {
+    final existingNotifs = await _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('notifications')
+      .where('uid', isEqualTo: memberUid)
+      .where('referenceId', isEqualTo: referenceId)
+      .get();
+
+    final batch = _firestore.batch();
+    for (final doc in existingNotifs.docs)
+      batch.delete(doc.reference);
 
     await batch.commit();
   }
@@ -104,6 +160,11 @@ class NotificationService {
           }
 
           if (notif.type == NotificationType.duty && notif.referenceId != null) {
+            // Hide duty notifications older than 7 days
+            final daysSinceCreated = now.difference(notif.createdAt).inDays;
+            if (daysSinceCreated >= 7)
+              continue;
+
             final shouldHide = await _shouldHideDutyNotification(
               classId: classId,
               dutyId: notif.referenceId!,

@@ -277,12 +277,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             onEdit: null,
           ),
           const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.bookmark_outline,
-            label: 'Quy tắc',
-            value: _selectedRule,
-            onEdit: widget.isAdmin && widget.duty.canEdit ? () => _editRule() : null,
-          ),
+          _buildRuleInfoRow(),
           const Divider(height: 24),
           _buildInfoRow(
             icon: Icons.star_outline,
@@ -375,6 +370,166 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           ),
       ],
     );
+  }
+
+  Widget _buildRuleInfoRow() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.primaryBlue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.bookmark_outline,
+            size: 20,
+            color: AppColors.primaryBlue,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Quy tắc tính điểm',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: _showRulesHelpDialog,
+                    child: const Icon(
+                      Icons.help_outline_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _selectedRule,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.isAdmin && widget.duty.canEdit)
+          GestureDetector(
+            onTap: _editRule,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showRulesHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.rule_folder_rounded, color: AppColors.primaryBlue),
+            const SizedBox(width: 10),
+            const Text('Quy tắc tính điểm'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quy tắc tính điểm xác định số điểm thành viên nhận được khi hoàn thành nhiệm vụ này.',
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '• Điểm được cộng vào bảng xếp hạng lớp\n• Mỗi quy tắc có mức điểm khác nhau\n• Quản trị viên có thể tạo quy tắc mới từ Tổng quan',
+              style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmRemoveMember(Member member, Task task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xóa thành viên?'),
+        content: Text(
+          'Bạn có chắc muốn xóa ${member.name} khỏi nhiệm vụ này?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorRed),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await DutyService.deleteTask(
+          classId: widget.duty.classId,
+          dutyId: widget.duty.id,
+          memberUid: member.uid,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã xóa ${member.name} khỏi nhiệm vụ'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: $e'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildDescriptionSection() {
@@ -595,23 +750,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-            ),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+            backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+              ? NetworkImage(member.avatarUrl!)
+              : null,
+            child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+              ? Text(
+                  member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                )
+              : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -636,7 +790,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
               ],
             ),
           ),
-          if (widget.isAdmin && task != null) // Admin controls
+          if (widget.isAdmin && task != null) ...[
+             // Remove button for incomplete/pending tasks (only if duty can be edited)
+             if (widget.duty.canEdit && task.status != TaskStatus.completed && !widget.duty.isEnded)
+               GestureDetector(
+                 onTap: () => _confirmRemoveMember(member, task),
+                 child: Container(
+                   padding: const EdgeInsets.all(6),
+                   margin: const EdgeInsets.only(right: 8),
+                   decoration: BoxDecoration(
+                     color: AppColors.errorRed.withOpacity(0.1),
+                     borderRadius: BorderRadius.circular(6),
+                   ),
+                   child: const Icon(Icons.remove_circle_outline, size: 18, color: AppColors.errorRed),
+                 ),
+               ),
+             // Admin controls for pending approval
              if (task.status == TaskStatus.pending)
                PopupMenuButton<String>(
                 icon: Icon(statusIcon, size: 20, color: statusColor),
@@ -663,8 +832,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 ],
               )
              else
-               Icon(statusIcon, size: 20, color: statusColor)
-          else
+               Icon(statusIcon, size: 20, color: statusColor),
+          ] else
             Icon(statusIcon, size: 20, color: statusColor),
         ],
       ),
@@ -676,23 +845,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-            ),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+            backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+              ? NetworkImage(member.avatarUrl!)
+              : null,
+            child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+              ? Text(
+                  member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                )
+              : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -854,30 +1022,31 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
           ),
         if (!widget.duty.isEnded && widget.duty.canEndDuty)
           const SizedBox(height: 12),
-        // Save Changes button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _saveChanges,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.successGreen,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+        // Save Changes button - only show if duty is editable or has pending changes
+        if (widget.duty.canEdit || _selectedMembers.isNotEmpty || _removedMemberIds.isNotEmpty)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveChanges,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.successGreen,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-            ),
-            child: const Text(
-              'LƯU THAY ĐỔI',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                color: Colors.white,
+              child: const Text(
+                'LƯU THAY ĐỔI',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

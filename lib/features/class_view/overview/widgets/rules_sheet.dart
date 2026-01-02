@@ -63,7 +63,7 @@ class _RulesSheetState extends State<RulesSheet> {
                     ),
                     const SizedBox(width: 10),
                     const Text(
-                      'Luật tính điểm',
+                      'Quy tắc tính điểm',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

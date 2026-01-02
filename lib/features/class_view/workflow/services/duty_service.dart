@@ -104,8 +104,6 @@ class DutyService {
     required String memberUid,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    
-    // Tìm task của member trong duty
     final tasksSnapshot = await _firestore
       .collection('classes')
       .doc(classId)
@@ -118,20 +116,25 @@ class DutyService {
     if (tasksSnapshot.docs.isEmpty) return;
 
     final batch = _firestore.batch();
-
-    // Xóa tất cả tasks của member trong duty này
-    for (final doc in tasksSnapshot.docs) {
+    for (final doc in tasksSnapshot.docs)
       batch.delete(doc.reference);
-    }
 
-    // Cập nhật assigneeIds của duty
-    final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId);
+    final dutyRef = _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId);
     batch.update(dutyRef, {
       'assigneeIds': FieldValue.arrayRemove([memberUid]),
       'updatedAt': now,
     });
 
     await batch.commit();
+    await NotificationService.deleteNotificationForMember(
+      classId: classId,
+      memberUid: memberUid,
+      referenceId: dutyId,
+    );
   }
 
   /// Xóa duty và tất cả tasks liên quan
@@ -149,15 +152,16 @@ class DutyService {
       .get();
 
     final batch = _firestore.batch();
-
-    for (final doc in tasksSnapshot.docs) {
+    for (final doc in tasksSnapshot.docs)
       batch.delete(doc.reference);
-    }
 
-    // Xóa duty
-    final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId);
+    final dutyRef = _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId);
+
     batch.delete(dutyRef);
-
     await batch.commit();
   }
 
