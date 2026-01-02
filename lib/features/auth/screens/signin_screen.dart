@@ -155,7 +155,7 @@ class _SigninScreenState extends State<SigninScreen> {
                         },
                       ),
                       _buildDivider(),
-                      _buildGoogleButton(),
+                      _buildGoogleButton(context),
                       _buildFooter(context),
                     ],
                   ),
@@ -315,11 +315,60 @@ SizedBox _buildSignInButton(
   );
 }
 
-SizedBox _buildGoogleButton() {
+SizedBox _buildGoogleButton(BuildContext context) {
   return SizedBox(
     width: double.infinity,
     child: OutlinedButton(
-      onPressed: () {},
+      onPressed: () async {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+        try {
+          // B. Gọi Service Đăng nhập
+          final authService = AuthService();
+          final user = await authService.signInWithGoogle();
+
+          // C. Tắt loading
+          if (!context.mounted) return;
+          Navigator.pop(context);
+
+          if (user != null) {
+            // Đăng nhập thành công -> Chuyển trang
+            Navigator.pushNamed(context, '/home_page'); // Chuyển đến trang chủ
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Đăng nhập Google thành công!"),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            // Trường hợp User bấm nút hủy (đóng cửa sổ Google mà không nhập)
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Đã hủy đăng nhập."),
+                backgroundColor: Colors.orange, // Màu cam cảnh báo nhẹ
+              ),
+            );
+          }
+        } catch (e) {
+          if (!context.mounted) return;
+          // Quan trọng: Phải tắt loading nếu có lỗi xảy ra trước khi kịp tắt ở bước C
+          // (Kiểm tra xem dialog có đang mở không để tránh pop nhầm màn hình)
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll("Exception: ", "")),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.textPrimary,
         backgroundColor: Colors.white,
