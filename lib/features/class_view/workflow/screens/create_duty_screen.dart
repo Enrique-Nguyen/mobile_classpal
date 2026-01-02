@@ -140,7 +140,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                     selectedMembers: _selectedMembers,
                     onAddTap: () => showMemberSelectionSheet(
                       context: context,
-                      allMembers: allMembers, // Pass real members
+                      allMembers: allMembers,
                       selectedMembers: _selectedMembers,
                       onMemberSelected: (member) {
                         setState(() {
@@ -149,11 +149,23 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                           }
                         });
                       },
+                      onSelectAll: (members) {
+                        setState(() {
+                          for (final m in members) {
+                            if (!_selectedMembers.any((s) => s.uid == m.uid)) {
+                              _selectedMembers.add(m);
+                            }
+                          }
+                        });
+                      },
                     ),
                     onRemoveMember: (member) {
                       setState(() {
                         _selectedMembers.removeWhere((m) => m.uid == member.uid);
                       });
+                    },
+                    onRemoveAll: () {
+                      setState(() => _selectedMembers.clear());
                     },
                   );
                 },
@@ -202,22 +214,22 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Tạo nhiệm vụ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
                         ),
+                      )
+                    : const Text(
+                        'Tạo nhiệm vụ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                 ),
               ),
               const SizedBox(height: 20),

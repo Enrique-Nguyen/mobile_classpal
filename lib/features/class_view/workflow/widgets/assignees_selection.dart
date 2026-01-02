@@ -7,6 +7,7 @@ void showMemberSelectionSheet({
   required List<Member> allMembers,
   required List<Member> selectedMembers,
   required void Function(Member member) onMemberSelected,
+  void Function(List<Member> members)? onSelectAll,
   List<String> excludedMemberIds = const [],
   bool closeOnSelect = false,
 }) {
@@ -74,6 +75,38 @@ void showMemberSelectionSheet({
                       ),
                       onChanged: (value) => setSheetState(() => searchQuery = value),
                     ),
+                    // Select All button
+                    if (filteredMembers.isNotEmpty && onSelectAll != null) ...[
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () {
+                          onSelectAll(filteredMembers);
+                          Navigator.pop(sheetContext);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.select_all, size: 18, color: AppColors.primaryBlue),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Chọn tất cả (${filteredMembers.length})',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -173,6 +206,7 @@ class MemberSelectionField extends StatelessWidget {
   final List<Member> selectedMembers;
   final VoidCallback onAddTap;
   final void Function(Member member) onRemoveMember;
+  final VoidCallback? onRemoveAll;
   final String? label;
   final bool required;
 
@@ -181,6 +215,7 @@ class MemberSelectionField extends StatelessWidget {
     required this.selectedMembers,
     required this.onAddTap,
     required this.onRemoveMember,
+    this.onRemoveAll,
     this.label,
     this.required = false,
   });
@@ -244,6 +279,35 @@ class MemberSelectionField extends StatelessWidget {
               );
             }).toList(),
           ),
+          // Remove All button
+          if (onRemoveAll != null && selectedMembers.length > 1) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: onRemoveAll,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.errorRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.remove_circle_outline, size: 16, color: AppColors.errorRed),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Xóa tất cả (${selectedMembers.length})',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.errorRed,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
         ],
         // Add member button

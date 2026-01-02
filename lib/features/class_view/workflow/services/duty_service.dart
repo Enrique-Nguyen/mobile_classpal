@@ -357,14 +357,18 @@ class DutyService {
 
         if (toAdd.isNotEmpty) {
           final dutyName = currentData['name'] ?? 'Nhiệm vụ';
-          final description = currentData['description'] as String?;
           final startTimeMs = currentData['startTime'] as int?;
+          final endTimeMs = currentData['endTime'] as int?;
+          final endTime = endTimeMs != null ? DateTime.fromMillisecondsSinceEpoch(endTimeMs) : null;
+          final subtitle = endTime != null
+            ? 'Thời hạn: ${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')}/${endTime.year} lúc ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}'
+            : 'Bạn được giao một nhiệm vụ mới';
           await NotificationService.createNotificationsForMembers(
             classId: classId,
             memberUids: toAdd.toList(),
             type: notif_model.NotificationType.duty,
             title: 'Nhiệm vụ mới: $dutyName',
-            subtitle: description ?? 'Bạn được giao một nhiệm vụ mới',
+            subtitle: subtitle,
             referenceId: dutyId,
             startTime: startTimeMs != null ? DateTime.fromMillisecondsSinceEpoch(startTimeMs) : null,
           );

@@ -33,7 +33,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   late TextEditingController _descriptionController;
   late String _selectedRule;
   late double _selectedPoints;
-  DateTime _selectedDateTime = DateTime.now();
+  DateTime? _selectedDateTime;
 
   bool _isSubmitting = false;
 
@@ -1122,7 +1122,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
 
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime ?? DateTime.now()),
     );
     if (time == null)
       return;
@@ -1158,7 +1158,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             const Padding(
               padding: EdgeInsets.all(20),
               child: Text(
-                'Chọn quy tắc',
+                'Chọn quy tắc tính điểm',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1176,7 +1176,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
 
                 final rules = snapshot.data?.where((r) => r.type == RuleType.duty).toList() ?? [];
                 if (rules.isEmpty)
-                  return const Text("No rules found");
+                  return const Text('Không tìm thấy quy tắc');
 
                 return Column(
                   children: rules.map((rule) => ListTile(
@@ -1255,9 +1255,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text('Xong', style: TextStyle(color: Colors.white)),
                 ),
@@ -1270,11 +1268,17 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   void _showMemberSelectionSheet(List<Member> allMembers) {
+    // Exclude currently assigned members (minus removed ones) and newly selected members
+    final excludedIds = <String>[
+      ...widget.duty.assigneeIds.where((id) => !_removedMemberIds.contains(id)),
+      ..._selectedMembers.map((m) => m.uid),
+    ];
+    
     showMemberSelectionSheet(
       context: context,
       allMembers: allMembers,
       selectedMembers: _selectedMembers,
-      excludedMemberIds: (List<String>.from(widget.duty.assigneeIds))..addAll(_selectedMembers.map((m) => m.uid)),
+      excludedMemberIds: excludedIds,
       closeOnSelect: false, 
       onMemberSelected: (member) {
         setState(() => _selectedMembers.add(member));
@@ -1283,6 +1287,20 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Future<void> _saveChanges() async {
+    // Early return if nothing has changed
+    final bool hasNameChange = _titleController.text != widget.duty.name;
+    final bool hasDescChange = _descriptionController.text != (widget.duty.description ?? '');
+    final bool hasTimeChange = _selectedDateTime != widget.duty.startTime;
+    final bool hasRuleChange = _selectedRule != widget.duty.ruleName;
+    final bool hasPointsChange = _selectedPoints != widget.duty.points;
+    final bool hasMemberChanges = _selectedMembers.isNotEmpty || _removedMemberIds.isNotEmpty;
+
+    if (!hasNameChange && !hasDescChange && !hasTimeChange && !hasRuleChange && !hasPointsChange && !hasMemberChanges) {
+      // Nothing changed, just return silently
+      Navigator.pop(context);
+      return;
+    }
+
     final List<Member> finalMembers = [];
     for (final id in widget.duty.assigneeIds) {
       if (!_removedMemberIds.contains(id)) {
@@ -1301,12 +1319,12 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     await DutyService.updateDuty(
       classId: widget.duty.classId,
       dutyId: widget.duty.id,
-      name: _titleController.text != widget.duty.name ? _titleController.text : null,
-      description: _descriptionController.text != widget.duty.description ? _descriptionController.text : null,
-      startTime: _selectedDateTime != widget.duty.startTime ? _selectedDateTime : null,
-      ruleName: _selectedRule != widget.duty.ruleName ? _selectedRule : null,
-      points: _selectedPoints != widget.duty.points ? _selectedPoints : null,
-      newAssignees: finalMembers,
+      name: hasNameChange ? _titleController.text : null,
+      description: hasDescChange ? _descriptionController.text : null,
+      startTime: hasTimeChange ? _selectedDateTime : null,
+      ruleName: hasRuleChange ? _selectedRule : null,
+      points: hasPointsChange ? _selectedPoints : null,
+      newAssignees: hasMemberChanges ? finalMembers : null,
     );
 
     if (mounted) {
