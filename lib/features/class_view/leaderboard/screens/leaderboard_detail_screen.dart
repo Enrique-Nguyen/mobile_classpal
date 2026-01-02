@@ -93,9 +93,9 @@ class LeaderboardDetailScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: StreamBuilder<List<LeaderboardEntry>>(
               stream: LeaderboardService.streamLeaderboardEntries(
-                classData.classId,
-                leaderboard.id,
-                currentMember.uid,
+                classId: classData.classId,
+                leaderboardId: leaderboard.leaderboardId,
+                currentUserUid: currentMember.uid,
               ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {

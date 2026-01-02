@@ -11,10 +11,10 @@ class RuleService {
     required RuleType type,
     required double points,
   }) async {
-    final docRef = rulesRef(classId).doc();
     final now = DateTime.now().millisecondsSinceEpoch;
+    final docRef = rulesRef(classId).doc();
     await docRef.set({
-      'id': docRef.id,
+      'ruleId': docRef.id,
       'name': name,
       'type': type.storageKey,
       'points': points,

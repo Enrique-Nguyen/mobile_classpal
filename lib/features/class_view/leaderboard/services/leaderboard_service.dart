@@ -10,13 +10,13 @@ class LeaderboardService {
   static Future<String> createLeaderboard(String classId, String name) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final leaderboardRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('leaderboards')
-        .doc();
+      .collection('classes')
+      .doc(classId)
+      .collection('leaderboards')
+      .doc();
 
     await leaderboardRef.set({
-      'id': leaderboardRef.id,
+      'leaderboardId': leaderboardRef.id,
       'classId': classId,
       'name': name,
       'createdAt': now,
@@ -28,43 +28,40 @@ class LeaderboardService {
 
   static Stream<List<Leaderboard>> streamLeaderboards(String classId) {
     return _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('leaderboards')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Leaderboard.fromMap(doc.data()))
-            .toList());
+      .collection('classes')
+      .doc(classId)
+      .collection('leaderboards')
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => Leaderboard.fromMap(doc.data())).toList());
   }
 
   static Future<Leaderboard?> getCurrentLeaderboard(String classId) async {
     final snapshot = await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('leaderboards')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .get();
+      .collection('classes')
+      .doc(classId)
+      .collection('leaderboards')
+      .orderBy('createdAt', descending: true)
+      .get();
 
     if (snapshot.docs.isEmpty) return null;
     return Leaderboard.fromMap(snapshot.docs.first.data());
   }
 
-  static Future<void> updateLeaderboardName(
-    String classId,
-    String leaderboardId,
-    String newName,
-  ) async {
+  static Future<void> updateLeaderboardName({
+    required String classId,
+    required String leaderboardId,
+    required String newName,
+  }) async {
     await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('leaderboards')
-        .doc(leaderboardId)
-        .update({
-      'name': newName,
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
-    });
+      .collection('classes')
+      .doc(classId)
+      .collection('leaderboards')
+      .doc(leaderboardId)
+      .update({
+        'name': newName,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
   }
 
   static Future<void> createAchievement({
@@ -86,9 +83,9 @@ class LeaderboardService {
       .doc();
 
     await achievementRef.set({
-      'id': achievementRef.id,
+      'achievementId': achievementRef.id,
       'classId': classId,
-      'leaderboardId': currentLeaderboard.id,
+      'leaderboardId': currentLeaderboard.leaderboardId,
       'memberUid': memberUid,
       'title': title,
       'points': points,
@@ -96,11 +93,41 @@ class LeaderboardService {
     });
   }
 
-  static Stream<List<Achievement>> streamMemberAchievements(
-    String classId,
-    String leaderboardId,
-    String memberUid,
-  ) {
+  /// Creates a penalty (negative points) for a member when a duty ends incomplete
+  static Future<void> createPenalty({
+    required String classId,
+    required String memberUid,
+    required String dutyName,
+    required double points,
+  }) async {
+    final currentLeaderboard = await getCurrentLeaderboard(classId);
+    if (currentLeaderboard == null) {
+      return;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final achievementRef = _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('achievements')
+      .doc();
+
+    await achievementRef.set({
+      'achievementId': achievementRef.id,
+      'classId': classId,
+      'leaderboardId': currentLeaderboard.leaderboardId,
+      'memberUid': memberUid,
+      'title': dutyName,
+      'points': -points.abs(),
+      'awardedAt': now,
+    });
+  }
+
+  static Stream<List<Achievement>> streamMemberAchievements({
+    required String classId,
+    required String leaderboardId,
+    required String memberUid,
+  }) {
     return _firestore
       .collection('classes')
       .doc(classId)
@@ -109,16 +136,14 @@ class LeaderboardService {
       .where('memberUid', isEqualTo: memberUid)
       .orderBy('awardedAt', descending: true)
       .snapshots()
-      .map((snapshot) => snapshot.docs
-        .map((doc) => Achievement.fromMap(doc.data()))
-        .toList());
+      .map((snapshot) => snapshot.docs.map((doc) => Achievement.fromMap(doc.data())).toList());
   }
 
-  static Stream<List<LeaderboardEntry>> streamLeaderboardEntries(
-    String classId,
-    String leaderboardId,
-    String currentUserUid,
-  ) {
+  static Stream<List<LeaderboardEntry>> streamLeaderboardEntries({
+    required String classId,
+    required String leaderboardId,
+    required String currentUserUid,
+  }) {
     return _firestore
       .collection('classes')
       .doc(classId)
@@ -131,10 +156,8 @@ class LeaderboardService {
 
         for (final doc in achievementSnapshot.docs) {
           final achievement = Achievement.fromMap(doc.data());
-          pointsByMember[achievement.memberUid] =
-              (pointsByMember[achievement.memberUid] ?? 0) + achievement.points;
-          countByMember[achievement.memberUid] =
-              (countByMember[achievement.memberUid] ?? 0) + 1;
+          pointsByMember[achievement.memberUid] = (pointsByMember[achievement.memberUid] ?? 0) + achievement.points;
+          countByMember[achievement.memberUid] = (countByMember[achievement.memberUid] ?? 0) + 1;
         }
 
         final membersSnapshot = await _firestore
@@ -173,9 +196,9 @@ class LeaderboardService {
       });
   }
 
-  static Stream<List<LeaderboardEntry>> streamTopEntries(
-    String classId,
-    String currentUserUid, {
+  static Stream<List<LeaderboardEntry>> streamTopEntries({
+    required String classId,
+    required String currentUserUid,
     int limit = 3,
   }) {
     return Stream.fromFuture(getCurrentLeaderboard(classId))
@@ -183,7 +206,11 @@ class LeaderboardService {
         if (leaderboard == null)
           return Stream.value(<LeaderboardEntry>[]);
 
-        return streamLeaderboardEntries(classId, leaderboard.id, currentUserUid).map((entries) => entries.take(limit).toList());
+        return streamLeaderboardEntries(
+          classId: classId,
+          leaderboardId: leaderboard.leaderboardId,
+          currentUserUid: currentUserUid,
+        ).map((entries) => entries.take(limit).toList());
       });
   }
 }

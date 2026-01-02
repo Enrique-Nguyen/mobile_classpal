@@ -85,4 +85,24 @@ class Member {
       role = MemberRole.thanhVien,
       joinedAt = DateTime.fromMillisecondsSinceEpoch(0),
       updatedAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  Member copyWith({
+    String? uid,
+    String? name,
+    String? avatarUrl,
+    String? classId,
+    MemberRole? role,
+    DateTime? joinedAt,
+    DateTime? updatedAt,
+  }) {
+    return Member(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      classId: classId ?? this.classId,
+      role: role ?? this.role,
+      joinedAt: joinedAt ?? this.joinedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }

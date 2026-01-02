@@ -403,12 +403,13 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
         if (isEditing) {
           await RuleService.updateRule(
             classId: widget.classData.classId,
-            ruleId: widget.existingRule!.id,
+            ruleId: widget.existingRule!.ruleId,
             name: _nameController.text.trim(),
             type: _selectedType,
             points: points,
           );
-        } else {
+        }
+        else {
           await RuleService.createRule(
             classId: widget.classData.classId,
             name: _nameController.text.trim(),
@@ -423,14 +424,15 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
           SnackBar(
             content: Text(
               isEditing 
-                  ? 'Đã cập nhật quy tắc: ${_nameController.text}'
-                  : 'Đã tạo quy tắc: ${_nameController.text} (+${points.toInt()} điểm)',
+                ? 'Đã cập nhật quy tắc: ${_nameController.text}'
+                : 'Đã tạo quy tắc: ${_nameController.text} (+${points.toInt()} điểm)',
             ),
             backgroundColor: AppColors.successGreen,
           ),
         );
         Navigator.pop(context);
-      } catch (e) {
+      }
+      catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -438,7 +440,8 @@ class _CreateRuleScreenState extends State<CreateRuleScreen> {
             backgroundColor: AppColors.errorRed,
           ),
         );
-      } finally {
+      }
+      finally {
         if (mounted) setState(() => _isLoading = false);
       }
     }

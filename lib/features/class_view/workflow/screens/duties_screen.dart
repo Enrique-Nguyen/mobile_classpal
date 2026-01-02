@@ -10,10 +10,10 @@ import 'package:mobile_classpal/features/auth/services/auth_service.dart';
 import 'package:mobile_classpal/features/class_view/workflow/services/duty_service.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../widgets/duty_card.dart';
-import '../widgets/pending_approval_card.dart';
 import 'create_duty_screen.dart';
 import 'duty_details_screen.dart';
+import '../widgets/duty_card.dart';
+import '../widgets/pending_approval_card.dart';
 
 class DutiesScreenMonitor extends ConsumerStatefulWidget {
   final Class classData;
@@ -57,7 +57,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
     if (dutyDate == today.subtract(const Duration(days: 1)))
       return 'Hôm qua';
 
-    return '${dt.day}/${dt.month}';
+    return 'Ngày ${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
   }
 
   String _formatTimeLabel(DateTime dt) {
@@ -75,10 +75,35 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
   }
 
   List<Duty> _filterDuties(List<Duty> duties) {
-    if (_searchQuery.isEmpty) return duties;
+    if (_searchQuery.isEmpty)
+      return duties;
+
     return duties.where((duty) {
       return duty.name.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
+  }
+
+  Future<List<Duty>> _filterVisibleDuties(List<Duty> duties) async {
+    final List<Duty> visibleDuties = [];
+    
+    for (final duty in duties) {
+      if (duty.isEnded)
+        continue;
+
+      final tasksSnapshot = await FirebaseFirestore.instance
+        .collection('classes')
+        .doc(widget.classData.classId)
+        .collection('duties')
+        .doc(duty.id)
+        .collection('tasks')
+        .get();
+
+      final tasks = tasksSnapshot.docs.map((doc) => Task.fromMap(doc.data())).toList();
+      if (DutyHelper.shouldShowDuty(duty, tasks))
+        visibleDuties.add(duty);
+    }
+    
+    return visibleDuties;
   }
 
   @override
@@ -131,8 +156,19 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
                         if (snapshot.hasError)
                           return Center(child: Text('Lỗi: ${snapshot.error}'));
 
-                        final duties = _filterDuties(snapshot.data ?? []);
-                        return Column(children: _buildDutiesList(duties));
+                        final allDuties = snapshot.data ?? [];
+                        
+                        // Filter duties asynchronously (need to fetch tasks for each)
+                        return FutureBuilder<List<Duty>>(
+                          future: _filterVisibleDuties(allDuties),
+                          builder: (context, filteredSnapshot) {
+                            if (!filteredSnapshot.hasData)
+                              return const Center(child: CircularProgressIndicator());
+
+                            final duties = _filterDuties(filteredSnapshot.data!);
+                            return Column(children: _buildDutiesList(duties));
+                          },
+                        );
                       },
                     )
                   else
@@ -350,6 +386,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
       ruleName: duty.ruleName,
       points: duty.points.toInt(),
       isAssignedToMonitor: duty.assigneeIds.contains(widget.currentMember.uid),
+      needsAssignees: duty.needsAssignees,
       extraInfo: DutyHelper.parseNoteField(duty),
       onTap: () async {
         final isAssignedToAdmin = duty.assigneeIds.contains(widget.currentMember.uid);

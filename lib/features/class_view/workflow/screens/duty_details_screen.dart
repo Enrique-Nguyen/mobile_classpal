@@ -4,6 +4,7 @@ import 'package:mobile_classpal/core/models/duty.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/rule.dart';
+import 'package:mobile_classpal/core/helpers/duty_helper.dart';
 import 'package:mobile_classpal/features/class_view/overview/services/rule_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/assignees_selection.dart';
@@ -32,7 +33,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   late TextEditingController _descriptionController;
   late String _selectedRule;
   late double _selectedPoints;
-  DateTime _selectedDateTime = DateTime.now();
+  late DateTime _selectedDateTime;
 
   bool _isSubmitting = false;
 
@@ -46,11 +47,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     _descriptionController = TextEditingController(text: widget.duty.description ?? '');
     _selectedRule = widget.duty.ruleName;
     _selectedPoints = widget.duty.points.toDouble();
-    _initializeDateTime();
-  }
-
-  void _initializeDateTime() {
-    _selectedDateTime = DateTime.now().add(const Duration(hours: 2));
+    _selectedDateTime = widget.duty.startTime;
   }
 
   @override
@@ -168,6 +165,33 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     String label;
     IconData icon;
 
+    // Check for needs-assignees warning (event signup ended with no signups)
+    if (widget.isAdmin && widget.duty.needsAssignees) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.errorRed.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.errorRed, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.errorRed),
+            SizedBox(width: 6),
+            Text(
+              'Cần thêm người tham gia',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.errorRed,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (widget.isAdmin) {
       color = AppColors.primaryBlue;
       label = 'Quản lý nhiệm vụ';
@@ -236,24 +260,20 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
         children: [
           _buildInfoRow(
             icon: Icons.calendar_today_outlined,
-            label: 'Ngày',
-            value: _formatDate(_selectedDateTime),
-            onEdit: widget.isAdmin ? () => _editDateTime() : null,
+            label: 'Thời điểm bắt đầu',
+            value: '${_formatTime(widget.duty.startTime)} ngày ${_formatDate(widget.duty.startTime)}',
+            onEdit: widget.isAdmin && widget.duty.canEdit ? () => _editDateTime() : null,
           ),
           const Divider(height: 24),
           _buildInfoRow(
-            icon: Icons.access_time_outlined,
-            label: 'Thời gian',
-            value: _formatTime(_selectedDateTime),
-            onEdit: widget.isAdmin ? () => _editDateTime() : null,
+            icon: Icons.timer_off_outlined,
+            label: 'Thời hạn (Deadline)',
+            value: '${_formatTime(widget.duty.endTime)} ngày ${_formatDate(widget.duty.endTime)}',
+            iconColor: widget.duty.isExpired ? AppColors.errorRed : AppColors.primaryBlue,
+            onEdit: null,
           ),
           const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.bookmark_outline,
-            label: 'Quy tắc',
-            value: _selectedRule,
-            onEdit: widget.isAdmin ? () => _editRule() : null,
-          ),
+          _buildRuleInfoRow(),
           const Divider(height: 24),
           _buildInfoRow(
             icon: Icons.star_outline,
@@ -262,6 +282,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             iconColor: Colors.orange,
             onEdit: null,
           ),
+          // Origin-specific info (location for events, amount for funds)
+          if (DutyHelper.parseNoteField(widget.duty) != null) ...[
+            const Divider(height: 24),
+            Builder(builder: (context) {
+              final extraInfo = DutyHelper.parseNoteField(widget.duty)!;
+              return _buildInfoRow(
+                icon: extraInfo.icon,
+                label: extraInfo.label,
+                value: extraInfo.value,
+                iconColor: extraInfo.type == DutyExtraType.location 
+                  ? Colors.teal 
+                  : Colors.green,
+                onEdit: null,
+              );
+            }),
+          ],
         ],
       ),
     );
@@ -332,6 +368,166 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     );
   }
 
+  Widget _buildRuleInfoRow() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.primaryBlue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.bookmark_outline,
+            size: 20,
+            color: AppColors.primaryBlue,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Quy tắc tính điểm',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: _showRulesHelpDialog,
+                    child: const Icon(
+                      Icons.help_outline_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _selectedRule,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.isAdmin && widget.duty.canEdit)
+          GestureDetector(
+            onTap: _editRule,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showRulesHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.rule_folder_rounded, color: AppColors.primaryBlue),
+            const SizedBox(width: 10),
+            const Text('Quy tắc tính điểm'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quy tắc tính điểm xác định số điểm thành viên nhận được khi hoàn thành nhiệm vụ này.',
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '• Điểm được cộng vào bảng xếp hạng lớp\n• Mỗi quy tắc có mức điểm khác nhau\n• Quản trị viên có thể tạo quy tắc mới từ Tổng quan',
+              style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmRemoveMember(Member member, Task task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xóa thành viên?'),
+        content: Text(
+          'Bạn có chắc muốn xóa ${member.name} khỏi nhiệm vụ này?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorRed),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await DutyService.deleteTask(
+          classId: widget.duty.classId,
+          dutyId: widget.duty.id,
+          memberUid: member.uid,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã xóa ${member.name} khỏi nhiệm vụ'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: $e'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildDescriptionSection() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -367,7 +563,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                   ),
                 ),
               ),
-              if (widget.isAdmin)
+              if (widget.isAdmin && widget.duty.canEdit)
                 GestureDetector(
                   onTap: _editDescription,
                   child: Container(
@@ -457,31 +653,33 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                           ),
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () => _showMemberSelectionSheet(allMembers),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
-                              SizedBox(width: 4),
-                              Text(
-                                'Thêm',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryBlue,
+                      // Only show add button if duty can be edited (for event duties after signup, or direct duties)
+                      if (widget.duty.canEdit)
+                        GestureDetector(
+                          onTap: () => _showMemberSelectionSheet(allMembers),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Thêm',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryBlue,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -548,23 +746,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-            ),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+            backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+              ? NetworkImage(member.avatarUrl!)
+              : null,
+            child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+              ? Text(
+                  member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                )
+              : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -589,7 +786,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
               ],
             ),
           ),
-          if (widget.isAdmin && task != null) // Admin controls
+          if (widget.isAdmin && task != null) ...[
+             // Remove button for incomplete/pending tasks (only if duty can be edited)
+             if (widget.duty.canEdit && task.status != TaskStatus.completed && !widget.duty.isEnded)
+               GestureDetector(
+                 onTap: () => _confirmRemoveMember(member, task),
+                 child: Container(
+                   padding: const EdgeInsets.all(6),
+                   margin: const EdgeInsets.only(right: 8),
+                   decoration: BoxDecoration(
+                     color: AppColors.errorRed.withOpacity(0.1),
+                     borderRadius: BorderRadius.circular(6),
+                   ),
+                   child: const Icon(Icons.remove_circle_outline, size: 18, color: AppColors.errorRed),
+                 ),
+               ),
+             // Admin controls for pending approval
              if (task.status == TaskStatus.pending)
                PopupMenuButton<String>(
                 icon: Icon(statusIcon, size: 20, color: statusColor),
@@ -616,8 +828,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 ],
               )
              else
-               Icon(statusIcon, size: 20, color: statusColor)
-          else
+               Icon(statusIcon, size: 20, color: statusColor),
+          ] else
             Icon(statusIcon, size: 20, color: statusColor),
         ],
       ),
@@ -629,23 +841,22 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-            ),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+            backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+              ? NetworkImage(member.avatarUrl!)
+              : null,
+            child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+              ? Text(
+                  member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                )
+              : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -668,6 +879,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Widget _buildActionSection() {
+    final hasStarted = DateTime.now().isAfter(widget.duty.startTime);
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -704,15 +917,20 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Xác nhận hoàn thành nhiệm vụ này?',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          Text(
+            hasStarted 
+              ? 'Xác nhận hoàn thành nhiệm vụ này?'
+              : 'Chưa đến thời gian bắt đầu (${_formatTime(widget.duty.startTime)} ngày ${_formatDate(widget.duty.startTime)})',
+            style: TextStyle(
+              fontSize: 13, 
+              color: hasStarted ? AppColors.textSecondary : AppColors.warningOrange,
+            ),
           ),
           const SizedBox(height: 16),
            SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _isSubmitting ? null : () async {
+              onPressed: (_isSubmitting || !hasStarted) ? null : () async {
                 setState(() => _isSubmitting = true);
                 try {
                   if (widget.task == null) return;
@@ -732,7 +950,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
+                backgroundColor: hasStarted ? AppColors.primaryBlue : Colors.grey,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -740,7 +958,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.check, color: Colors.white),
               label: Text(
-                _isSubmitting ? 'ĐANG GỬI...' : 'ĐÁNH DẤU LÀ XONG',
+                _isSubmitting ? 'ĐANG GỬI...' : (hasStarted ? 'ĐÁNH DẤU LÀ XONG' : 'CHƯA BẮT ĐẦU'),
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
@@ -771,29 +989,113 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Widget _buildAdminBottomBar() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _saveChanges,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.successGreen,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // End Duty button (if not already ended and can end)
+        if (!widget.duty.isEnded && widget.duty.canEndDuty)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _showEndDutyConfirmation,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.errorRed,
+                side: const BorderSide(color: AppColors.errorRed),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'KẾT THÚC NHIỆM VỤ',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
           ),
-        ),
-        child: const Text(
-          'LƯU THAY ĐỔI',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-            color: Colors.white,
+        if (!widget.duty.isEnded && widget.duty.canEndDuty)
+          const SizedBox(height: 12),
+        // Save Changes button - only show if duty is editable or has pending changes
+        if (widget.duty.canEdit || _selectedMembers.isNotEmpty || _removedMemberIds.isNotEmpty)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveChanges,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.successGreen,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'LƯU THAY ĐỔI',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
+      ],
+    );
+  }
+
+  Future<void> _showEndDutyConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Kết thúc nhiệm vụ?'),
+        content: const Text(
+          'Những thành viên chưa hoàn thành sẽ bị trừ điểm. Hành động này không thể hoàn tác.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorRed),
+            child: const Text('Kết thúc'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed == true && mounted) {
+      try {
+        await DutyService.endDuty(
+          classId: widget.duty.classId,
+          dutyId: widget.duty.id,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã kết thúc nhiệm vụ'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      }
+      catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: $e'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      }
+    }
   }
 
   String _formatDate(DateTime dt) {
@@ -804,7 +1106,6 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  // Edit actions
   void _editDateTime() async {
     final date = await showDatePicker(
       context: context,
@@ -812,13 +1113,15 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null) return;
+    if (date == null)
+      return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
     );
-    if (time == null) return;
+    if (time == null || date == _selectedDateTime)
+      return;
 
     setState(() {
       _selectedDateTime = DateTime(
@@ -851,7 +1154,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             const Padding(
               padding: EdgeInsets.all(20),
               child: Text(
-                'Chọn quy tắc',
+                'Chọn quy tắc tính điểm',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -869,7 +1172,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
 
                 final rules = snapshot.data?.where((r) => r.type == RuleType.duty).toList() ?? [];
                 if (rules.isEmpty)
-                  return const Text("No rules found");
+                  return const Text('Không tìm thấy quy tắc');
 
                 return Column(
                   children: rules.map((rule) => ListTile(
@@ -948,9 +1251,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text('Xong', style: TextStyle(color: Colors.white)),
                 ),
@@ -963,11 +1264,17 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   void _showMemberSelectionSheet(List<Member> allMembers) {
+    // Exclude currently assigned members (minus removed ones) and newly selected members
+    final excludedIds = <String>[
+      ...widget.duty.assigneeIds.where((id) => !_removedMemberIds.contains(id)),
+      ..._selectedMembers.map((m) => m.uid),
+    ];
+    
     showMemberSelectionSheet(
       context: context,
       allMembers: allMembers,
       selectedMembers: _selectedMembers,
-      excludedMemberIds: (List<String>.from(widget.duty.assigneeIds))..addAll(_selectedMembers.map((m) => m.uid)),
+      excludedMemberIds: excludedIds,
       closeOnSelect: false, 
       onMemberSelected: (member) {
         setState(() => _selectedMembers.add(member));
@@ -976,6 +1283,18 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Future<void> _saveChanges() async {
+    final bool hasNameChange = _titleController.text != widget.duty.name;
+    final bool hasDescChange = _descriptionController.text != (widget.duty.description ?? '');
+    final bool hasTimeChange = _selectedDateTime != widget.duty.startTime;
+    final bool hasRuleChange = _selectedRule != widget.duty.ruleName;
+    final bool hasPointsChange = _selectedPoints != widget.duty.points;
+    final bool hasMemberChanges = _selectedMembers.isNotEmpty || _removedMemberIds.isNotEmpty;
+
+    if (!hasNameChange && !hasDescChange && !hasTimeChange && !hasRuleChange && !hasPointsChange && !hasMemberChanges) {
+      Navigator.pop(context);
+      return;
+    }
+
     final List<Member> finalMembers = [];
     for (final id in widget.duty.assigneeIds) {
       if (!_removedMemberIds.contains(id)) {
@@ -994,12 +1313,12 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     await DutyService.updateDuty(
       classId: widget.duty.classId,
       dutyId: widget.duty.id,
-      name: _titleController.text != widget.duty.name ? _titleController.text : null,
-      description: _descriptionController.text != widget.duty.description ? _descriptionController.text : null,
-      startTime: _selectedDateTime != widget.duty.startTime ? _selectedDateTime : null,
-      ruleName: _selectedRule != widget.duty.ruleName ? _selectedRule : null,
-      points: _selectedPoints != widget.duty.points ? _selectedPoints : null,
-      newAssignees: finalMembers,
+      name: hasNameChange ? _titleController.text : null,
+      description: hasDescChange ? _descriptionController.text : null,
+      startTime: hasTimeChange ? _selectedDateTime : null,
+      ruleName: hasRuleChange ? _selectedRule : null,
+      points: hasPointsChange ? _selectedPoints : null,
+      newAssignees: hasMemberChanges ? finalMembers : null,
     );
 
     if (mounted) {

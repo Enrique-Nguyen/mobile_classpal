@@ -17,7 +17,7 @@ class DashboardRules extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'LUẬT',
+            'QUY TẮC TÍNH ĐIỂM',
             style: TextStyle(
               color: Colors.grey.shade500,
               fontSize: 12,
@@ -61,7 +61,7 @@ class DashboardRules extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Xem luật tính điểm',
+                          'Xem quy tắc tính điểm',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -70,7 +70,7 @@ class DashboardRules extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Nhiệm vụ · Sự kiện · Quỹ',
+                          'Định nghĩa điểm cho các hoạt động',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade500,

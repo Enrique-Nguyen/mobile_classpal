@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/core/models/rule.dart';
 
 class MemberCounts {
   final int total;
@@ -36,20 +36,9 @@ class ClassService {
     if (currentUser == null) throw Exception("Bạn chưa đăng nhập!");
     String joinCode = _generateJoinCode();
     try {
-      // 1. Tạo tham chiếu document mới (tự sinh ID)
+      final now = DateTime.now().millisecondsSinceEpoch;
       DocumentReference classRef = _firestore.collection('classes').doc();
-      DateTime now = DateTime.now();
 
-      // 2. Chuẩn bị dữ liệu lớp học
-      Class newClass = Class(
-        classId: classRef.id,
-        name: name,
-        joinCode: joinCode,
-        createdAt: now,
-        updatedAt: now,
-      );
-
-      // 3. Lấy thông tin User hiện tại (để lưu vào bảng Member)
       DocumentSnapshot userDoc = await _firestore
           .collection('users')
           .doc(currentUser.uid)
@@ -57,15 +46,16 @@ class ClassService {
       if (!userDoc.exists)
         throw Exception("Không tìm thấy thông tin người dùng!");
 
-      // UserModel userModel = UserModel.toObject(
-      //   userDoc.data() as Map<String, dynamic>,
-      // );
-
-      // 4. Bắt đầu Batch Write (Ghi 2 nơi cùng lúc)
       WriteBatch batch = _firestore.batch();
 
       // Thao tác A: Ghi thông tin lớp vào collection 'classes'
-      batch.set(classRef, newClass.toMap());
+      batch.set(classRef, {
+        "classId": classRef.id,
+        "name": name,
+        "joinCode": joinCode,
+        "createdAt": now,
+        "updatedAt": now,
+      });
 
       // Thao tác B: Ghi người tạo vào sub-collection 'members' với vai trò OWNER
       DocumentReference memberRef = classRef
@@ -74,7 +64,7 @@ class ClassService {
 
       final leaderboardRef = classRef.collection('leaderboards').doc();
       batch.set(leaderboardRef, {
-        "id": leaderboardRef.id,
+        "leaderboardId": leaderboardRef.id,
         "classId": classRef.id,
         "name": "Bảng xếp hạng lớp $name",
         "createdAt": now,
@@ -85,17 +75,44 @@ class ClassService {
         'uid': currentUser.uid,
         'name': currentUser.displayName,
         'role': 'Quản lý lớp',
-        'joinedAt': now.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
-        // 'cachedName': userModel
-        //     .userName, // Lưu tên để hiển thị nhanh danh sách thành viên
-        // 'cachedAvatar': userModel.avatarUrl,
+        'joinedAt': now,
+        'updateAt': now,
       });
 
-      // 5. Thực thi
+      final dutyRuleRef = classRef.collection('rules').doc();
+      batch.set(dutyRuleRef, {
+        "ruleId": dutyRuleRef.id,
+        "classId": classRef.id,
+        "name": "Trực nhật",
+        "type": RuleType.duty.storageKey,
+        "points": 5,
+        "createdAt": now,
+        "updatedAt": now,
+      });
+
+      final fundRuleRef = classRef.collection('rules').doc();
+      batch.set(fundRuleRef, {
+        "ruleId": fundRuleRef.id,
+        "classId": classRef.id,
+        "name": "Quỹ lớp hàng tháng",
+        "type": RuleType.fund.storageKey,
+        "points": 5,
+        "createdAt": now,
+        "updatedAt": now,
+      });
+
+      final eventRuleRef = classRef.collection('rules').doc();
+      batch.set(eventRuleRef, {
+        "ruleId": eventRuleRef.id,
+        "classId": classRef.id,
+        "name": "Sinh hoạt lớp",
+        "type": RuleType.event.storageKey,
+        "points": 5,
+        "createdAt": now,
+        "updatedAt": now,
+      });
       await batch.commit();
-    }
-    catch (e) {
+    } catch (e) {
       throw Exception("Lỗi tạo lớp: $e");
     }
   }
@@ -109,7 +126,6 @@ class ClassService {
       QuerySnapshot classQuery = await _firestore
           .collection('classes')
           .where('joinCode', isEqualTo: codeInput)
-          .limit(1)
           .get();
 
       if (classQuery.docs.isEmpty) {
@@ -134,7 +150,7 @@ class ClassService {
       }
 
       // 4. Lấy thông tin user hiện tại
-      DateTime now = DateTime.now();
+      final now = DateTime.now().millisecondsSinceEpoch;
 
       // 5. Ghi thông tin vào Sub-collection 'members'
       // Không cần dùng Batch vì chỉ ghi 1 nơi, dùng set là đủ.
@@ -142,11 +158,10 @@ class ClassService {
         'uid': currentUser.uid,
         'name': currentUser.displayName ?? "Unknown",
         'role': 'Thành viên lớp',
-        'joinedAt': now.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
+        'joinedAt': now,
+        'updateAt': now,
       });
-    }
-    catch (e) {
+    } catch (e) {
       throw Exception("$e").toString().replaceAll('Exception:', "");
     }
   }
@@ -403,6 +418,48 @@ class ClassService {
       }
       await batch.commit();
       processed += chunk.length;
+    }
+  }
+
+  Future<void> updateAvatar({
+    required String classId,
+    required String memberId,
+    required String url,
+  }) async {
+    try {
+      final memberRef = _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .doc(memberId);
+      await memberRef.update({
+        'avatarUrl': url,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    } catch (e) {
+      print("Lỗi update avatar: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> updateMemberName({
+    required String classId,
+    required String memberId,
+    required String fullName,
+  }) async {
+    try {
+      final memberRef = _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .doc(memberId);
+      await memberRef.update({
+        'name': fullName,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    } catch (e) {
+      print("Lỗi cập nhật tên: $e");
+      rethrow;
     }
   }
 }

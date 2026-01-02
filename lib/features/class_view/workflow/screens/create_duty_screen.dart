@@ -30,6 +30,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
   final _ruleNoteController = TextEditingController();
   
   DateTime _selectedDateTime = DateTime.now().add(const Duration(hours: 1));
+  DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 1)); // Default: 1 day from now
   Rule? _selectedRule;
   final List<Member> _selectedMembers = [];
   bool _isLoading = false;
@@ -115,8 +116,8 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 controller: _titleController,
                 hint: 'Ví dụ: Lau bảng sau giờ học',
                 validator: (value) => value?.isEmpty ?? true
-                    ? 'Vui lòng nhập tên nhiệm vụ'
-                    : null,
+                  ? 'Vui lòng nhập tên nhiệm vụ'
+                  : null,
               ),
               const SizedBox(height: 12),
               _buildSectionTitle('MÔ TẢ'),
@@ -139,12 +140,21 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                     selectedMembers: _selectedMembers,
                     onAddTap: () => showMemberSelectionSheet(
                       context: context,
-                      allMembers: allMembers, // Pass real members
+                      allMembers: allMembers,
                       selectedMembers: _selectedMembers,
                       onMemberSelected: (member) {
                         setState(() {
                           if (!_selectedMembers.any((m) => m.uid == member.uid)) {
                             _selectedMembers.add(member);
+                          }
+                        });
+                      },
+                      onSelectAll: (members) {
+                        setState(() {
+                          for (final m in members) {
+                            if (!_selectedMembers.any((s) => s.uid == m.uid)) {
+                              _selectedMembers.add(m);
+                            }
                           }
                         });
                       },
@@ -154,11 +164,14 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                         _selectedMembers.removeWhere((m) => m.uid == member.uid);
                       });
                     },
+                    onRemoveAll: () {
+                      setState(() => _selectedMembers.clear());
+                    },
                   );
                 },
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('QUY TẮC NHIỆM VỤ'),
+              _buildRuleSectionTitle(),
               const SizedBox(height: 8),
               StreamBuilder<List<Rule>>(
                 stream: _rulesStream,
@@ -174,9 +187,19 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('THỜI GIAN'),
+              _buildSectionTitle('THỜI GIAN BẮT ĐẦU'),
               const SizedBox(height: 8),
-              _buildDateTimePicker(),
+              _buildDateTimePicker(
+                value: _selectedDateTime,
+                onPick: () => _pickDateTime(isDeadline: false),
+              ),
+              const SizedBox(height: 24),
+              _buildSectionTitle('THỜI HẠN (DEADLINE)'),
+              const SizedBox(height: 8),
+              _buildDateTimePicker(
+                value: _selectedDeadline,
+                onPick: () => _pickDateTime(isDeadline: true),
+              ),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
@@ -191,22 +214,22 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Tạo nhiệm vụ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
                         ),
+                      )
+                    : const Text(
+                        'Tạo nhiệm vụ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -345,12 +368,76 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
     );
   }
 
-  Widget _buildDateTimePicker() {
+  Widget _buildRuleSectionTitle() {
+    return Row(
+      children: [
+        _buildSectionTitle('QUY TẮC TÍNH ĐIỂM'),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: _showRulesHelpDialog,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.help_outline_rounded,
+              size: 14,
+              color: AppColors.primaryBlue,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showRulesHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.rule_folder_rounded, color: AppColors.primaryBlue),
+            const SizedBox(width: 10),
+            const Text('Quy tắc tính điểm'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quy tắc tính điểm xác định số điểm thành viên nhận được khi hoàn thành nhiệm vụ này.',
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '• Điểm được cộng vào bảng xếp hạng lớp\n• Mỗi quy tắc có mức điểm khác nhau\n• Quản trị viên có thể tạo quy tắc mới từ Tổng quan',
+              style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateTimePicker({
+    required DateTime value,
+    required VoidCallback onPick,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: _pickDateTime,
+          onTap: onPick,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
@@ -367,7 +454,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  _formatDateTime(_selectedDateTime),
+                  _formatDateTime(value),
                   style: const TextStyle(fontSize: 14),
                 ),
                 const Spacer(),
@@ -384,10 +471,11 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
     );
   }
 
-  Future<void> _pickDateTime() async {
+  Future<void> _pickDateTime({required bool isDeadline}) async {
+    final currentValue = isDeadline ? _selectedDeadline : _selectedDateTime;
     final date = await showDatePicker(
       context: context,
-      initialDate: _selectedDateTime,
+      initialDate: currentValue,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -395,18 +483,23 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
 
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      initialTime: TimeOfDay.fromDateTime(currentValue),
     );
     if (time == null) return;
 
+    final newDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
     setState(() {
-      _selectedDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
+      if (isDeadline)
+        _selectedDeadline = newDateTime;
+      else
+        _selectedDateTime = newDateTime;
     });
   }
 
@@ -449,6 +542,7 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
               ? null 
               : _descriptionController.text.trim(),
           startTime: _selectedDateTime,
+          endTime: _selectedDeadline,
           ruleName: _selectedRule!.name,
           points: _selectedRule!.points,
           assignees: _selectedMembers,
