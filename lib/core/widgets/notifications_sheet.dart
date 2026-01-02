@@ -7,7 +7,6 @@ import '../models/member.dart';
 import '../providers/notification_provider.dart';
 import 'notification_tile.dart';
 
-/// Show notifications as an expandable bottom sheet
 void showNotificationsSheet(
   BuildContext context, {
   required String classId,
@@ -15,9 +14,7 @@ void showNotificationsSheet(
   Class? classData,
   Member? currentMember,
 }) {
-  // Mark all notifications as seen when opening the sheet
   NotificationService.markAllAsSeen(classId, uid);
-
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -151,7 +148,7 @@ class _NotificationsSheet extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: notifications.length,
                       separatorBuilder: (context, index) =>
-                          const Divider(height: 1, indent: 72),
+                        const Divider(height: 1, indent: 72),
                       itemBuilder: (context, index) {
                         final notif = notifications[index];
                         return NotificationTile(

@@ -140,7 +140,7 @@ class NotificationService {
       .doc(classId)
       .collection('notifications')
       .where('uid', isEqualTo: uid)
-      // .orderBy('createdAt', descending: true)
+      .orderBy('createdAt', descending: true)
       .snapshots()
       .asyncMap((snapshot) async {
         final notifications = snapshot.docs
@@ -176,27 +176,7 @@ class NotificationService {
           filteredNotifications.add(notif);
         }
 
-        filteredNotifications.sort((a, b) {
-          final now = DateTime.now();
-          if (a.isSeen != b.isSeen)
-            return a.isSeen ? 1 : -1;
-
-          // For events and duties, sort by urgency (signupEndTime, startTime)
-          if (a.type != NotificationType.fund && b.type != NotificationType.fund) {
-            // Both are event or duty
-            final aUrgency = a.signupEndTime ?? a.startTime ?? a.createdAt;
-            final bUrgency = b.signupEndTime ?? b.startTime ?? b.createdAt;
-            
-            // Closer to now = more urgent = should come first
-            final aDiff = aUrgency.difference(now).inMinutes.abs();
-            final bDiff = bUrgency.difference(now).inMinutes.abs();
-            return aDiff.compareTo(bDiff);
-          }
-          
-          // Funds just sort by createdAt (newest first)
-          return b.createdAt.compareTo(a.createdAt);
-        });
-
+        // filteredNotifications.sort((a, b) => a.createdAt.compareTo(b.createdAt));
         return filteredNotifications;
       });
   }

@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/task.dart';
 import 'package:mobile_classpal/core/models/notification.dart' as notif_model;
 import 'package:mobile_classpal/features/class_view/overview/services/notification_service.dart';
+import 'package:mobile_classpal/features/class_view/workflow/services/duty_service.dart';
 import '../../../../core/models/fund_transaction.dart';
 
 class FundService {
@@ -234,11 +236,11 @@ class FundService {
     required int createdAt,
     DateTime? deadline,
   }) async {
-    final dutyRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc();
+    // final dutyRef = _firestore
+    //   .collection('classes')
+    //   .doc(classId)
+    //   .collection('duties')
+    //   .doc();
 
     final membersSnapshot = await _firestore
       .collection('classes')
@@ -267,63 +269,54 @@ class FundService {
     }
 
     final endTimeMillis = deadline?.millisecondsSinceEpoch ?? (createdAt + const Duration(days: 7).inMilliseconds);
-
-    batch.set(dutyRef, {
-      'id': dutyRef.id,
-      'classId': classId,
-      'name': title,
-      'originId': originId,
-      'originType': 'funds',
-      'description': description,
-      'note': amount,
-      'startTime': createdAt,
-      'endTime': endTimeMillis,
-      'ruleName': ruleName,
-      'points': points,
-      'assigneeIds': memberUids,
-      'createdAt': createdAt,
-      'updatedAt': createdAt,
-    });
-
-    for (final memberUid in memberUids) {
-      _addTaskToBatch(
-        batch: batch,
+    await DutyService.createDuty(
+      classId: classId,
+      name: title,
+      description: description,
+      ruleName: ruleName,
+      originId: originId,
+      originType: 'funds',
+      note: amount.toString(),
+      startTime: DateTime.fromMillisecondsSinceEpoch(createdAt),
+      endTime: DateTime.fromMillisecondsSinceEpoch(endTimeMillis),
+      points: points,
+      assignees: memberUids.map((uid) => Member(
+        uid: uid,
+        name: '',
         classId: classId,
-        dutyId: dutyRef.id,
-        memberUid: memberUid,
-        createdAt: createdAt,
-      );
-    }
+        role: MemberRole.thanhVien,
+        joinedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      )).toList(),
+    );
+    // batch.set(dutyRef, {
+    //   'id': dutyRef.id,
+    //   'classId': classId,
+    //   'name': title,
+    //   'originId': originId,
+    //   'originType': 'funds',
+    //   'description': description,
+    //   'note': amount.toString(),
+    //   'startTime': createdAt,
+    //   'endTime': endTimeMillis,
+    //   'ruleName': ruleName,
+    //   'points': points,
+    //   'assigneeIds': memberUids,
+    //   'createdAt': createdAt,
+    //   'updatedAt': createdAt,
+    // });
+
+    // for (final memberUid in memberUids) {
+    //   _addTaskToBatch(
+    //     batch: batch,
+    //     classId: classId,
+    //     dutyId: dutyRef.id,
+    //     memberUid: memberUid,
+    //     createdAt: createdAt,
+    //   );
+    // }
   }
 
-  /// Helper: Thêm task vào batch
-  static void _addTaskToBatch({
-    required WriteBatch batch,
-    required String classId,
-    required String dutyId,
-    required String memberUid,
-    required int createdAt,
-  }) {
-    final taskRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc(dutyId)
-        .collection('tasks')
-        .doc();
-
-    batch.set(taskRef, {
-      'id': taskRef.id,
-      'classId': classId,
-      'dutyId': dutyId,
-      'uid': memberUid,
-      'status': TaskStatus.incomplete.storageKey,
-      'createdAt': createdAt,
-      'updatedAt': createdAt,
-    });
-  }
-
-  /// Helper: Format currency
   static String _formatCurrency(double amount) {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(1)}tr';

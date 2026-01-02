@@ -33,7 +33,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   late TextEditingController _descriptionController;
   late String _selectedRule;
   late double _selectedPoints;
-  DateTime? _selectedDateTime;
+  late DateTime _selectedDateTime;
 
   bool _isSubmitting = false;
 
@@ -47,11 +47,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     _descriptionController = TextEditingController(text: widget.duty.description ?? '');
     _selectedRule = widget.duty.ruleName;
     _selectedPoints = widget.duty.points.toDouble();
-    _initializeDateTime();
-  }
-
-  void _initializeDateTime() {
-    _selectedDateTime = DateTime.now().add(const Duration(hours: 2));
+    _selectedDateTime = widget.duty.startTime;
   }
 
   @override
@@ -1122,9 +1118,9 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
 
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDateTime ?? DateTime.now()),
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
     );
-    if (time == null)
+    if (time == null || date == _selectedDateTime)
       return;
 
     setState(() {
@@ -1287,7 +1283,6 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Future<void> _saveChanges() async {
-    // Early return if nothing has changed
     final bool hasNameChange = _titleController.text != widget.duty.name;
     final bool hasDescChange = _descriptionController.text != (widget.duty.description ?? '');
     final bool hasTimeChange = _selectedDateTime != widget.duty.startTime;
@@ -1296,7 +1291,6 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     final bool hasMemberChanges = _selectedMembers.isNotEmpty || _removedMemberIds.isNotEmpty;
 
     if (!hasNameChange && !hasDescChange && !hasTimeChange && !hasRuleChange && !hasPointsChange && !hasMemberChanges) {
-      // Nothing changed, just return silently
       Navigator.pop(context);
       return;
     }

@@ -45,7 +45,6 @@ class NotificationConfig {
   }
 }
 
-/// Format time ago string for notifications
 String formatTimeAgo(DateTime dateTime) {
   final now = DateTime.now();
   final difference = now.difference(dateTime);

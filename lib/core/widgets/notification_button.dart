@@ -6,13 +6,9 @@ import '../models/member.dart';
 import '../providers/notification_provider.dart';
 import 'notifications_sheet.dart';
 
-/// Reusable notification button widget with badge
-/// Shows unseen notification count and opens notification sheet on tap
 class NotificationButton extends ConsumerWidget {
   final Class classData;
-  final Member currentMember;
-  
-  /// Whether to use dark theme (white icon on transparent/dark bg)
+  final Member currentMember;  
   final bool isDarkTheme;
 
   const NotificationButton({
@@ -45,13 +41,9 @@ class NotificationButton extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDarkTheme 
-                  ? Colors.white.withOpacity(0.1) 
-                  : Colors.white,
+              color: isDarkTheme ? Colors.white.withOpacity(0.1) : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: isDarkTheme 
-                  ? null 
-                  : Border.all(color: Colors.grey.shade200),
+              border: isDarkTheme ? null : Border.all(color: Colors.grey.shade200),
             ),
             child: Icon(
               Icons.notifications_outlined,
@@ -62,31 +54,31 @@ class NotificationButton extends ConsumerWidget {
           // Badge for unseen count
           unseenCountAsync.when(
             data: (count) => count > 0
-                ? Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.errorRed,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 18,
-                        minHeight: 18,
-                      ),
-                      child: Text(
-                        count > 99 ? '99+' : count.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+              ? Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppColors.errorRed,
+                      shape: BoxShape.circle,
                     ),
-                  )
-                : const SizedBox.shrink(),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),

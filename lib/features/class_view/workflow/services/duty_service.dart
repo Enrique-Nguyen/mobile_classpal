@@ -26,8 +26,12 @@ class DutyService {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
+    final dutyRef = _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc();
 
-    final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc();
     batch.set(dutyRef, {
       'id': dutyRef.id,
       'classId': classId,
@@ -88,13 +92,29 @@ class DutyService {
       createdAt: now,
     );
 
-    final dutyRef = _firestore.collection('classes').doc(classId).collection('duties').doc(dutyId);
+    final dutyRef = _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc(dutyId);
     batch.update(dutyRef, {
       'assigneeIds': FieldValue.arrayUnion([assigneeUid]),
       'updatedAt': now,
     });
 
     await batch.commit();
+    final dutySnapshot = await dutyRef.get();
+    final dutyData = Duty.fromMap(dutySnapshot.data()!);
+
+    await NotificationService.createNotification(
+      classId: classId,
+      uid: assigneeUid,
+      type: notif_model.NotificationType.duty,
+      title: 'Nhiệm vụ mới: ${dutyData.name}',
+      subtitle: 'Thời hạn: ${dutyData.endTime.day.toString().padLeft(2, '0')}/${dutyData.endTime.month.toString().padLeft(2, '0')}/${dutyData.endTime.year} lúc ${dutyData.endTime.hour.toString().padLeft(2, '0')}:${dutyData.endTime.minute.toString().padLeft(2, '0')}',
+      referenceId: dutyId,
+      startTime: dutyData.startTime,
+    );
   }
 
   /// Xóa task của một member từ duty
@@ -113,7 +133,8 @@ class DutyService {
       .where('uid', isEqualTo: memberUid)
       .get();
 
-    if (tasksSnapshot.docs.isEmpty) return;
+    if (tasksSnapshot.docs.isEmpty)
+      return;
 
     final batch = _firestore.batch();
     for (final doc in tasksSnapshot.docs)
