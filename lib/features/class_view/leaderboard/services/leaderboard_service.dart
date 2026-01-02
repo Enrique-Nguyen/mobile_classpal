@@ -93,6 +93,36 @@ class LeaderboardService {
     });
   }
 
+  /// Creates a penalty (negative points) for a member when a duty ends incomplete
+  static Future<void> createPenalty({
+    required String classId,
+    required String memberUid,
+    required String dutyName,
+    required double points,
+  }) async {
+    final currentLeaderboard = await getCurrentLeaderboard(classId);
+    if (currentLeaderboard == null) {
+      return;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final achievementRef = _firestore
+      .collection('classes')
+      .doc(classId)
+      .collection('achievements')
+      .doc();
+
+    await achievementRef.set({
+      'achievementId': achievementRef.id,
+      'classId': classId,
+      'leaderboardId': currentLeaderboard.leaderboardId,
+      'memberUid': memberUid,
+      'title': dutyName,
+      'points': -points.abs(),
+      'awardedAt': now,
+    });
+  }
+
   static Stream<List<Achievement>> streamMemberAchievements({
     required String classId,
     required String leaderboardId,

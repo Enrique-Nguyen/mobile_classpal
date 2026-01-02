@@ -4,7 +4,6 @@ import 'package:mobile_classpal/core/models/notification.dart';
 class NotificationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Tạo thông báo cho một người dùng
   static Future<String> createNotification({
     required String classId,
     required String uid,
@@ -39,7 +38,6 @@ class NotificationService {
     return notifRef.id;
   }
 
-  /// Tạo thông báo cho nhiều thành viên (batch)
   static Future<void> createNotificationsForMembers({
     required String classId,
     required List<String> memberUids,
@@ -80,9 +78,6 @@ class NotificationService {
     await batch.commit();
   }
 
-  /// Stream thông báo của một user, sắp xếp theo ưu tiên
-  /// Event/Duty: signupEndTime -> startTime -> createdAt
-  /// Fund: createdAt
   static Stream<List<Notification>> streamUserNotifications(String classId, String uid) {
     return _firestore
       .collection('classes')
@@ -91,19 +86,31 @@ class NotificationService {
       .where('uid', isEqualTo: uid)
       // .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((snapshot) {
+      .asyncMap((snapshot) async {
         final notifications = snapshot.docs
           .map((doc) => Notification.fromMap(doc.data()))
           .toList();
 
-        // Sort by priority: events/duties by signupEndTime/startTime, funds by createdAt
-        notifications.sort((a, b) {
-          final now = DateTime.now();
-          
-          // Prioritize unseen over seen
-          if (a.isSeen != b.isSeen) {
-            return a.isSeen ? 1 : -1;
+        // Filter out completed/ended duty notifications
+        final filteredNotifications = <Notification>[];
+        for (final notif in notifications) {
+          if (notif.type == NotificationType.duty && notif.referenceId != null) {
+            // Check if duty is ended or task is completed
+            final shouldHide = await _shouldHideDutyNotification(
+              classId: classId,
+              dutyId: notif.referenceId!,
+              uid: uid,
+            );
+            if (shouldHide)
+              continue;
           }
+          filteredNotifications.add(notif);
+        }
+
+        filteredNotifications.sort((a, b) {
+          final now = DateTime.now();
+          if (a.isSeen != b.isSeen)
+            return a.isSeen ? 1 : -1;
 
           // For events and duties, sort by urgency (signupEndTime, startTime)
           if (a.type != NotificationType.fund && b.type != NotificationType.fund) {
@@ -121,11 +128,54 @@ class NotificationService {
           return b.createdAt.compareTo(a.createdAt);
         });
 
-        return notifications;
+        return filteredNotifications;
       });
   }
 
-  /// Stream số lượng thông báo chưa đọc
+  static Future<bool> _shouldHideDutyNotification({
+    required String classId,
+    required String dutyId,
+    required String uid,
+  }) async {
+    try {
+      final dutyDoc = await _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .get();
+      
+      if (!dutyDoc.exists)
+        return true;
+
+      final dutyData = dutyDoc.data()!;
+      if (dutyData['endedAt'] != null)
+        return true;
+
+      final taskSnapshot = await _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+      if (taskSnapshot.docs.isNotEmpty) {
+        final taskData = taskSnapshot.docs.first.data();
+        final status = taskData['status'] as String?;
+        if (status == 'Hoàn thành' || status == 'completed')
+          return true;
+      }
+      
+      return false;
+    }
+    catch (e) {
+      return false;
+    }
+  }
+
   static Stream<int> streamUnseenCount(String classId, String uid) {
     return _firestore
       .collection('classes')
@@ -146,7 +196,6 @@ class NotificationService {
   /// Đánh dấu tất cả thông báo là đã đọc
   static Future<void> markAllAsSeen(String classId, String uid) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    
     final querySnapshot = await _firestore
       .collection('classes')
       .doc(classId)
@@ -155,29 +204,25 @@ class NotificationService {
       .where('seenAt', isNull: true)
       .get();
 
-    if (querySnapshot.docs.isEmpty) return;
+    if (querySnapshot.docs.isEmpty)
+      return;
 
     final batch = _firestore.batch();
-    for (final doc in querySnapshot.docs) {
-      batch.update(doc.reference, {'seenAt': now});
-    }
+    for (final doc in querySnapshot.docs)
+      batch.update(doc.reference, { 'seenAt': now });
+
     await batch.commit();
   }
 
-  /// Lấy 3 thông báo mới nhất cho dashboard
-  static Stream<List<Notification>> streamLatestNotifications(String classId, String uid, {int limit = 3}) {
-    return _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('notifications')
-      .where('uid', isEqualTo: uid)
-      // .orderBy('createdAt', descending: true)
-      .limit(limit)
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => Notification.fromMap(doc.data())).toList());
+  static Stream<List<Notification>> streamLatestNotifications({
+    required String classId,
+    required String uid,
+    int limit = 3,
+  }) {
+    // Reuse the main stream with filtering, just take first N items
+    return streamUserNotifications(classId, uid).map((notifications) => notifications.take(limit).toList());
   }
 
-  /// Xóa một thông báo
   static Future<void> deleteNotification(String classId, String notificationId) async {
     await _firestore
       .collection('classes')
