@@ -29,7 +29,8 @@ class DutyWithTask {
 
 class DutyHelper {
   static DutyExtraInfo? parseNoteField(Duty d) {
-    if (d.note == null || d.note!.isEmpty) return null;
+    if (d.note == null || d.note!.isEmpty)
+      return null;
     
     if (d.originType == "event") {
       return DutyExtraInfo(

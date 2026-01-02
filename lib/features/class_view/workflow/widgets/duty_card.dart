@@ -9,6 +9,7 @@ class DutyCard extends StatelessWidget {
   final String ruleName;
   final int points;
   final bool isAssignedToMonitor;
+  final bool needsAssignees;
   final DutyExtraInfo? extraInfo;
   final VoidCallback? onTap;
 
@@ -20,6 +21,7 @@ class DutyCard extends StatelessWidget {
     required this.ruleName,
     required this.points,
     this.isAssignedToMonitor = false,
+    this.needsAssignees = false,
     this.extraInfo,
     this.onTap,
   });
@@ -118,6 +120,36 @@ class DutyCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Needs Assignees warning badge
+                if (needsAssignees) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.errorRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.errorRed.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.warning_amber_rounded, size: 12, color: AppColors.errorRed),
+                        SizedBox(width: 4),
+                        Text(
+                          'Cần thêm người',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.errorRed,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),

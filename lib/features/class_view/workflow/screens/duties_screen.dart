@@ -386,6 +386,7 @@ class _DutiesScreenMonitorState extends ConsumerState<DutiesScreenMonitor> {
       ruleName: duty.ruleName,
       points: duty.points.toInt(),
       isAssignedToMonitor: duty.assigneeIds.contains(widget.currentMember.uid),
+      needsAssignees: duty.needsAssignees,
       extraInfo: DutyHelper.parseNoteField(duty),
       onTap: () async {
         final isAssignedToAdmin = duty.assigneeIds.contains(widget.currentMember.uid);

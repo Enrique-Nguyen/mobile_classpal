@@ -37,10 +37,15 @@ class _EventsScreenContentState extends ConsumerState<EventsScreenContent> {
   }
 
   List<Event> _filterEvents(List<Event> events) {
-    if (_searchQuery.isEmpty) return events;
-    return events.where((event) {
-      return event.name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    final now = DateTime.now();
+    // Filter out events past signup time
+    var filtered = events.where((e) => now.isBefore(e.signupEndTime)).toList();
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((event) {
+        return event.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      }).toList();
+    }
+    return filtered;
   }
 
   String _formatDate(DateTime dateTime) {

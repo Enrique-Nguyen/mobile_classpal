@@ -16,11 +16,13 @@ class DutyService {
     String? originId,
     String? originType,
     String? description,
+    String? note,
     required DateTime startTime,
     required DateTime endTime,
     required String ruleName,
     required double points,
     List<Member>? assignees,
+    DateTime? signupEndTime, // For event-origin duties
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
@@ -33,6 +35,7 @@ class DutyService {
       'originId': originId,
       'originType': originType,
       'description': description,
+      'note': note,
       'startTime': startTime.millisecondsSinceEpoch,
       'endTime': endTime.millisecondsSinceEpoch,
       'ruleName': ruleName,
@@ -40,6 +43,7 @@ class DutyService {
       'assigneeIds': assignees?.map((m) => m.uid).toList() ?? [],
       'createdAt': now,
       'updatedAt': now,
+      'signupEndTime': signupEndTime?.millisecondsSinceEpoch,
     });
 
     if (assignees != null && assignees.isNotEmpty) {

@@ -24,10 +24,10 @@ class EventService {
   }) async {
     final now = DateTime.now();
     final eventRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('events')
-        .doc();
+      .collection('classes')
+      .doc(classId)
+      .collection('events')
+      .doc();
 
     await eventRef.set({
       'id': eventRef.id,
@@ -51,11 +51,12 @@ class EventService {
       originId: eventRef.id,
       originType: 'event',
       description: description,
-      startTime: signupEndTime, // Hạn đăng ký là startTime của duty
-      endTime: startTime, // Ngày tổ chức event là deadline của duty
+      note: location,
+      startTime: startTime,
+      endTime: startTime.add(const Duration(hours: 1)),
       ruleName: ruleName,
       points: points,
-      assignees: null, // Không chỉ định ai
+      signupEndTime: signupEndTime,
     );
 
     // Gửi thông báo cho tất cả thành viên
@@ -135,38 +136,38 @@ class EventService {
     if (points != null) updates['points'] = points;
 
     await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('events')
-        .doc(eventId)
-        .update(updates);
+      .collection('classes')
+      .doc(classId)
+      .collection('events')
+      .doc(eventId)
+      .update(updates);
 
     // Đồng bộ thay đổi với duty liên quan
-    final duty = await getDutyByEventId(classId, eventId);
-    if (duty != null) {
-      await DutyService.updateDuty(
-        classId: classId,
-        dutyId: duty.id,
-        name: name,
-        description: description,
-        startTime: signupEndTime, // startTime của duty = signupEndTime của event
-        ruleName: ruleName,
-        points: points,
-      );
+    // final duty = await getDutyByEventId(classId, eventId);
+    // if (duty != null) {
+    //   await DutyService.updateDuty(
+    //     classId: classId,
+    //     dutyId: duty.id,
+    //     name: name,
+    //     description: description,
+    //     startTime: signupEndTime, // startTime của duty = signupEndTime của event
+    //     ruleName: ruleName,
+    //     points: points,
+    //   );
       
-      // Cập nhật endTime (deadline) của duty nếu startTime của event thay đổi
-      if (startTime != null) {
-        await _firestore
-          .collection('classes')
-          .doc(classId)
-          .collection('duties')
-          .doc(duty.id)
-          .update({
-            'endTime': startTime.millisecondsSinceEpoch,
-            'updatedAt': DateTime.now().millisecondsSinceEpoch,
-          });
-      }
-    }
+    //   // Cập nhật endTime (deadline) của duty nếu startTime của event thay đổi
+    //   if (startTime != null) {
+    //     await _firestore
+    //       .collection('classes')
+    //       .doc(classId)
+    //       .collection('duties')
+    //       .doc(duty.id)
+    //       .update({
+    //         'endTime': startTime.millisecondsSinceEpoch,
+    //         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    //       });
+    //   }
+    // }
   }
 
   /// Xóa sự kiện và duty liên quan

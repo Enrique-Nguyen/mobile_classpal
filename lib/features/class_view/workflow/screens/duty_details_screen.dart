@@ -169,6 +169,33 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     String label;
     IconData icon;
 
+    // Check for needs-assignees warning (event signup ended with no signups)
+    if (widget.isAdmin && widget.duty.needsAssignees) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.errorRed.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.errorRed, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.errorRed),
+            SizedBox(width: 6),
+            Text(
+              'Cần thêm người tham gia',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.errorRed,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (widget.isAdmin) {
       color = AppColors.primaryBlue;
       label = 'Quản lý nhiệm vụ';
@@ -239,7 +266,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             icon: Icons.calendar_today_outlined,
             label: 'Thời điểm bắt đầu',
             value: '${_formatTime(widget.duty.startTime)} ngày ${_formatDate(widget.duty.startTime)}',
-            onEdit: widget.isAdmin ? () => _editDateTime() : null,
+            onEdit: widget.isAdmin && widget.duty.canEdit ? () => _editDateTime() : null,
           ),
           const Divider(height: 24),
           _buildInfoRow(
@@ -254,7 +281,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             icon: Icons.bookmark_outline,
             label: 'Quy tắc',
             value: _selectedRule,
-            onEdit: widget.isAdmin ? () => _editRule() : null,
+            onEdit: widget.isAdmin && widget.duty.canEdit ? () => _editRule() : null,
           ),
           const Divider(height: 24),
           _buildInfoRow(
@@ -385,7 +412,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                   ),
                 ),
               ),
-              if (widget.isAdmin)
+              if (widget.isAdmin && widget.duty.canEdit)
                 GestureDetector(
                   onTap: _editDescription,
                   child: Container(
@@ -475,31 +502,33 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                           ),
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () => _showMemberSelectionSheet(allMembers),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
-                              SizedBox(width: 4),
-                              Text(
-                                'Thêm',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryBlue,
+                      // Only show add button if duty can be edited (for event duties after signup, or direct duties)
+                      if (widget.duty.canEdit)
+                        GestureDetector(
+                          onTap: () => _showMemberSelectionSheet(allMembers),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 16, color: AppColors.primaryBlue),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Thêm',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryBlue,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -799,8 +828,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // End Duty button (if not already ended)
-        if (!widget.duty.isEnded)
+        // End Duty button (if not already ended and can end)
+        if (!widget.duty.isEnded && widget.duty.canEndDuty)
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -823,7 +852,7 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
               ),
             ),
           ),
-        if (!widget.duty.isEnded)
+        if (!widget.duty.isEnded && widget.duty.canEndDuty)
           const SizedBox(height: 12),
         // Save Changes button
         SizedBox(

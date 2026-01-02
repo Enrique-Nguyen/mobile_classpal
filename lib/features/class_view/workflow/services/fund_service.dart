@@ -181,8 +181,8 @@ class FundService {
   static Stream<double> streamTotalExpense(String classId) {
     return streamTransactions(classId).map((transactions) {
       return transactions
-          .where((t) => t.type == 'expense')
-          .fold<double>(0, (sum, t) => sum + t.amount);
+        .where((t) => t.type == 'expense')
+        .fold<double>(0, (sum, t) => sum + t.amount);
     });
   }
 
@@ -193,15 +193,14 @@ class FundService {
       double expense = 0;
 
       for (final tx in transactions) {
-        if (tx.type == 'income') {
+        if (tx.type == 'income')
           income += tx.amount;
-        } else if (tx.type == 'payment') {
-          // Với payment, chỉ cộng số tiền đã thu được
+        else if (tx.type == 'payment') {
           final collected = await streamPaymentCollected(classId, tx.id).first;
           income += collected;
-        } else if (tx.type == 'expense') {
-          expense += tx.amount;
         }
+        else if (tx.type == 'expense')
+          expense += tx.amount;
       }
 
       return income - expense;
@@ -214,17 +213,13 @@ class FundService {
     String type,
   ) {
     return _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('funds')
-        .where('type', isEqualTo: type)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => FundTransaction.fromMap(doc.data()))
-              .toList(),
-        );
+      .collection('classes')
+      .doc(classId)
+      .collection('funds')
+      .where('type', isEqualTo: type)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => FundTransaction.fromMap(doc.data())).toList());
   }
 
   /// Helper: Tạo duty cho khoản đóng quỹ
@@ -239,55 +234,48 @@ class FundService {
     required int createdAt,
     DateTime? deadline,
   }) async {
-    // Tạo duty document
     final dutyRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('duties')
-        .doc();
+      .collection('classes')
+      .doc(classId)
+      .collection('duties')
+      .doc();
 
-    // Lấy danh sách tất cả members trong lớp
     final membersSnapshot = await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('members')
-        .get();
+      .collection('classes')
+      .doc(classId)
+      .collection('members')
+      .get();
 
     final memberUids = membersSnapshot.docs.map((doc) => doc.id).toList();
-
-    // Lấy points từ rule
     double points = 0;
     try {
       final ruleSnapshot = await _firestore
-          .collection('classes')
-          .doc(classId)
-          .collection('rules')
-          .where('name', isEqualTo: ruleName)
-          .where('type', isEqualTo: 'fund')
-          .limit(1)
-          .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('rules')
+        .where('name', isEqualTo: ruleName)
+        .where('type', isEqualTo: 'fund')
+        .limit(1)
+        .get();
 
       if (ruleSnapshot.docs.isNotEmpty) {
         points = (ruleSnapshot.docs.first.data()['points'] ?? 0).toDouble();
       }
-    } catch (e) {
-      // Nếu không tìm thấy rule, sử dụng points mặc định
+    }
+    catch (e) {
       points = 0;
     }
 
-    // Tính endTime: nếu có deadline thì dùng, không thì mặc định 7 ngày sau
-    final endTimeMillis = deadline?.millisecondsSinceEpoch ?? 
-        (createdAt + const Duration(days: 7).inMilliseconds);
+    final endTimeMillis = deadline?.millisecondsSinceEpoch ?? (createdAt + const Duration(days: 7).inMilliseconds);
 
-    // Tạo duty với points từ rule
     batch.set(dutyRef, {
       'id': dutyRef.id,
       'classId': classId,
       'name': title,
       'originId': originId,
-      'originType': 'payment',
-      'description':
-          description ?? 'Khoản đóng quỹ: ${_formatCurrency(amount)}',
+      'originType': 'funds',
+      'description': description,
+      'note': amount,
       'startTime': createdAt,
       'endTime': endTimeMillis,
       'ruleName': ruleName,
@@ -297,7 +285,6 @@ class FundService {
       'updatedAt': createdAt,
     });
 
-    // Tạo task cho từng member
     for (final memberUid in memberUids) {
       _addTaskToBatch(
         batch: batch,
