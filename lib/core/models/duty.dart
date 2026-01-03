@@ -35,10 +35,14 @@ class Duty {
   bool get signupHasEnded => signupEndTime != null && DateTime.now().isAfter(signupEndTime!);
 
   /// Whether admin can edit this duty
-  /// - Non-origin duties: always editable
-  /// - Event duties: editable after signup ends
+  /// - Cannot edit if ended or past deadline
+  /// - Non-origin duties: always editable (if not ended/expired)
+  /// - Event duties: editable after signup ends (if not ended/expired)
   /// - Fund duties: never editable (data comes from fund)
-  bool get canEdit => !isFromOrigin || (isFromEvent && signupHasEnded);
+  bool get canEdit {
+    if (isEnded || isExpired) return false;
+    return !isFromOrigin || (isFromEvent && signupHasEnded);
+  }
 
   /// Whether admin can end this duty
   /// - Non-origin duties: always

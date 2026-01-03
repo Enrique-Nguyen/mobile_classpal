@@ -495,6 +495,32 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
       time.minute,
     );
 
+    // Validate deadline is after start time
+    if (isDeadline && newDateTime.isBefore(_selectedDateTime)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thời hạn phải sau thời gian bắt đầu'),
+          backgroundColor: AppColors.warningOrange,
+        ),
+      );
+      return;
+    }
+
+    // If changing start time to after deadline, warn and adjust deadline
+    if (!isDeadline && newDateTime.isAfter(_selectedDeadline)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thời hạn đã được điều chỉnh theo thời gian bắt đầu'),
+          backgroundColor: AppColors.warningOrange,
+        ),
+      );
+      setState(() {
+        _selectedDateTime = newDateTime;
+        _selectedDeadline = newDateTime.add(const Duration(hours: 1));
+      });
+      return;
+    }
+
     setState(() {
       if (isDeadline)
         _selectedDeadline = newDateTime;
@@ -517,6 +543,17 @@ class _CreateDutyScreenState extends ConsumerState<CreateDutyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Vui lòng chọn ít nhất một thành viên'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
+    // Validate deadline is after start time
+    if (_selectedDeadline.isBefore(_selectedDateTime)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thời hạn phải sau thời gian bắt đầu'),
           backgroundColor: AppColors.errorRed,
         ),
       );
