@@ -41,10 +41,7 @@ class HomepageScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildHelloWelcomeClass(
-                    ref
-                            .watch(AuthStateProvider.currentUserProvider)
-                            ?.displayName ??
-                        "Bạn",
+                    ref.watch(AuthStateProvider.currentUserProvider)?.displayName ?? "Bạn",
                   ),
                   _buildLogoutButton(context, ref),
                 ],

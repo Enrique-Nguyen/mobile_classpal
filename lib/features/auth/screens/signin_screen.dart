@@ -178,16 +178,16 @@ class _SigninScreenState extends State<SigninScreen> {
     return InputDecoration(
       prefixIcon: Icon(icon, color: AppColors.textGrey),
       suffixIcon: isPassword
-          ? IconButton(
-              icon: Icon(
-                obscureText!
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: AppColors.textGrey,
-              ),
-              onPressed: onToggle,
-            )
-          : null,
+        ? IconButton(
+            icon: Icon(
+              obscureText!
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+              color: AppColors.textGrey,
+            ),
+            onPressed: onToggle,
+          )
+        : null,
       hintText: hint,
       hintStyle: TextStyle(color: AppColors.textGrey.withOpacity(0.5)),
       filled: true,

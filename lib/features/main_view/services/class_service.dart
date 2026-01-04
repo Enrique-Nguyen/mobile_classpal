@@ -436,8 +436,8 @@ class ClassService {
         'avatarUrl': url,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       });
-    } catch (e) {
-      print("Lỗi update avatar: $e");
+    }
+    catch (e) {
       rethrow;
     }
   }
@@ -449,16 +449,16 @@ class ClassService {
   }) async {
     try {
       final memberRef = _firestore
-          .collection('classes')
-          .doc(classId)
-          .collection('members')
-          .doc(memberId);
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId);
       await memberRef.update({
         'name': fullName,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       });
-    } catch (e) {
-      print("Lỗi cập nhật tên: $e");
+    }
+    catch (e) {
       rethrow;
     }
   }
