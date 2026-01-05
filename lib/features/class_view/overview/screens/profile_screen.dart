@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
-
 import 'package:qr_flutter/qr_flutter.dart';
-
 import 'package:mobile_classpal/core/constants/app_colors.dart';
-
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
-
 import 'package:mobile_classpal/core/models/class.dart';
-
 import 'package:mobile_classpal/core/models/member.dart';
-
 import 'package:mobile_classpal/core/constants/images_avatar.dart';
-
 import 'package:mobile_classpal/features/main_view/services/class_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -39,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final Class classData = widget.classData;
 
   bool get _isManager => currentMember.role.displayName == "Quản lý lớp";
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,16 +77,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
 
-                      child: Text(
-                        currentMember.role.displayName,
-
-                        style: const TextStyle(
-                          fontSize: 12,
-
-                          fontWeight: FontWeight.w600,
-
-                          color: AppColors.primaryBlue,
+                      child: StreamBuilder<dynamic>(
+                        stream: ProfileScreen._classService.getRoleMemberStream(
+                          memberId: currentMember.uid,
+                          classId: classData.classId,
                         ),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) return const Text('Lỗi');
+
+                          final MemberRole roleFromStream =
+                              MemberRole.fromString(snapshot.data);
+                          currentMember = currentMember.copyWith(
+                            role: roleFromStream,
+                          );
+                          return Text(
+                            roleFromStream.displayName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryBlue,
+                            ),
+                          );
+                        },
                       ),
                     ),
 

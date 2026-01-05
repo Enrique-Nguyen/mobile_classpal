@@ -436,8 +436,7 @@ class ClassService {
         'avatarUrl': url,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       });
-    }
-    catch (e) {
+    } catch (e) {
       rethrow;
     }
   }
@@ -449,17 +448,33 @@ class ClassService {
   }) async {
     try {
       final memberRef = _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('members')
-        .doc(memberId);
+          .collection('classes')
+          .doc(classId)
+          .collection('members')
+          .doc(memberId);
       await memberRef.update({
         'name': fullName,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       });
-    }
-    catch (e) {
+    } catch (e) {
       rethrow;
     }
+  }
+
+  Stream<String?> getRoleMemberStream({
+    required String memberId,
+    required String classId,
+  }) {
+    return _firestore
+        .collection('classes')
+        .doc(classId)
+        .collection('members')
+        .doc(memberId)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.exists && snapshot.data() != null) {
+            return snapshot.data()!['role'] as String? ?? 'unknown';
+          }
+        });
   }
 }
