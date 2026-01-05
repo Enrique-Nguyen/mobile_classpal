@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_classpal/core/models/member.dart';
 import 'package:mobile_classpal/core/models/rule.dart';
+import 'package:mobile_classpal/features/class_view/leaderboard/services/leaderboard_service.dart';
 
 class MemberCounts {
   final int total;
@@ -476,5 +477,57 @@ class ClassService {
             return snapshot.data()!['role'] as String? ?? 'unknown';
           }
         });
+  }
+
+  Stream<String> getPointStream({
+    required String memberId,
+    required String classId,
+  }) {
+    return Stream.fromFuture(
+      LeaderboardService.getCurrentLeaderboard(classId),
+    ).asyncExpand((leaderboardId) {
+      return _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('achievements')
+          .where('leaderboardId', isEqualTo: leaderboardId?.leaderboardId)
+          .where('memberUid', isEqualTo: memberId)
+          .snapshots()
+          .map((snapshot) {
+            print("DEBUG CHECK:");
+            num totalPoints = 0;
+            for (dynamic doc in snapshot.docs) {
+              final data = doc.data();
+              if (data['points'] != null) {
+                totalPoints += (data['points'] as num);
+              }
+            }
+            return totalPoints.toString();
+          });
+    });
+  }
+
+  Stream<String> getTasksStream({
+    required String memberId,
+    required String classId,
+  }) {
+    return Stream.fromFuture(
+      LeaderboardService.getCurrentLeaderboard(classId),
+    ).asyncExpand((leaderboardId) {
+      return _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('achievements')
+          .where('leaderboardId', isEqualTo: leaderboardId?.leaderboardId)
+          .where('memberUid', isEqualTo: memberId)
+          .snapshots()
+          .map((snapshot) {
+            num totalTasks = 0;
+            for (var doc in snapshot.docs) {
+              totalTasks++;
+            }
+            return totalTasks.toString();
+          });
+    });
   }
 }
