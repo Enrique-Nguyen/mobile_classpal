@@ -109,7 +109,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       children: [
                         _buildSummaryProfile(
-                          point: "320",
+                          point: ProfileScreen._classService.getPointStream(
+                            memberId: currentMember.uid,
+                            classId: classData.classId,
+                          ),
 
                           subtitle: "Điểm",
 
@@ -121,7 +124,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 10),
 
                         _buildSummaryProfile(
-                          point: "24",
+                          point: ProfileScreen._classService.getTasksStream(
+                            memberId: currentMember.uid,
+                            classId: classData.classId,
+                          ),
 
                           subtitle: "Nhiệm vụ",
 
@@ -129,18 +135,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           iconColor: Colors.green,
                         ),
-
                         const SizedBox(width: 10),
 
-                        _buildSummaryProfile(
-                          point: "8",
+                        // _buildSummaryProfile(
+                        //   point: "8",
 
-                          subtitle: "Sự kiện",
+                        //   subtitle: "Sự kiện",
 
-                          icon: Icons.calendar_today,
+                        //   icon: Icons.calendar_today,
 
-                          iconColor: Colors.purple,
-                        ),
+                        //   iconColor: Colors.purple,
+                        // ),
                       ],
                     ),
 
@@ -600,7 +605,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSummaryProfile({
-    required String point,
+    required Stream<String> point,
 
     required String subtitle,
 
@@ -632,10 +637,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(icon, color: iconColor, size: 25),
 
-            Text(
-              point,
-
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            StreamBuilder(
+              stream: point,
+              builder: (context, snapshot) {
+                print("Lỗi Stream: ${snapshot.error}");
+                if (snapshot.hasError) return Text("Lỗi");
+                String displayPoint = snapshot.data ?? "0";
+                return Text(
+                  displayPoint,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              },
             ),
 
             Text(
