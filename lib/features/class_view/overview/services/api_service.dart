@@ -25,8 +25,8 @@ class ApiService {
     await _storage.write(key: _apiKey, value: apiKey);
   }
 
-  // XÓA API key
-  static Future<void> deleteApiKey() async {
-    await _storage.delete(key: _apiKey);
-  }
+  // // XÓA API key
+  // static Future<void> deleteApiKey() async {
+  //   await _storage.delete(key: _apiKey);
+  // }
 }

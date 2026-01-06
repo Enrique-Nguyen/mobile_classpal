@@ -33,18 +33,14 @@ class _ChatbotWindowState extends State<ChatbotWindow> {
       _textController.clear();
       _messages.insert(
         0,
-        ChatMessage(
-          content:
-              "Đang suy nghĩ", // Nội dung không quan trọng vì sẽ hiển thị widget 3 chấm
-          isUser: false,
-          isStreaming: true, // <--- Đánh dấu đây là tin nhắn chờ
-        ),
+        ChatMessage(content: "Đang suy nghĩ", isUser: false, isStreaming: true),
       );
     });
     try {
       final historyToSend = _messages.sublist(1);
       final responseText = await ChatBotService.sendMessage(
         history: historyToSend,
+        classId: widget.classData.classId,
       );
       if (mounted) {
         setState(() {
