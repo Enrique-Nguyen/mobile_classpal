@@ -124,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 10),
 
                         _buildSummaryProfile(
-                          point: ProfileScreen._classService.getTasksStream(
+                          point: ProfileScreen._classService.getTaskedStream(
                             memberId: currentMember.uid,
                             classId: classData.classId,
                           ),
@@ -137,15 +137,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 10),
 
-                        // _buildSummaryProfile(
-                        //   point: "8",
+                        _buildSummaryProfile(
+                          point: ProfileScreen._classService.getEventedStream(
+                            memberId: currentMember.uid,
+                            classId: classData.classId,
+                          ),
 
-                        //   subtitle: "Sự kiện",
+                          subtitle: "Sự kiện",
 
-                        //   icon: Icons.calendar_today,
+                          icon: Icons.calendar_today,
 
-                        //   iconColor: Colors.purple,
-                        // ),
+                          iconColor: Colors.purple,
+                        ),
                       ],
                     ),
 
