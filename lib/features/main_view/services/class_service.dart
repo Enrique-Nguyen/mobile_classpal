@@ -507,7 +507,7 @@ class ClassService {
     });
   }
 
-  Stream<String> getTasksStream({
+  Stream<String> getTaskedStream({
     required String memberId,
     required String classId,
   }) {
@@ -527,6 +527,32 @@ class ClassService {
               totalTasks++;
             }
             return totalTasks.toString();
+          });
+    });
+  }
+
+  Stream<String> getEventedStream({
+    required String memberId,
+    required String classId,
+  }) {
+    return Stream.fromFuture(
+      LeaderboardService.getCurrentLeaderboard(classId),
+    ).asyncExpand((leaderboardId) {
+      return _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('achievements')
+          .where('leaderboardId', isEqualTo: leaderboardId?.leaderboardId)
+          .where('memberUid', isEqualTo: memberId)
+          .snapshots()
+          .map((snapshot) {
+            num totalEvents = 0;
+            for (var doc in snapshot.docs) {
+              final data = doc.data();
+              if (data['originType'] != null && data.containsKey('originType'))
+                totalEvents++;
+            }
+            return totalEvents.toString();
           });
     });
   }
