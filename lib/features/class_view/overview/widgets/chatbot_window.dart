@@ -1,8 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/chat_message.dart';
 import 'package:mobile_classpal/core/models/class.dart';
 import 'package:mobile_classpal/core/models/member.dart';
+import 'package:mobile_classpal/features/class_view/overview/services/chatbot_service.dart';
 
 class ChatbotWindow extends StatefulWidget {
   final Class classData;
@@ -20,15 +22,51 @@ class ChatbotWindow extends StatefulWidget {
 
 class _ChatbotWindowState extends State<ChatbotWindow> {
   final TextEditingController _textController = TextEditingController();
-  final List<String> _messages = [];
-
-  void _handleSend() {
-    if (_textController.text.trim().isNotEmpty) {
-      setState(() {
-        // _messages.add(_textController.text.trim());
-        _messages.insert(0, _textController.text.trim());
-        _textController.clear();
-      });
+  final List<ChatMessage> _messages = [];
+  bool _isTyping = true;
+  void _handleSend() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _isTyping = false;
+      _messages.insert(0, ChatMessage(content: text, isUser: true));
+      _textController.clear();
+      _messages.insert(
+        0,
+        ChatMessage(
+          content:
+              "Đang suy nghĩ", // Nội dung không quan trọng vì sẽ hiển thị widget 3 chấm
+          isUser: false,
+          isStreaming: true, // <--- Đánh dấu đây là tin nhắn chờ
+        ),
+      );
+    });
+    try {
+      final historyToSend = _messages.sublist(1);
+      final responseText = await ChatBotService.sendMessage(
+        history: historyToSend,
+      );
+      if (mounted) {
+        setState(() {
+          _messages.removeAt(0);
+          _messages.insert(
+            0,
+            ChatMessage(content: responseText, isUser: false),
+          );
+          _isTyping = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages.removeAt(0);
+          _messages.insert(
+            0,
+            ChatMessage(content: "Lỗi rồi: $e", isUser: false),
+          );
+          _isTyping = true;
+        });
+      }
     }
   }
 
@@ -101,22 +139,75 @@ class _ChatbotWindowState extends State<ChatbotWindow> {
                       reverse: true,
                       padding: const EdgeInsets.all(12),
                       itemCount: _messages.length,
-                      itemBuilder: (context, index) => Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          // Giới hạn chiều rộng bong bóng chat để không bị tràn text
-                          constraints: BoxConstraints(
-                            maxWidth: windowWidth * 0.7,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        if (!msg.isUser && msg.isStreaming) {
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    "Đang suy nghĩ...",
+                                    style: TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return Align(
+                          alignment: msg.isUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            constraints: BoxConstraints(
+                              maxWidth: windowWidth * 0.7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: msg.isUser
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              msg.content,
+                              style: TextStyle(
+                                color: msg.isUser
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontSize: 15,
+                              ),
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.bannerBlue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(_messages[index]),
-                        ),
-                      ),
+                        );
+                      },
                     ),
             ),
             // Input
@@ -125,6 +216,7 @@ class _ChatbotWindowState extends State<ChatbotWindow> {
               child: TextField(
                 controller: _textController,
                 textInputAction: TextInputAction.send,
+                enabled: _isTyping,
                 decoration: InputDecoration(
                   hintText: "Nhập tin nhắn...",
                   filled: true,
