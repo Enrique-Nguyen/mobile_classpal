@@ -64,6 +64,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final canManage =
+        widget.currentMember.role == MemberRole.quanLyLop ||
+        widget.currentMember.role == MemberRole.canBoLop;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -129,14 +132,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryBlue,
-        onPressed: _toggleChat,
-        child: Icon(
-          _isChatOpen ? Icons.close : Icons.smart_toy,
-          color: Colors.white,
-        ),
-      ),
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              backgroundColor: AppColors.primaryBlue,
+              onPressed: _toggleChat,
+              child: Icon(
+                _isChatOpen ? Icons.close : Icons.smart_toy,
+                color: Colors.white,
+              ),
+            )
+          : null,
     );
   }
 }
