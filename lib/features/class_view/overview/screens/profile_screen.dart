@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
-
 import 'package:qr_flutter/qr_flutter.dart';
-
 import 'package:mobile_classpal/core/constants/app_colors.dart';
-
 import 'package:mobile_classpal/core/widgets/custom_header.dart';
-
 import 'package:mobile_classpal/core/models/class.dart';
-
 import 'package:mobile_classpal/core/models/member.dart';
-
 import 'package:mobile_classpal/core/constants/images_avatar.dart';
-
 import 'package:mobile_classpal/features/main_view/services/class_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -39,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final Class classData = widget.classData;
 
   bool get _isManager => currentMember.role.displayName == "Quản lý lớp";
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,16 +77,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
 
-                      child: Text(
-                        currentMember.role.displayName,
-
-                        style: const TextStyle(
-                          fontSize: 12,
-
-                          fontWeight: FontWeight.w600,
-
-                          color: AppColors.primaryBlue,
+                      child: StreamBuilder<dynamic>(
+                        stream: ProfileScreen._classService.getRoleMemberStream(
+                          memberId: currentMember.uid,
+                          classId: classData.classId,
                         ),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) return const Text('Lỗi');
+
+                          final MemberRole roleFromStream =
+                              MemberRole.fromString(snapshot.data);
+                          currentMember = currentMember.copyWith(
+                            role: roleFromStream,
+                          );
+                          return Text(
+                            roleFromStream.displayName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryBlue,
+                            ),
+                          );
+                        },
                       ),
                     ),
 
@@ -105,7 +109,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       children: [
                         _buildSummaryProfile(
-                          point: "320",
+                          point: ProfileScreen._classService.getPointStream(
+                            memberId: currentMember.uid,
+                            classId: classData.classId,
+                          ),
 
                           subtitle: "Điểm",
 
@@ -117,7 +124,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 10),
 
                         _buildSummaryProfile(
-                          point: "24",
+                          point: ProfileScreen._classService.getTaskedStream(
+                            memberId: currentMember.uid,
+                            classId: classData.classId,
+                          ),
 
                           subtitle: "Nhiệm vụ",
 
@@ -125,11 +135,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           iconColor: Colors.green,
                         ),
-
                         const SizedBox(width: 10),
 
                         _buildSummaryProfile(
-                          point: "8",
+                          point: ProfileScreen._classService.getEventedStream(
+                            memberId: currentMember.uid,
+                            classId: classData.classId,
+                          ),
 
                           subtitle: "Sự kiện",
 
@@ -596,7 +608,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSummaryProfile({
-    required String point,
+    required Stream<String> point,
 
     required String subtitle,
 
@@ -628,10 +640,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(icon, color: iconColor, size: 25),
 
-            Text(
-              point,
-
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            StreamBuilder(
+              stream: point,
+              builder: (context, snapshot) {
+                print("Lỗi Stream: ${snapshot.error}");
+                if (snapshot.hasError) return Text("Lỗi");
+                String displayPoint = snapshot.data ?? "0";
+                return Text(
+                  displayPoint,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              },
             ),
 
             Text(

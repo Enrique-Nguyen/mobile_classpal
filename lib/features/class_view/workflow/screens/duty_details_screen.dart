@@ -192,6 +192,59 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
       );
     }
 
+    // Check if duty is ended or past deadline
+    if (widget.duty.isEnded) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey, width: 1.5),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.stop_circle_outlined, size: 16, color: Colors.grey),
+            SizedBox(width: 6),
+            Text(
+              'Đã kết thúc',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (widget.duty.isExpired) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.warningOrange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.warningOrange, width: 1.5),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.timer_off_outlined, size: 16, color: AppColors.warningOrange),
+            SizedBox(width: 6),
+            Text(
+              'Đã quá hạn',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.warningOrange,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (widget.isAdmin) {
       color = AppColors.primaryBlue;
       label = 'Quản lý nhiệm vụ';
@@ -478,14 +531,24 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   }
 
   Future<void> _confirmRemoveMember(Member member, Task task) async {
+    // Calculate current effective member count
+    final currentAssigneeCount = widget.duty.assigneeIds.length - _removedMemberIds.length + _selectedMembers.length;
+    if (currentAssigneeCount <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nhiệm vụ cần có ít nhất 1 thành viên'),
+          backgroundColor: AppColors.warningOrange,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Xóa thành viên?'),
-        content: Text(
-          'Bạn có chắc muốn xóa ${member.name} khỏi nhiệm vụ này?',
-        ),
+        content: Text('Bạn có chắc muốn xóa ${member.name} khỏi nhiệm vụ này?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -501,30 +564,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      try {
-        await DutyService.deleteTask(
-          classId: widget.duty.classId,
-          dutyId: widget.duty.id,
-          memberUid: member.uid,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Đã xóa ${member.name} khỏi nhiệm vụ'),
-              backgroundColor: AppColors.successGreen,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Lỗi: $e'),
-              backgroundColor: AppColors.errorRed,
-            ),
-          );
-        }
-      }
+      // Add to removed set (will be applied on save)
+      setState(() => _removedMemberIds.add(member.uid));
     }
   }
 
@@ -598,7 +639,9 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
   Widget _buildAssigneesSection() {
     final classId = widget.duty.classId;
     final dutyId = widget.duty.id;
-    final assigneeIds = List<String>.from(widget.duty.assigneeIds);
+    // Filter out removed members from display
+    final assigneeIds = List<String>.from(widget.duty.assigneeIds)
+      ..removeWhere((id) => _removedMemberIds.contains(id));
 
     return StreamBuilder<List<Member>>(
       stream: FirebaseFirestore.instance
@@ -684,8 +727,8 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // Display assigned members with their task status
-                  if (assigneeIds.isEmpty)
+                  // Display assigned members with their task status (excluding removed ones)
+                  if (assigneeIds.isEmpty && _selectedMembers.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: Text("Chưa có ai được phân công", style: TextStyle(color: AppColors.textSecondary)),
@@ -870,7 +913,20 @@ class _DutyDetailsScreenState extends State<DutyDetailsScreen> {
             ),
           ),
           GestureDetector(
-            onTap: () => setState(() => _selectedMembers.remove(member)),
+            onTap: () {
+              // Check if this would be the last member
+              final currentCount = widget.duty.assigneeIds.length - _removedMemberIds.length + _selectedMembers.length;
+              if (currentCount <= 1) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nhiệm vụ cần có ít nhất 1 thành viên'),
+                    backgroundColor: AppColors.warningOrange,
+                  ),
+                );
+                return;
+              }
+              setState(() => _selectedMembers.remove(member));
+            },
             child: const Icon(Icons.close, size: 20, color: AppColors.textSecondary),
           ),
         ],

@@ -207,6 +207,33 @@ class TasksScreenMember extends StatelessWidget {
             Row(
               children: [
                 _buildStatusBadge(task.status),
+                // Expired badge
+                if (duty.isExpired) ...[ 
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningOrange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.warningOrange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.timer_off_outlined, size: 12, color: AppColors.warningOrange),
+                        SizedBox(width: 4),
+                        Text(
+                          'Quá hạn',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.warningOrange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

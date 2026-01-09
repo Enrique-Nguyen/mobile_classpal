@@ -62,9 +62,9 @@ class App extends StatelessWidget {
       home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
       routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/signin': (context) => const SigninScreen(),
-        '/signup': (context) => const SignupScreen(),
+        '/welcome':   (context) => const WelcomeScreen(),
+        '/signin':    (context) => const SigninScreen(),
+        '/signup':    (context) => const SignupScreen(),
         '/home_page': (context) => const HomepageScreen(),
       },
       onGenerateRoute: (settings) {

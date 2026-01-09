@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/models/fund_transaction.dart';
+import 'package:mobile_classpal/core/constants/app_colors.dart';
+import 'package:mobile_classpal/core/models/fund_transaction.dart';
 import '../services/fund_service.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
@@ -18,9 +18,7 @@ class TransactionDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIncome = transaction.isIncome;
     final themeColor = isIncome ? AppColors.successGreen : AppColors.errorRed;
-    final bgColor = isIncome
-        ? const Color(0xFFE8F5E9)
-        : const Color(0xFFFFEBEE);
+    final bgColor = isIncome ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -215,13 +213,6 @@ class TransactionDetailScreen extends StatelessWidget {
                       isMultiLine: true,
                     ),
                   ],
-                  const Divider(height: 24),
-                  _buildDetailRow(
-                    icon: Icons.tag_outlined,
-                    label: 'Mã giao dịch',
-                    value: transaction.id,
-                    isSmall: true,
-                  ),
                 ],
               ),
             ),
@@ -244,9 +235,7 @@ class TransactionDetailScreen extends StatelessWidget {
     bool isSmall = false,
   }) {
     return Row(
-      crossAxisAlignment: isMultiLine
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
+      crossAxisAlignment: isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
         Container(
           padding: const EdgeInsets.all(8),

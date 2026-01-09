@@ -10,6 +10,7 @@ class DutyCard extends StatelessWidget {
   final int points;
   final bool isAssignedToMonitor;
   final bool needsAssignees;
+  final bool isExpired;
   final DutyExtraInfo? extraInfo;
   final VoidCallback? onTap;
 
@@ -22,6 +23,7 @@ class DutyCard extends StatelessWidget {
     required this.points,
     this.isAssignedToMonitor = false,
     this.needsAssignees = false,
+    this.isExpired = false,
     this.extraInfo,
     this.onTap,
   });
@@ -144,6 +146,36 @@ class DutyCard extends StatelessWidget {
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: AppColors.errorRed,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]
+                // Expired badge
+                else if (isExpired) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningOrange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.warningOrange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.timer_off_outlined, size: 12, color: AppColors.warningOrange),
+                        SizedBox(width: 4),
+                        Text(
+                          'Quá hạn',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.warningOrange,
                           ),
                         ),
                       ],

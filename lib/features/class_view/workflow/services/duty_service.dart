@@ -27,10 +27,10 @@ class DutyService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final batch = _firestore.batch();
     final dutyRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc();
 
     batch.set(dutyRef, {
       'id': dutyRef.id,
@@ -66,7 +66,8 @@ class DutyService {
         memberUids: assignees.map((m) => m.uid).toList(),
         type: notif_model.NotificationType.duty,
         title: 'Nhiệm vụ mới: $name',
-        subtitle: 'Thời hạn: ${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')}/${endTime.year} lúc ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
+        subtitle:
+            'Thời hạn: ${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')}/${endTime.year} lúc ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
         referenceId: dutyRef.id,
         startTime: startTime,
       );
@@ -93,10 +94,10 @@ class DutyService {
     );
 
     final dutyRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId);
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId);
     batch.update(dutyRef, {
       'assigneeIds': FieldValue.arrayUnion([assigneeUid]),
       'updatedAt': now,
@@ -111,7 +112,8 @@ class DutyService {
       uid: assigneeUid,
       type: notif_model.NotificationType.duty,
       title: 'Nhiệm vụ mới: ${dutyData.name}',
-      subtitle: 'Thời hạn: ${dutyData.endTime.day.toString().padLeft(2, '0')}/${dutyData.endTime.month.toString().padLeft(2, '0')}/${dutyData.endTime.year} lúc ${dutyData.endTime.hour.toString().padLeft(2, '0')}:${dutyData.endTime.minute.toString().padLeft(2, '0')}',
+      subtitle:
+          'Thời hạn: ${dutyData.endTime.day.toString().padLeft(2, '0')}/${dutyData.endTime.month.toString().padLeft(2, '0')}/${dutyData.endTime.year} lúc ${dutyData.endTime.hour.toString().padLeft(2, '0')}:${dutyData.endTime.minute.toString().padLeft(2, '0')}',
       referenceId: dutyId,
       startTime: dutyData.startTime,
     );
@@ -125,26 +127,24 @@ class DutyService {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final tasksSnapshot = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .collection('tasks')
-      .where('uid', isEqualTo: memberUid)
-      .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .where('uid', isEqualTo: memberUid)
+        .get();
 
-    if (tasksSnapshot.docs.isEmpty)
-      return;
+    if (tasksSnapshot.docs.isEmpty) return;
 
     final batch = _firestore.batch();
-    for (final doc in tasksSnapshot.docs)
-      batch.delete(doc.reference);
+    for (final doc in tasksSnapshot.docs) batch.delete(doc.reference);
 
     final dutyRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId);
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId);
     batch.update(dutyRef, {
       'assigneeIds': FieldValue.arrayRemove([memberUid]),
       'updatedAt': now,
@@ -165,22 +165,21 @@ class DutyService {
   }) async {
     // Xóa tất cả tasks trong duty
     final tasksSnapshot = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .collection('tasks')
-      .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .get();
 
     final batch = _firestore.batch();
-    for (final doc in tasksSnapshot.docs)
-      batch.delete(doc.reference);
+    for (final doc in tasksSnapshot.docs) batch.delete(doc.reference);
 
     final dutyRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId);
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId);
 
     batch.delete(dutyRef);
     await batch.commit();
@@ -194,12 +193,12 @@ class DutyService {
     required int createdAt,
   }) {
     final taskRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .collection('tasks')
-      .doc();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .doc();
 
     batch.set(taskRef, {
       'id': taskRef.id,
@@ -211,54 +210,63 @@ class DutyService {
     });
   }
 
-  static Stream<List<DutyWithTask>> streamMemberDutiesWithTasks(String classId, String memberUid) {
+  static Stream<List<DutyWithTask>> streamMemberDutiesWithTasks(
+    String classId,
+    String memberUid,
+  ) {
     return _firestore
-      .collectionGroup('tasks')
-      .where('classId', isEqualTo: classId)
-      .where('uid', isEqualTo: memberUid)
-      .snapshots()
-      .asyncMap((taskSnapshot) async {
-        if (taskSnapshot.docs.isEmpty) return <DutyWithTask>[];
+        .collectionGroup('tasks')
+        .where('classId', isEqualTo: classId)
+        .where('uid', isEqualTo: memberUid)
+        .snapshots()
+        .asyncMap((taskSnapshot) async {
+          if (taskSnapshot.docs.isEmpty) return <DutyWithTask>[];
 
-        final futures = taskSnapshot.docs.map((taskDoc) async {
-          final task = Task.fromMap(taskDoc.data());
-          final dutyDoc = await _firestore
-            .collection('classes')
-            .doc(classId)
-            .collection('duties')
-            .doc(task.dutyId)
-            .get();
+          final futures = taskSnapshot.docs.map((taskDoc) async {
+            final task = Task.fromMap(taskDoc.data());
+            final dutyDoc = await _firestore
+                .collection('classes')
+                .doc(classId)
+                .collection('duties')
+                .doc(task.dutyId)
+                .get();
 
-          if (!dutyDoc.exists) return null;
-          
-          final duty = Duty.fromMap(dutyDoc.data()!);
-          return DutyWithTask(duty: duty, task: task);
+            if (!dutyDoc.exists) return null;
+
+            final duty = Duty.fromMap(dutyDoc.data()!);
+            return DutyWithTask(duty: duty, task: task);
+          });
+
+          final results = await Future.wait(futures);
+          return results.whereType<DutyWithTask>().toList();
         });
-
-        final results = await Future.wait(futures);
-        return results.whereType<DutyWithTask>().toList();
-      });
   }
 
   static Stream<List<Task>> streamDutyTasks(String classId, String dutyId) {
     return _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .collection('tasks')
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList());
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList(),
+        );
   }
 
   static Stream<List<Task>> streamPendingApprovals(String classId) {
     return _firestore
-      .collectionGroup('tasks')
-      .where('classId', isEqualTo: classId)
-      .where('status', isEqualTo: TaskStatus.pending.storageKey)
-      // .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList());
+        .collectionGroup('tasks')
+        .where('classId', isEqualTo: classId)
+        .where('status', isEqualTo: TaskStatus.pending.storageKey)
+        // .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Task.fromMap(doc.data())).toList(),
+        );
   }
 
   static Future<void> updateTaskStatus({
@@ -269,20 +277,19 @@ class DutyService {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final taskRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .collection('tasks')
-      .doc(taskId);
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .doc(taskId);
 
     final updateData = <String, dynamic>{
       'status': newStatus.storageKey,
       'updatedAt': now,
     };
 
-    if (newStatus == TaskStatus.pending)
-      updateData['submittedAt'] = now;
+    if (newStatus == TaskStatus.pending) updateData['submittedAt'] = now;
 
     // If approving (changing to completed), check if submission was late
     if (newStatus == TaskStatus.completed) {
@@ -290,11 +297,11 @@ class DutyService {
       if (taskDoc.exists) {
         final task = Task.fromMap(taskDoc.data()!);
         final dutyDoc = await _firestore
-          .collection('classes')
-          .doc(classId)
-          .collection('duties')
-          .doc(dutyId)
-          .get();
+            .collection('classes')
+            .doc(classId)
+            .collection('duties')
+            .doc(dutyId)
+            .get();
 
         if (dutyDoc.exists) {
           final duty = Duty.fromMap(dutyDoc.data()!);
@@ -306,6 +313,7 @@ class DutyService {
               memberUid: task.uid,
               dutyName: duty.name,
               points: duty.points,
+              originType: duty.originType,
             );
           else
             await LeaderboardService.createAchievement(
@@ -313,6 +321,7 @@ class DutyService {
               memberUid: task.uid,
               title: duty.name,
               points: duty.points,
+              originType: duty.originType,
             );
         }
       }
@@ -332,10 +341,10 @@ class DutyService {
     List<Member>? newAssignees,
   }) async {
     final dutyRef = _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId);
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId);
 
     return _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(dutyRef);
@@ -343,15 +352,16 @@ class DutyService {
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final currentData = snapshot.data()!;
-      final List<String> currentAssigneeIds = List<String>.from(currentData['assigneeIds'] ?? []);
+      final List<String> currentAssigneeIds = List<String>.from(
+        currentData['assigneeIds'] ?? [],
+      );
 
-      final updates = <String, dynamic>{
-        'updatedAt': now,
-      };
+      final updates = <String, dynamic>{'updatedAt': now};
 
       if (name != null) updates['name'] = name;
       if (description != null) updates['description'] = description;
-      if (startTime != null) updates['startTime'] = startTime.millisecondsSinceEpoch;
+      if (startTime != null)
+        updates['startTime'] = startTime.millisecondsSinceEpoch;
       if (ruleName != null) updates['ruleName'] = ruleName;
       if (points != null) updates['points'] = points;
 
@@ -360,8 +370,12 @@ class DutyService {
         updates['assigneeIds'] = newAssigneeIds;
 
         // Calculate diff
-        final toAdd = newAssigneeIds.toSet().difference(currentAssigneeIds.toSet());
-        final toRemove = currentAssigneeIds.toSet().difference(newAssigneeIds.toSet());
+        final toAdd = newAssigneeIds.toSet().difference(
+          currentAssigneeIds.toSet(),
+        );
+        final toRemove = currentAssigneeIds.toSet().difference(
+          newAssigneeIds.toSet(),
+        );
 
         // Add new tasks
         for (final uid in toAdd) {
@@ -380,10 +394,12 @@ class DutyService {
           final dutyName = currentData['name'] ?? 'Nhiệm vụ';
           final startTimeMs = currentData['startTime'] as int?;
           final endTimeMs = currentData['endTime'] as int?;
-          final endTime = endTimeMs != null ? DateTime.fromMillisecondsSinceEpoch(endTimeMs) : null;
+          final endTime = endTimeMs != null
+              ? DateTime.fromMillisecondsSinceEpoch(endTimeMs)
+              : null;
           final subtitle = endTime != null
-            ? 'Thời hạn: ${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')}/${endTime.year} lúc ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}'
-            : 'Bạn được giao một nhiệm vụ mới';
+              ? 'Thời hạn: ${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')}/${endTime.year} lúc ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}'
+              : 'Bạn được giao một nhiệm vụ mới';
           await NotificationService.createNotificationsForMembers(
             classId: classId,
             memberUids: toAdd.toList(),
@@ -391,13 +407,19 @@ class DutyService {
             title: 'Nhiệm vụ mới: $dutyName',
             subtitle: subtitle,
             referenceId: dutyId,
-            startTime: startTimeMs != null ? DateTime.fromMillisecondsSinceEpoch(startTimeMs) : null,
+            startTime: startTimeMs != null
+                ? DateTime.fromMillisecondsSinceEpoch(startTimeMs)
+                : null,
           );
         }
 
         for (final uid in toRemove) {
-          final taskRef = await dutyRef.collection('tasks').where('uid', isEqualTo: uid).get();
-          if (taskRef.docs.isNotEmpty) transaction.delete(taskRef.docs.first.reference);
+          final taskRef = await dutyRef
+              .collection('tasks')
+              .where('uid', isEqualTo: uid)
+              .get();
+          if (taskRef.docs.isNotEmpty)
+            transaction.delete(taskRef.docs.first.reference);
         }
       }
 
@@ -407,14 +429,13 @@ class DutyService {
 
   static Future<Duty?> getDuty(String classId, String dutyId) async {
     final doc = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .get();
 
-    if (doc.exists)
-      return Duty.fromMap(doc.data()!);
+    if (doc.exists) return Duty.fromMap(doc.data()!);
 
     return null;
   }
@@ -425,45 +446,47 @@ class DutyService {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final dutyDoc = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .get();
 
     if (!dutyDoc.exists) return;
     final duty = Duty.fromMap(dutyDoc.data()!);
 
     // Get all tasks for this duty
     final tasksSnapshot = await _firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .collection('tasks')
-      .get();
+        .collection('classes')
+        .doc(classId)
+        .collection('duties')
+        .doc(dutyId)
+        .collection('tasks')
+        .get();
 
-    final futures = <Future<void>>[_firestore
-      .collection('classes')
-      .doc(classId)
-      .collection('duties')
-      .doc(dutyId)
-      .update({
-        'endedAt': now,
-        'updatedAt': now,
-      })];
+    final futures = <Future<void>>[
+      _firestore
+          .collection('classes')
+          .doc(classId)
+          .collection('duties')
+          .doc(dutyId)
+          .update({'endedAt': now, 'updatedAt': now}),
+    ];
     for (final taskDoc in tasksSnapshot.docs) {
       final task = Task.fromMap(taskDoc.data());
       if (task.status != TaskStatus.completed) {
-        futures.add(LeaderboardService.createPenalty(
-          classId: classId,
-          memberUid: task.uid,
-          dutyName: duty.name,
-          points: duty.points,
-        ));
+        futures.add(
+          LeaderboardService.createPenalty(
+            classId: classId,
+            memberUid: task.uid,
+            dutyName: duty.name,
+            points: duty.points,
+            originType: duty.originType,
+          ),
+        );
       }
     }
-    
+
     await Future.wait(futures);
   }
 }

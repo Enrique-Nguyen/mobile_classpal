@@ -11,6 +11,7 @@ class AuthService {
 
   //Biến cờ để kiểm tra xem đã initialize chưa (Tránh gọi 2 lần gây lỗi)
   static bool _isGoogleInitialized = false;
+
   // Hàm Đăng ký
   Future<User?> signUp({
     required String email,
@@ -24,24 +25,26 @@ class AuthService {
       );
       User? user = credential.user;
       if (user != null) {
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'email': email,
-          'userName': userName,
-          'createdAt': DateTime.now(),
-          'updatedAt': DateTime.now(),
-        });
+        // await _firestore.collection('users').doc(user.uid).set({
+        //   'uid': user.uid,
+        //   'email': email,
+        //   'userName': userName,
+        //   'createdAt': DateTime.now(),
+        //   'updatedAt': DateTime.now(),
+        // });
         await user.updateDisplayName(userName);
       }
       return user;
-    } on FirebaseAuthException catch (e) {
+    }
+    on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         throw Exception('Mật khẩu quá yếu.');
       } else if (e.code == 'email-already-in-use') {
         throw Exception('Email này đã được đăng ký.');
       }
       throw Exception(e.message);
-    } catch (e) {
+    }
+    catch (e) {
       throw Exception(
         'Lỗi hệ thống: $e',
       ).toString().replaceAll('Exception:', '');
@@ -56,7 +59,8 @@ class AuthService {
         password: password,
       );
       return credential.user;
-    } on FirebaseAuthException catch (e) {
+    }
+    on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-credential')
         throw Exception('Email hoặc mật khẩu không chính xác.');
       throw Exception(e.message);
@@ -65,30 +69,21 @@ class AuthService {
 
   // Hàm Đăng xuất
   Future<void> signOut(BuildContext context) async {
-    try {
-      print(_auth.currentUser);
-      await _auth.signOut();
-      if (context.mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/signin', (route) => false);
-        print(_auth.currentUser);
-      }
-    } catch (e) {
-      print("Lỗi đăng xuất: $e");
+    await _auth.signOut();
+    if (context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/signin', (route) => false);
     }
   }
 
   static Future<Member?> getMember(String classId, String uid) async {
     final doc = await _firestore
-        .collection('classes')
-        .doc(classId)
-        .collection('members')
-        .doc(uid)
-        .get();
+      .collection('classes')
+      .doc(classId)
+      .collection('members')
+      .doc(uid)
+      .get();
 
     if (doc.exists) return Member.fromMap(doc.data()!);
-
     return null;
   }
 
@@ -96,8 +91,6 @@ class AuthService {
     try {
       // BƯỚC 1: Gọi initialize đúng 1 lần duy nhất
       if (!_isGoogleInitialized) {
-        print("Đang khởi tạo cấu hình Google Sign In...");
-
         await _googleSignIn.initialize(
           serverClientId:
               '654195767460-246d0r15u0opauutfl00qmtos6mr3en0.apps.googleusercontent.com',
@@ -154,7 +147,6 @@ class AuthService {
       }
       return user;
     } catch (e) {
-      print("Google Sign In Error: $e");
       return null;
     }
   }
