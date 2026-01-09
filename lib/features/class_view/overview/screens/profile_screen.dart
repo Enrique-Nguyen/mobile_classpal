@@ -83,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           classId: classData.classId,
                         ),
                         builder: (context, snapshot) {
-                          if (snapshot.hasError) return const Text('Lỗi');
+                          if (!snapshot.hasData) return const Text('Lỗi');
 
                           final MemberRole roleFromStream =
                               MemberRole.fromString(snapshot.data);
@@ -643,8 +643,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             StreamBuilder(
               stream: point,
               builder: (context, snapshot) {
-                print("Lỗi Stream: ${snapshot.error}");
-                if (snapshot.hasError) return Text("Lỗi");
+                if (!snapshot.hasData) return Text("Lỗi");
                 String displayPoint = snapshot.data ?? "0";
                 return Text(
                   displayPoint,
