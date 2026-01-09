@@ -30,7 +30,6 @@ enum NotificationType {
 
 class Notification {
   final String notificationId;
-  final String classId;
   final String uid; // recipient member uid
   final NotificationType type;
   final String title;
@@ -43,7 +42,6 @@ class Notification {
 
   Notification({
     required this.notificationId,
-    required this.classId,
     required this.uid,
     required this.type,
     required this.title,
@@ -60,7 +58,6 @@ class Notification {
   Map<String, dynamic> toMap() {
     return {
       'notificationId': notificationId,
-      'classId': classId,
       'uid': uid,
       'type': type.name,
       'title': title,
@@ -76,7 +73,6 @@ class Notification {
   factory Notification.fromMap(Map<String, dynamic> map) {
     return Notification(
       notificationId: map['notificationId'] ?? '',
-      classId: map['classId'] ?? '',
       uid: map['uid'] ?? '',
       type: NotificationType.fromString(map['type'] ?? 'duty'),
       title: map['title'] ?? '',
@@ -97,7 +93,6 @@ class Notification {
 
   Notification copyWith({
     String? notificationId,
-    String? classId,
     String? uid,
     NotificationType? type,
     String? title,
@@ -110,7 +105,6 @@ class Notification {
   }) {
     return Notification(
       notificationId: notificationId ?? this.notificationId,
-      classId: classId ?? this.classId,
       uid: uid ?? this.uid,
       type: type ?? this.type,
       title: title ?? this.title,

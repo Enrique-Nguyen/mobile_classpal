@@ -76,6 +76,7 @@ class ClassService {
         'uid': currentUser.uid,
         'name': currentUser.displayName,
         'role': 'Quản lý lớp',
+        'classId': classRef.id,
         'joinedAt': now,
         'updateAt': now,
       });
@@ -159,6 +160,7 @@ class ClassService {
         'uid': currentUser.uid,
         'name': currentUser.displayName ?? "Unknown",
         'role': 'Thành viên lớp',
+        'classId': classId,
         'joinedAt': now,
         'updateAt': now,
       });
@@ -476,6 +478,7 @@ class ClassService {
           if (snapshot.exists && snapshot.data() != null) {
             return snapshot.data()!['role'] as String? ?? 'unknown';
           }
+          return null;
         });
   }
 
@@ -494,7 +497,6 @@ class ClassService {
           .where('memberUid', isEqualTo: memberId)
           .snapshots()
           .map((snapshot) {
-            print("DEBUG CHECK:");
             num totalPoints = 0;
             for (dynamic doc in snapshot.docs) {
               final data = doc.data();
@@ -521,13 +523,7 @@ class ClassService {
           .where('leaderboardId', isEqualTo: leaderboardId?.leaderboardId)
           .where('memberUid', isEqualTo: memberId)
           .snapshots()
-          .map((snapshot) {
-            num totalTasks = 0;
-            for (var doc in snapshot.docs) {
-              totalTasks++;
-            }
-            return totalTasks.toString();
-          });
+          .map((snapshot) => snapshot.docs.length.toString());
     });
   }
 

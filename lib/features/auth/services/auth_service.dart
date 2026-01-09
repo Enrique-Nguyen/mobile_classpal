@@ -25,13 +25,13 @@ class AuthService {
       );
       User? user = credential.user;
       if (user != null) {
-        // await _firestore.collection('users').doc(user.uid).set({
-        //   'uid': user.uid,
-        //   'email': email,
-        //   'userName': userName,
-        //   'createdAt': DateTime.now(),
-        //   'updatedAt': DateTime.now(),
-        // });
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'userName': userName,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        });
         await user.updateDisplayName(userName);
       }
       return user;
